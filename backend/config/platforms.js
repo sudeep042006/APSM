@@ -5,7 +5,7 @@
 // To add a new platform — add one entry here. Nothing else changes.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const axios = require('axios');
+import axios from 'axios';
 
 const BASE_URL = process.env.BASE_URL || 'http://localhost:5000';
 
@@ -219,4 +219,4 @@ const platforms = {
   },
 };
 
-module.exports = platforms;
+export default platforms;

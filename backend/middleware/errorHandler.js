@@ -1,7 +1,7 @@
 // middleware/errorHandler.js
 
 // Central error handler — attach as the LAST middleware in server.js
-const errorHandler = (err, req, res, next) => {
+export const errorHandler = (err, req, res, next) => {
   console.error(`[${new Date().toISOString()}] ERROR:`, err.message);
   if (process.env.NODE_ENV === 'development') console.error(err.stack);
 
@@ -22,4 +22,4 @@ const errorHandler = (err, req, res, next) => {
   res.status(status).json({ error: message });
 };
 
-module.exports = { errorHandler };
+

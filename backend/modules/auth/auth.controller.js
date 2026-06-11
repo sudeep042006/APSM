@@ -1,29 +1,14 @@
-// routes/auth.js
-//
-// Handles:
-//   POST /auth/register
-//   POST /auth/login
-//   GET  /auth/me
-//   GET  /auth/status
-//   GET  /auth/:platform              → initiates OAuth (youtube / facebook / instagram)
-//   GET  /auth/:platform/callback     → OAuth callback (same 3 platforms)
-//   DELETE /auth/:platform            → disconnect a platform
-// ─────────────────────────────────────────────────────────────────────────────
-
-const express        = require('express');
-const axios          = require('axios');
-const crypto         = require('crypto');
-const jwt            = require('jsonwebtoken');
-const bcrypt         = require('bcrypt');
-const { User }       = require('../models/User');
-const { requireAuth} = require('../middleware/auth');
-const platforms      = require('../config/platforms');
-
-const router = express.Router();
+// modules/auth/auth.controller.js
+import axios          from 'axios';
+import crypto         from 'crypto';
+import jwt            from 'jsonwebtoken';
+import bcrypt         from 'bcrypt';
+import { User }       from './auth.model.js';
+import platforms      from '../../config/platforms.js';
 
 // ─── In-memory CSRF state store ───────────────────────────────────────────────
 // Maps state string → { userId, platform, expiresAt }
-// Sufficient for single-server / development. Use Redis for multi-server production.
+// Sufficient for development. Use Redis for multi-server production.
 const pendingStates = new Map();
 
 // Auto-clean expired states every 15 min
@@ -34,12 +19,37 @@ setInterval(() => {
   }
 }, 15 * 60 * 1000);
 
+// Helper: Generate JWT
+function generateJWT(userId) {
+  return jwt.sign(
+    { userId: userId.toString() },
+    process.env.JWT_SECRET,
+    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
+  );
+}
+
+// Helper: Normalize user for public response
+function publicUser(user) {
+  return {
+    id:    user._id,
+    name:  user.name,
+    email: user.email,
+    connectedPlatforms: (user.socialAccounts || [])
+      .filter(a => a.isActive)
+      .map(a => ({
+        platform: a.platform,
+        username: a.platformUsername,
+        expiresAt: a.expiresAt,
+      })),
+  };
+}
+
 // ─────────────────────────────────────────────────────────────────────────────
-// REGISTER
-// POST /auth/register
-// Body: { name, email, password }
+// AUTH CONTROLLERS
 // ─────────────────────────────────────────────────────────────────────────────
-router.post('/register', async (req, res, next) => {
+
+// REGISTER: POST /auth/register
+const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
 
@@ -64,14 +74,10 @@ router.post('/register', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+};
 
-// ─────────────────────────────────────────────────────────────────────────────
-// LOGIN
-// POST /auth/login
-// Body: { email, password }
-// ─────────────────────────────────────────────────────────────────────────────
-router.post('/login', async (req, res, next) => {
+// LOGIN: POST /auth/login
+const login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
 
@@ -93,21 +99,15 @@ router.post('/login', async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+};
 
-// ─────────────────────────────────────────────────────────────────────────────
-// ME — get current logged-in user
-// GET /auth/me
-// ─────────────────────────────────────────────────────────────────────────────
-router.get('/me', requireAuth, (req, res) => {
+// ME: GET /auth/me
+const getMe = (req, res) => {
   res.json({ user: publicUser(req.user) });
-});
+};
 
-// ─────────────────────────────────────────────────────────────────────────────
-// STATUS — which platforms are connected?
-// GET /auth/status
-// ─────────────────────────────────────────────────────────────────────────────
-router.get('/status', requireAuth, (req, res) => {
+// STATUS: GET /auth/status
+const getStatus = (req, res) => {
   const status = Object.keys(platforms).map(platform => {
     const account = req.user.getSocialAccount(platform);
     return {
@@ -120,14 +120,10 @@ router.get('/status', requireAuth, (req, res) => {
     };
   });
   res.json({ status });
-});
+};
 
-// ─────────────────────────────────────────────────────────────────────────────
-// INITIATE OAUTH — Step 1 & 2
-// GET /auth/:platform
-// User must be logged in (JWT required). Redirects to platform consent screen.
-// ─────────────────────────────────────────────────────────────────────────────
-router.get('/:platform', requireAuth, (req, res) => {
+// INITIATE OAUTH: GET /auth/:platform
+const initiateOAuth = (req, res) => {
   const { platform } = req.params;
   const config = platforms[platform];
 
@@ -153,14 +149,10 @@ router.get('/:platform', requireAuth, (req, res) => {
   });
 
   res.redirect(`${config.authUrl}?${params}`);
-});
+};
 
-// ─────────────────────────────────────────────────────────────────────────────
-// OAUTH CALLBACK — Steps 4, 5, 6, 7
-// GET /auth/:platform/callback
-// Platform redirects here after user approves or denies.
-// ─────────────────────────────────────────────────────────────────────────────
-router.get('/:platform/callback', async (req, res) => {
+// OAUTH CALLBACK: GET /auth/:platform/callback
+const oauthCallback = async (req, res) => {
   const { platform }         = req.params;
   const { code, state, error } = req.query;
   const frontendUrl          = process.env.FRONTEND_URL;
@@ -190,7 +182,7 @@ router.get('/:platform/callback', async (req, res) => {
   pendingStates.delete(state); // one-time use only
 
   try {
-    // ── Step 5: Exchange authorization code for tokens ──────────────────────
+    // Exchange authorization code for tokens
     const tokenRes = await axios.post(config.tokenUrl, {
       grant_type:    'authorization_code',
       code,
@@ -199,13 +191,13 @@ router.get('/:platform/callback', async (req, res) => {
       client_secret: config.clientSecret,
     });
 
-    // ── Normalize tokens (handles Meta short→long-lived exchange internally) ─
+    // Normalize tokens (handles Meta short→long-lived exchange internally)
     const normalized = await config.normalizeTokens(tokenRes.data);
 
-    // ── Fetch the user's profile on this platform ────────────────────────────
+    // Fetch the user's profile on this platform
     const profile = await config.getProfile(normalized.accessToken);
 
-    // ── Step 6: Save to MongoDB ──────────────────────────────────────────────
+    // Save to MongoDB
     const user = await User.findById(userId);
     if (!user) {
       return res.redirect(`${frontendUrl}/settings?error=user_not_found`);
@@ -216,7 +208,7 @@ router.get('/:platform/callback', async (req, res) => {
 
     console.log(`[OAuth] ${platform} connected for user ${userId} (@${profile.platformUsername})`);
 
-    // ── Step 7: Redirect to frontend with success ────────────────────────────
+    // Redirect to frontend with success
     res.redirect(
       `${frontendUrl}/settings?connected=${platform}&username=${encodeURIComponent(profile.platformUsername)}`
     );
@@ -228,14 +220,10 @@ router.get('/:platform/callback', async (req, res) => {
     console.error(`[OAuth] ${platform} callback error:`, detail);
     res.redirect(`${frontendUrl}/settings?error=${platform}_failed&detail=${encodeURIComponent(err.message)}`);
   }
-});
+};
 
-// ─────────────────────────────────────────────────────────────────────────────
-// DISCONNECT
-// DELETE /auth/:platform
-// Soft-deletes the connection (isActive = false, tokens kept for audit)
-// ─────────────────────────────────────────────────────────────────────────────
-router.delete('/:platform', requireAuth, async (req, res, next) => {
+// DISCONNECT: DELETE /auth/:platform
+const disconnectPlatform = async (req, res, next) => {
   try {
     const { platform } = req.params;
 
@@ -255,32 +243,56 @@ router.delete('/:platform', requireAuth, async (req, res, next) => {
   } catch (err) {
     next(err);
   }
-});
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
-// HELPERS
+// USER PROFILE CONTROLLERS
 // ─────────────────────────────────────────────────────────────────────────────
-function generateJWT(userId) {
-  return jwt.sign(
-    { userId: userId.toString() },
-    process.env.JWT_SECRET,
-    { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
-  );
-}
 
-function publicUser(user) {
-  return {
-    id:    user._id,
-    name:  user.name,
-    email: user.email,
-    connectedPlatforms: (user.socialAccounts || [])
+// GET PROFILE: GET /user/profile
+const getProfile = (req, res) => {
+  const user = req.user;
+  res.json({
+    id:        user._id,
+    name:      user.name,
+    email:     user.email,
+    createdAt: user.createdAt,
+    connectedAccounts: user.socialAccounts
       .filter(a => a.isActive)
       .map(a => ({
-        platform: a.platform,
-        username: a.platformUsername,
-        expiresAt: a.expiresAt,
+        platform:         a.platform,
+        platformUsername: a.platformUsername,
+        connectedAt:      a.connectedAt,
+        expiresAt:        a.expiresAt,
+        isExpired:        a.isExpired(),
       })),
-  };
-}
+  });
+};
 
-module.exports = router;
+// GET CONNECTED ACCOUNTS: GET /user/connected-accounts
+const getConnectedAccounts = (req, res) => {
+  const accounts = req.user.socialAccounts
+    .filter(a => a.isActive)
+    .map(a => ({
+      platform:         a.platform,
+      platformUserId:   a.platformUserId,
+      platformUsername: a.platformUsername,
+      connectedAt:      a.connectedAt,
+      expiresAt:        a.expiresAt,
+      isExpired:        a.isExpired(),
+      scopes:           a.scopes,
+    }));
+  res.json({ accounts });
+};
+
+export default {
+  register,
+  login,
+  getMe,
+  getStatus,
+  initiateOAuth,
+  oauthCallback,
+  disconnectPlatform,
+  getProfile,
+  getConnectedAccounts
+};

@@ -3,8 +3,8 @@
 // Use getValidToken(userId, platform) before every social media API call.
 // It checks if the stored token is expired and refreshes it automatically.
 
-const { User }     = require('../models/User');
-const platforms    = require('../config/platforms');
+import { User } from '../modules/auth/auth.model.js';
+import platforms from '../config/platforms.js';
 
 async function getValidToken(userId, platform) {
   const user = await User.findById(userId);
@@ -42,4 +42,4 @@ async function getValidToken(userId, platform) {
   }
 }
 
-module.exports = { getValidToken };
+export { getValidToken };
