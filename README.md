@@ -129,18 +129,3 @@ git checkout himanshu
    The client will run on **`http://localhost:3000`** (strictly locked to port 3000 in `vite.config.js`).
 
 ---
-
-## 🔑 OAuth Consent Setup & Troubleshooting
-
-When connecting a YouTube channel during development, you might encounter Google blocking access with **Error 403: access_denied** stating that the application has not completed verification. 
-
-Because your OAuth client status is set to **"Testing"** in Google Cloud, you must manually whitelist tester accounts:
-
-1. Open the [Google Cloud Console](https://console.cloud.google.com/).
-2. Select your Google Cloud Project from the project dropdown.
-3. Navigate to **APIs & Services** > **OAuth consent screen** using the sidebar.
-4. Scroll down to the **Test users** section.
-5. Click **+ Add Users**.
-6. Type the exact Google email address you want to connect (e.g. `himanshusherje9@gmail.com`).
-7. Click **Save**.
-8. Navigate back to your dashboard at `http://localhost:3000`, click **Connect YouTube**, and proceed through the consent warnings to link your account.
