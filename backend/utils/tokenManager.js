@@ -4,7 +4,7 @@
 // It checks if the stored token is expired and refreshes it automatically.
 
 import { User } from '../modules/auth/auth.model.js';
-import platforms from '../config/platforms.js';
+import { platforms } from '../config/platforms/index.js';
 
 async function getValidToken(userId, platform) {
   const user = await User.findById(userId);

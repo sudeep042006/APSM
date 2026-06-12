@@ -27,8 +27,10 @@ authRouter.get('/:platform', requireAuth, authController.initiateOAuth);
 // OAUTH CALLBACK
 authRouter.get('/:platform/callback', authController.oauthCallback);
 
-// DISCONNECT
+// DISCONNECT / REVOKE
 authRouter.delete('/:platform', requireAuth, authController.disconnectPlatform);
+authRouter.delete('/:platform/revoke', requireAuth, authController.disconnectPlatform);
+authRouter.post('/:platform/revoke', requireAuth, authController.disconnectPlatform);
 
 
 // ─── User Routes ─────────────────────────────────────────────────────────────

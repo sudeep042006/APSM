@@ -12,20 +12,23 @@ import LinkedInDash from "@/pages/LinkedInDash/LinkedInDash";
 import MetaDash from "@/pages/MetaDash/MetaDash";
 import CrossPostingDash from "@/pages/CrossPostingDash/CrossPostingDash";
 import NotFound from "@/pages/NotFound/NotFound";
+import Settings from "@/pages/Settings";
 
-// ── Layout Import ───────────────────────────────────────────────────
+// ── Layout & Guard Imports ──────────────────────────────────────────
 import DashboardLayout from "@/components/DashboardLayout";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 // ── Router Definition ───────────────────────────────────────────────
 const router = createBrowserRouter([
   // ── Public Routes ─────────────────────────────────────────────────
   { path: "/", element: <LandingPage /> },
   { path: "/login", element: <AuthPage /> },
+  { path: "/settings", element: <ProtectedRoute><Settings /></ProtectedRoute> },
 
   // ── Dashboard Routes (wrapped in layout shell) ────────────────────
   {
     path: "/dashboard",
-    element: <DashboardLayout />,
+    element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
     children: [
       { index: true, element: <Navigate to="/dashboard/youtube" replace /> },
       { path: "youtube", element: <YoutubeDash /> },

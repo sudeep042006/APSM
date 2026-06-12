@@ -4,7 +4,7 @@ import crypto         from 'crypto';
 import jwt            from 'jsonwebtoken';
 import bcrypt         from 'bcrypt';
 import { User }       from './auth.model.js';
-import platforms      from '../../config/platforms.js';
+import { platforms } from '../../config/platforms/index.js';
 
 // ─── In-memory CSRF state store ───────────────────────────────────────────────
 // Maps state string → { userId, platform, expiresAt }

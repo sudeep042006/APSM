@@ -14,6 +14,9 @@ const router = express.Router();
 
 // Get legacy analytics summary
 router.get('/summary', requireAuth, analyticsController.getAnalyticsSummary);
+router.get('/youtube', requireAuth, analyticsController.getAnalyticsSummary);
+router.get('/meta', requireAuth, analyticsController.getAnalyticsSummary);
+router.get('/linkedin', requireAuth, analyticsController.getAnalyticsSummary);
 
 // Specific platform endpoints
 router.use('/youtube', ytRoutes);

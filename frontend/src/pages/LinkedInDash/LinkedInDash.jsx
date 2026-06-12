@@ -1,18 +1,18 @@
 // ── LinkedIn Dashboard Page ─────────────────────────────────────────
 // LinkedIn analytics with metric cards, charts, and skeleton placeholders.
 
-import { useState, useEffect } from "react";
-import api from "@/lib/api";
-import { getLinkedInAnalytics } from "@/services/linkedin.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from "recharts";
-import { Users, Eye, TrendingUp, ThumbsUp, Loader2 } from "lucide-react";
+import { Users, Eye, TrendingUp, ThumbsUp } from "lucide-react";
 import { Linkedin } from "@/components/icons/BrandIcons";
 
-// Default Mock Fallback if API returns null
-const fallbackImpressionsData = [
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
+import { Button } from "@/components/ui/button";
+
+// ── Mock chart data ─────────────────────────────────────────────────
+const impressionsData = [
   { day: "Mon", impressions: 3200 }, { day: "Tue", impressions: 4100 },
   { day: "Wed", impressions: 3800 }, { day: "Thu", impressions: 5200 },
   { day: "Fri", impressions: 6100 }, { day: "Sat", impressions: 4300 },
@@ -25,95 +25,112 @@ const engagementData = [
   { month: "May", rate: 4.1 }, { month: "Jun", rate: 4.2 },
 ];
 
+// ── Metric cards ────────────────────────────────────────────────────
+const metrics = [
+  { title: "Followers", value: "3,240", change: "+1.8%", icon: Users, color: "text-blue-600", bg: "bg-blue-600/10" },
+  { title: "Impressions", value: "45.2K", change: "+12.3%", icon: Eye, color: "text-sky-500", bg: "bg-sky-500/10" },
+  { title: "Engagement Rate", value: "4.2%", change: "+0.3%", icon: ThumbsUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+  { title: "Growth", value: "+6.3%", change: "monthly", icon: TrendingUp, color: "text-violet-500", bg: "bg-violet-500/10" },
+];
+
 export default function LinkedInDash() {
-  const [isLoading, setIsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
-  const [analyticsData, setAnalyticsData] = useState(null);
+  const [username, setUsername] = useState("");
+  const [revokeLoading, setRevokeLoading] = useState(false);
 
   useEffect(() => {
     const checkConnection = async () => {
       try {
         const res = await api.get("/auth/status");
-        const status = res.data.status || [];
-        const li = status.find((s) => s.platform === "linkedin");
-        
-        if (li && li.connected) {
+        const status = res.data.status?.find((p) => p.platform === "linkedin");
+        if (status && status.connected) {
           setIsConnected(true);
-          try {
-            const data = await getLinkedInAnalytics();
-            setAnalyticsData(data);
-          } catch (e) {
-            console.error("Failed to fetch LinkedIn analytics", e);
-          }
+          setUsername(status.username);
         }
       } catch (err) {
-        console.error("Failed to check connection status", err);
+        console.error("Error checking LinkedIn connection:", err);
       } finally {
-        setIsLoading(false);
+        setLoading(false);
       }
     };
     checkConnection();
   }, []);
 
   const handleConnect = () => {
-    // Redirect to the backend OAuth initiation route
-    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
-    window.location.href = `${baseUrl}/auth/linkedin`;
+    const token = localStorage.getItem("incubein_token");
+    window.location.href = `/api/auth/linkedin?token=${token}`;
   };
 
-  if (isLoading) {
+  const handleRevoke = async () => {
+    setRevokeLoading(true);
+    try {
+      await api.delete("/auth/linkedin/revoke");
+      setIsConnected(false);
+      setUsername("");
+    } catch (err) {
+      console.error("Error revoking LinkedIn access:", err);
+    } finally {
+      setRevokeLoading(false);
+    }
+  };
+
+  if (loading) {
     return (
-      <div className="flex h-[60vh] items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="relative w-12 h-12">
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-600/20 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-t-blue-600 rounded-full animate-spin"></div>
+        </div>
       </div>
     );
   }
 
   if (!isConnected) {
     return (
-      <div className="flex h-[60vh] flex-col items-center justify-center space-y-4 animate-fade-in">
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-600/10">
-          <Linkedin className="h-8 w-8 text-blue-600" />
-        </div>
-        <h2 className="text-2xl font-bold">Connect your LinkedIn Account</h2>
-        <p className="text-muted-foreground text-center max-w-md">
-          To view your LinkedIn analytics, you first need to securely connect your LinkedIn account.
-        </p>
-        <Button onClick={handleConnect} className="mt-4 bg-[#0A66C2] hover:bg-[#0A66C2]/90 text-white">
-          <Linkedin className="mr-2 h-4 w-4" />
-          Connect with LinkedIn
-        </Button>
+      <div className="flex min-h-[60vh] items-center justify-center animate-fade-in">
+        <Card className="w-full max-w-md border-border/50 shadow-2xl p-6 text-center">
+          <CardHeader className="flex flex-col items-center gap-2">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600/10">
+              <Linkedin className="h-8 w-8 text-blue-600" />
+            </div>
+            <CardTitle className="text-xl mt-4">Connect LinkedIn Profile</CardTitle>
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+              Connect your LinkedIn account to view followers, post impressions, engagement rates, and detailed profile metrics.
+            </p>
+          </CardHeader>
+          <CardContent className="mt-6">
+            <Button onClick={handleConnect} className="w-full gap-2 bg-blue-600 hover:bg-blue-500 text-white" size="lg" id="connect-linkedin-btn">
+              Connect LinkedIn Account
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  const metrics = [
-    { title: "Followers", value: analyticsData?.metrics?.followers || "0", change: "+0%", icon: Users, color: "text-blue-600", bg: "bg-blue-600/10" },
-    { title: "Impressions", value: analyticsData?.metrics?.impressions || "0", change: "+0%", icon: Eye, color: "text-sky-500", bg: "bg-sky-500/10" },
-    { title: "Engagement Rate", value: analyticsData?.metrics?.engagementRate || "0%", change: "+0%", icon: ThumbsUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-    { title: "Growth", value: analyticsData?.metrics?.growth || "0%", change: "monthly", icon: TrendingUp, color: "text-violet-500", bg: "bg-violet-500/10" },
-  ];
-
-  const impressionsDataToUse = analyticsData?.charts?.impressionsData || fallbackImpressionsData;
-
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/10">
-          <Linkedin className="h-5 w-5 text-blue-600" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/10">
+            <Linkedin className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold">LinkedIn Analytics</h2>
+            <p className="text-sm text-muted-foreground">Profile: {username || "Connected"}</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-2xl font-bold">LinkedIn Analytics</h2>
-          <p className="text-sm text-muted-foreground">Profile and post performance</p>
-        </div>
+        <Button
+          variant="destructive"
+          onClick={handleRevoke}
+          disabled={revokeLoading}
+          id="revoke-linkedin-btn"
+        >
+          {revokeLoading ? "Revoking..." : "Revoke Access"}
+        </Button>
       </div>
-
-      {analyticsData?.notice && (
-        <div className="p-4 bg-amber-500/10 text-amber-600 rounded-md text-sm border border-amber-500/20">
-          {analyticsData.notice}
-        </div>
-      )}
 
       {/* ── Metric Cards ─────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -144,7 +161,7 @@ export default function LinkedInDash() {
           <CardHeader><CardTitle className="text-base">Weekly Impressions</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={impressionsDataToUse}>
+              <LineChart data={impressionsData}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
