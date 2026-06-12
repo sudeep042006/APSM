@@ -23,6 +23,20 @@ export function AuthProvider({ children }) {
     if (token && savedUser) {
       try {
         setUser(JSON.parse(savedUser));
+        api.get("/auth/me")
+          .then((res) => {
+            const latestUser = res.data.user;
+            localStorage.setItem("incubein_user", JSON.stringify(latestUser));
+            setUser(latestUser);
+          })
+          .catch((err) => {
+            console.error("Session sync failed:", err);
+            logout();
+          })
+          .finally(() => {
+            setLoading(false);
+          });
+        return;
       } catch {
         // ── Corrupted data, clear storage ───────────────────────────────
         localStorage.removeItem("incubein_token");
@@ -33,34 +47,37 @@ export function AuthProvider({ children }) {
     setLoading(false);
   }, []);
 
-  // ── Action: Login (MOCKED for standalone frontend) ───────────────────
+  // ── Action: Login ──────────────────────────────────────────────────
   const login = async (email, password) => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const mockToken = "mock_jwt_token_12345";
-    const mockUser = { id: "1", name: email.split("@")[0] || "User", email };
+    const res = await api.post("/auth/login", { email, password });
+    const { token, user } = res.data;
 
-    localStorage.setItem("incubein_token", mockToken);
-    localStorage.setItem("incubein_user", JSON.stringify(mockUser));
-    setUser(mockUser);
+    localStorage.setItem("incubein_token", token);
+    localStorage.setItem("incubein_user", JSON.stringify(user));
+    setUser(user);
 
-    return { success: true, data: { token: mockToken, user: mockUser } };
+    return { success: true, data: { token, user } };
   };
 
-  // ── Action: Register (MOCKED for standalone frontend) ────────────────
+  // ── Action: Register ───────────────────────────────────────────────
   const register = async (name, email, password) => {
-    // Simulate network delay
-    await new Promise(resolve => setTimeout(resolve, 800));
-    
-    const mockToken = "mock_jwt_token_12345";
-    const mockUser = { id: "1", name, email };
+    const res = await api.post("/auth/register", { name, email, password });
+    const { token, user } = res.data;
 
-    localStorage.setItem("incubein_token", mockToken);
-    localStorage.setItem("incubein_user", JSON.stringify(mockUser));
-    setUser(mockUser);
+    localStorage.setItem("incubein_token", token);
+    localStorage.setItem("incubein_user", JSON.stringify(user));
+    setUser(user);
 
-    return { success: true, data: { token: mockToken, user: mockUser } };
+    return { success: true, data: { token, user } };
+  };
+
+  // ── Action: Refresh User Details ───────────────────────────────────
+  const refreshUser = async () => {
+    const res = await api.get("/auth/me");
+    const latestUser = res.data.user;
+    localStorage.setItem("incubein_user", JSON.stringify(latestUser));
+    setUser(latestUser);
+    return latestUser;
   };
 
   // ── Action: Logout ────────────────────────────────────────────────────
@@ -78,6 +95,7 @@ export function AuthProvider({ children }) {
     login,
     register,
     logout,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

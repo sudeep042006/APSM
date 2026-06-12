@@ -7,6 +7,10 @@ import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tool
 import { Users, Eye, TrendingUp, ThumbsUp } from "lucide-react";
 import { Linkedin } from "@/components/icons/BrandIcons";
 
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
+import { Button } from "@/components/ui/button";
+
 // ── Mock chart data ─────────────────────────────────────────────────
 const impressionsData = [
   { day: "Mon", impressions: 3200 }, { day: "Tue", impressions: 4100 },
@@ -30,17 +34,102 @@ const metrics = [
 ];
 
 export default function LinkedInDash() {
+  const [loading, setLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  const [username, setUsername] = useState("");
+  const [revokeLoading, setRevokeLoading] = useState(false);
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const res = await api.get("/auth/status");
+        const status = res.data.status?.find((p) => p.platform === "linkedin");
+        if (status && status.connected) {
+          setIsConnected(true);
+          setUsername(status.username);
+        }
+      } catch (err) {
+        console.error("Error checking LinkedIn connection:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkConnection();
+  }, []);
+
+  const handleConnect = () => {
+    const token = localStorage.getItem("incubein_token");
+    window.location.href = `/api/auth/linkedin?token=${token}`;
+  };
+
+  const handleRevoke = async () => {
+    setRevokeLoading(true);
+    try {
+      await api.delete("/auth/linkedin/revoke");
+      setIsConnected(false);
+      setUsername("");
+    } catch (err) {
+      console.error("Error revoking LinkedIn access:", err);
+    } finally {
+      setRevokeLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="relative w-12 h-12">
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-600/20 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-t-blue-600 rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center animate-fade-in">
+        <Card className="w-full max-w-md border-border/50 shadow-2xl p-6 text-center">
+          <CardHeader className="flex flex-col items-center gap-2">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600/10">
+              <Linkedin className="h-8 w-8 text-blue-600" />
+            </div>
+            <CardTitle className="text-xl mt-4">Connect LinkedIn Profile</CardTitle>
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+              Connect your LinkedIn account to view followers, post impressions, engagement rates, and detailed profile metrics.
+            </p>
+          </CardHeader>
+          <CardContent className="mt-6">
+            <Button onClick={handleConnect} className="w-full gap-2 bg-blue-600 hover:bg-blue-500 text-white" size="lg" id="connect-linkedin-btn">
+              Connect LinkedIn Account
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/10">
-          <Linkedin className="h-5 w-5 text-blue-600" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/10">
+            <Linkedin className="h-5 w-5 text-blue-600" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold">LinkedIn Analytics</h2>
+            <p className="text-sm text-muted-foreground">Profile: {username || "Connected"}</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-2xl font-bold">LinkedIn Analytics</h2>
-          <p className="text-sm text-muted-foreground">Profile and post performance</p>
-        </div>
+        <Button
+          variant="destructive"
+          onClick={handleRevoke}
+          disabled={revokeLoading}
+          id="revoke-linkedin-btn"
+        >
+          {revokeLoading ? "Revoking..." : "Revoke Access"}
+        </Button>
       </div>
 
       {/* ── Metric Cards ─────────────────────────────────────────────── */}

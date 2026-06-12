@@ -7,6 +7,10 @@ import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tool
 import { Users, Eye, Clock, TrendingUp } from "lucide-react";
 import { Youtube } from "@/components/icons/BrandIcons";
 
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
+import { Button } from "@/components/ui/button";
+
 // ── Mock chart data ─────────────────────────────────────────────────
 const viewsData = [
   { day: "Mon", views: 1200 }, { day: "Tue", views: 1800 },
@@ -30,17 +34,102 @@ const metrics = [
 ];
 
 export default function YoutubeDash() {
+  const [loading, setLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  const [username, setUsername] = useState("");
+  const [revokeLoading, setRevokeLoading] = useState(false);
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const res = await api.get("/auth/status");
+        const status = res.data.status?.find((p) => p.platform === "youtube");
+        if (status && status.connected) {
+          setIsConnected(true);
+          setUsername(status.username);
+        }
+      } catch (err) {
+        console.error("Error checking YouTube connection:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkConnection();
+  }, []);
+
+  const handleConnect = () => {
+    const token = localStorage.getItem("incubein_token");
+    window.location.href = `/api/auth/youtube?token=${token}`;
+  };
+
+  const handleRevoke = async () => {
+    setRevokeLoading(true);
+    try {
+      await api.delete("/auth/youtube/revoke");
+      setIsConnected(false);
+      setUsername("");
+    } catch (err) {
+      console.error("Error revoking YouTube access:", err);
+    } finally {
+      setRevokeLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center">
+        <div className="relative w-12 h-12">
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-red-500/20 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-t-red-500 rounded-full animate-spin"></div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center animate-fade-in">
+        <Card className="w-full max-w-md border-border/50 shadow-2xl p-6 text-center">
+          <CardHeader className="flex flex-col items-center gap-2">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10">
+              <Youtube className="h-8 w-8 text-red-500" />
+            </div>
+            <CardTitle className="text-xl mt-4">Connect YouTube Channel</CardTitle>
+            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+              Connect your YouTube account to view sub counts, channel views, watch time, and detailed visual performance graphs.
+            </p>
+          </CardHeader>
+          <CardContent className="mt-6">
+            <Button onClick={handleConnect} className="w-full gap-2 bg-red-600 hover:bg-red-500 text-white" size="lg" id="connect-youtube-btn">
+              Connect YouTube Channel
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center gap-3">
-        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
-          <Youtube className="h-5 w-5 text-red-500" />
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
+            <Youtube className="h-5 w-5 text-red-500" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold">YouTube Analytics</h2>
+            <p className="text-sm text-muted-foreground">Channel: {username || "Connected"}</p>
+          </div>
         </div>
-        <div>
-          <h2 className="text-2xl font-bold">YouTube Analytics</h2>
-          <p className="text-sm text-muted-foreground">Channel performance overview</p>
-        </div>
+        <Button
+          variant="destructive"
+          onClick={handleRevoke}
+          disabled={revokeLoading}
+          id="revoke-youtube-btn"
+        >
+          {revokeLoading ? "Revoking..." : "Revoke Access"}
+        </Button>
       </div>
 
       {/* ── Metric Cards ─────────────────────────────────────────────── */}

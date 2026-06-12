@@ -1,4 +1,5 @@
 // modules/analytics/analytics.controller.js
+import analytics from './index.js';
 
 // Placeholder handler for fetching social media analytics
 const getAnalyticsSummary = async (req, res, next) => {
