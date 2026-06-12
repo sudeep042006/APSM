@@ -23,10 +23,10 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-app.use('/api/auth', authRouter);
-app.use('/api/user', userRouter);
-app.use('/api/analytics', analyticsRouter);
-app.use('/api/automation', automationRouter);
+app.use('/auth', authRouter);
+app.use('/user', userRouter);
+app.use('/analytics', analyticsRouter);
+app.use('/automation', automationRouter);
 
 // Health check — visit http://localhost:5000/health to confirm server is alive
 app.get('/health', (req, res) => {
