@@ -1,14 +1,18 @@
 // ── LinkedIn Dashboard Page ─────────────────────────────────────────
 // LinkedIn analytics with metric cards, charts, and skeleton placeholders.
 
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
+import { getLinkedInAnalytics } from "@/services/linkedin.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from "recharts";
-import { Users, Eye, TrendingUp, ThumbsUp } from "lucide-react";
+import { Users, Eye, TrendingUp, ThumbsUp, Loader2 } from "lucide-react";
 import { Linkedin } from "@/components/icons/BrandIcons";
 
-// ── Mock chart data ─────────────────────────────────────────────────
-const impressionsData = [
+// Default Mock Fallback if API returns null
+const fallbackImpressionsData = [
   { day: "Mon", impressions: 3200 }, { day: "Tue", impressions: 4100 },
   { day: "Wed", impressions: 3800 }, { day: "Thu", impressions: 5200 },
   { day: "Fri", impressions: 6100 }, { day: "Sat", impressions: 4300 },
@@ -21,15 +25,77 @@ const engagementData = [
   { month: "May", rate: 4.1 }, { month: "Jun", rate: 4.2 },
 ];
 
-// ── Metric cards ────────────────────────────────────────────────────
-const metrics = [
-  { title: "Followers", value: "3,240", change: "+1.8%", icon: Users, color: "text-blue-600", bg: "bg-blue-600/10" },
-  { title: "Impressions", value: "45.2K", change: "+12.3%", icon: Eye, color: "text-sky-500", bg: "bg-sky-500/10" },
-  { title: "Engagement Rate", value: "4.2%", change: "+0.3%", icon: ThumbsUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { title: "Growth", value: "+6.3%", change: "monthly", icon: TrendingUp, color: "text-violet-500", bg: "bg-violet-500/10" },
-];
-
 export default function LinkedInDash() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState(null);
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const res = await api.get("/auth/status");
+        const status = res.data.status || [];
+        const li = status.find((s) => s.platform === "linkedin");
+        
+        if (li && li.connected) {
+          setIsConnected(true);
+          try {
+            const data = await getLinkedInAnalytics();
+            setAnalyticsData(data);
+          } catch (e) {
+            console.error("Failed to fetch LinkedIn analytics", e);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check connection status", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkConnection();
+  }, []);
+
+  const handleConnect = () => {
+    // Redirect to the backend OAuth initiation route
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    window.location.href = `${baseUrl}/auth/linkedin`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center space-y-4 animate-fade-in">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-600/10">
+          <Linkedin className="h-8 w-8 text-blue-600" />
+        </div>
+        <h2 className="text-2xl font-bold">Connect your LinkedIn Account</h2>
+        <p className="text-muted-foreground text-center max-w-md">
+          To view your LinkedIn analytics, you first need to securely connect your LinkedIn account.
+        </p>
+        <Button onClick={handleConnect} className="mt-4 bg-[#0A66C2] hover:bg-[#0A66C2]/90 text-white">
+          <Linkedin className="mr-2 h-4 w-4" />
+          Connect with LinkedIn
+        </Button>
+      </div>
+    );
+  }
+
+  const metrics = [
+    { title: "Followers", value: analyticsData?.metrics?.followers || "0", change: "+0%", icon: Users, color: "text-blue-600", bg: "bg-blue-600/10" },
+    { title: "Impressions", value: analyticsData?.metrics?.impressions || "0", change: "+0%", icon: Eye, color: "text-sky-500", bg: "bg-sky-500/10" },
+    { title: "Engagement Rate", value: analyticsData?.metrics?.engagementRate || "0%", change: "+0%", icon: ThumbsUp, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { title: "Growth", value: analyticsData?.metrics?.growth || "0%", change: "monthly", icon: TrendingUp, color: "text-violet-500", bg: "bg-violet-500/10" },
+  ];
+
+  const impressionsDataToUse = analyticsData?.charts?.impressionsData || fallbackImpressionsData;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ── Header ─────────────────────────────────────────────────────── */}
@@ -42,6 +108,12 @@ export default function LinkedInDash() {
           <p className="text-sm text-muted-foreground">Profile and post performance</p>
         </div>
       </div>
+
+      {analyticsData?.notice && (
+        <div className="p-4 bg-amber-500/10 text-amber-600 rounded-md text-sm border border-amber-500/20">
+          {analyticsData.notice}
+        </div>
+      )}
 
       {/* ── Metric Cards ─────────────────────────────────────────────── */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -72,7 +144,7 @@ export default function LinkedInDash() {
           <CardHeader><CardTitle className="text-base">Weekly Impressions</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={impressionsData}>
+              <LineChart data={impressionsDataToUse}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />

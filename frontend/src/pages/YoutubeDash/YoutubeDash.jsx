@@ -1,14 +1,18 @@
 // ── YouTube Dashboard Page ──────────────────────────────────────────
 // YouTube analytics with metric cards, charts, and skeleton placeholders.
 
+import { useState, useEffect } from "react";
+import api from "@/lib/api";
+import { getYouTubeAnalytics } from "@/services/youtube.service";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from "recharts";
-import { Users, Eye, Clock, TrendingUp } from "lucide-react";
+import { Users, Eye, Clock, TrendingUp, Loader2 } from "lucide-react";
 import { Youtube } from "@/components/icons/BrandIcons";
 
-// ── Mock chart data ─────────────────────────────────────────────────
-const viewsData = [
+// Default Mock Fallback if API returns null
+const fallbackViewsData = [
   { day: "Mon", views: 1200 }, { day: "Tue", views: 1800 },
   { day: "Wed", views: 1400 }, { day: "Thu", views: 2200 },
   { day: "Fri", views: 2800 }, { day: "Sat", views: 3200 },
@@ -21,15 +25,77 @@ const subGrowth = [
   { month: "May", subs: 11300 }, { month: "Jun", subs: 12450 },
 ];
 
-// ── Metric cards ────────────────────────────────────────────────────
-const metrics = [
-  { title: "Subscribers", value: "12,450", change: "+2.4%", icon: Users, color: "text-red-500", bg: "bg-red-500/10" },
-  { title: "Total Views", value: "1.82M", change: "+8.7%", icon: Eye, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { title: "Watch Time", value: "54,320h", change: "+5.2%", icon: Clock, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { title: "Videos", value: "87", change: "+3", icon: Youtube, color: "text-violet-500", bg: "bg-violet-500/10" },
-];
-
 export default function YoutubeDash() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(false);
+  const [analyticsData, setAnalyticsData] = useState(null);
+
+  useEffect(() => {
+    const checkConnection = async () => {
+      try {
+        const res = await api.get("/auth/status");
+        const status = res.data.status || [];
+        const yt = status.find((s) => s.platform === "youtube");
+        
+        if (yt && yt.connected) {
+          setIsConnected(true);
+          try {
+            const data = await getYouTubeAnalytics();
+            setAnalyticsData(data);
+          } catch (analyticsErr) {
+            console.error("Failed to fetch YouTube analytics", analyticsErr);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to check connection status", err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    checkConnection();
+  }, []);
+
+  const handleConnect = () => {
+    // Redirect to the backend OAuth initiation route
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+    window.location.href = `${baseUrl}/auth/youtube`;
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[60vh] items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!isConnected) {
+    return (
+      <div className="flex h-[60vh] flex-col items-center justify-center space-y-4 animate-fade-in">
+        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10">
+          <Youtube className="h-8 w-8 text-red-500" />
+        </div>
+        <h2 className="text-2xl font-bold">Connect your YouTube Channel</h2>
+        <p className="text-muted-foreground text-center max-w-md">
+          To view your YouTube analytics, you first need to securely connect your YouTube account.
+        </p>
+        <Button onClick={handleConnect} className="mt-4 bg-red-600 hover:bg-red-700 text-white">
+          <Youtube className="mr-2 h-4 w-4" />
+          Connect with YouTube
+        </Button>
+      </div>
+    );
+  }
+
+  const metrics = [
+    { title: "Subscribers", value: analyticsData?.metrics?.subscribers || "0", change: "+0%", icon: Users, color: "text-red-500", bg: "bg-red-500/10" },
+    { title: "Total Views", value: analyticsData?.metrics?.totalViews || "0", change: "+0%", icon: Eye, color: "text-blue-500", bg: "bg-blue-500/10" },
+    { title: "Watch Time", value: analyticsData?.metrics?.watchTime || "N/A", change: "N/A", icon: Clock, color: "text-emerald-500", bg: "bg-emerald-500/10" },
+    { title: "Videos", value: analyticsData?.metrics?.videos || "0", change: "+0", icon: Youtube, color: "text-violet-500", bg: "bg-violet-500/10" },
+  ];
+
+  const viewsDataToUse = analyticsData?.charts?.viewsData || fallbackViewsData;
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ── Header ─────────────────────────────────────────────────────── */}
@@ -69,10 +135,10 @@ export default function YoutubeDash() {
       {/* ── Charts ───────────────────────────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
-          <CardHeader><CardTitle className="text-base">Daily Views</CardTitle></CardHeader>
+          <CardHeader><CardTitle className="text-base">Daily Views (Last 7 Days)</CardTitle></CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={viewsData}>
+              <AreaChart data={viewsDataToUse}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                 <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                 <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
