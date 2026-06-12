@@ -1,11 +1,31 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+// ── Vite Configuration ──────────────────────────────────────────────
+// React SPA setup with HMR and path aliasing for clean imports.
 
-// https://vite.dev/config/
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
+
 export default defineConfig({
+  // ── Plugins ─────────────────────────────────────────────────────────
   plugins: [react()],
-  server: {
-    port: 3000,
-    strictPort: true,
+
+  // ── Path Resolution Aliases ─────────────────────────────────────────
+  resolve: {
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+    },
   },
-})
+
+  // ── Dev Server Configuration ────────────────────────────────────────
+  server: {
+    port: 5173,
+    proxy: {
+      // Proxy API requests to the Express backend during development
+      "/api": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+  },
+});
