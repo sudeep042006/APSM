@@ -1,79 +1,46 @@
-import React from 'react';
-import { useAuth } from '../context/AuthContext';
-import { LogOut, LayoutDashboard, Settings as SettingsIcon, User } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+// ── Navbar Component ────────────────────────────────────────────────
+// Top navigation bar for the dashboard. Shows the current page title,
+// a theme toggle button, and search placeholder.
 
-const Navbar = () => {
-  const { user, logout } = useAuth();
-  const location = useLocation();
+import { useTheme } from "@/context/ThemeContext";
+import { Moon, Sun, Search, Bell } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
-  if (!user) return null;
+export default function Navbar({ title = "Dashboard" }) {
+  const { isDark, toggleTheme } = useTheme();
 
   return (
-    <nav className="md:hidden sticky top-0 z-50 w-full bg-slate-950/80 backdrop-blur-md border-b border-slate-800/80 px-6 py-4 flex items-center justify-between">
-      {/* Branding */}
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-card/80 px-6 backdrop-blur-md">
+      {/* ── Page Title ────────────────────────────────────────────────── */}
+      <h1 className="text-xl font-semibold tracking-tight">{title}</h1>
+
+      {/* ── Right-side Actions ────────────────────────────────────────── */}
       <div className="flex items-center gap-2">
-        <div className="w-10 h-10 bg-gradient-to-tr from-purple-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/20">
-          <span className="font-extrabold text-white text-lg">U</span>
-        </div>
-        <div>
-          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent m-0 p-0 leading-tight">
-            SocialOS
-          </h1>
-          <p className="text-[10px] text-slate-500 font-semibold uppercase tracking-wider">
-            Analytics Hub
-          </p>
-        </div>
-      </div>
+        {/* ── Search Button (placeholder) ──────────────────────────────── */}
+        <Button variant="ghost" size="icon" id="navbar-search-btn">
+          <Search className="h-4 w-4" />
+        </Button>
 
-      {/* Navigation */}
-      <div className="flex items-center gap-6">
-        <Link
-          to="/"
-          className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-            location.pathname === '/' || location.pathname === '/dashboard'
-              ? 'text-purple-400'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <LayoutDashboard size={18} />
-          Dashboard
-        </Link>
-        <Link
-          to="/settings"
-          className={`flex items-center gap-2 text-sm font-medium transition-colors ${
-            location.pathname === '/settings'
-              ? 'text-purple-400'
-              : 'text-slate-400 hover:text-slate-200'
-          }`}
-        >
-          <SettingsIcon size={18} />
-          Connections
-        </Link>
-      </div>
+        {/* ── Notifications Button (placeholder) ──────────────────────── */}
+        <Button variant="ghost" size="icon" id="navbar-notifications-btn">
+          <Bell className="h-4 w-4" />
+        </Button>
 
-      {/* User Actions */}
-      <div className="flex items-center gap-4">
-        <div className="hidden md:flex items-center gap-2 border-r border-slate-800 pr-4">
-          <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center text-slate-300">
-            <User size={16} />
-          </div>
-          <div className="text-left">
-            <p className="text-xs font-semibold text-slate-200">{user.name}</p>
-            <p className="text-[10px] text-slate-500">{user.email}</p>
-          </div>
-        </div>
-
-        <button
-          onClick={logout}
-          className="flex items-center gap-2 bg-slate-900 border border-slate-800 hover:bg-red-950/20 hover:border-red-900/50 hover:text-red-400 text-slate-300 px-3 py-1.5 rounded-lg text-sm transition-all duration-300"
+        {/* ── Theme Toggle ──────────────────────────────────────────────── */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggleTheme}
+          id="navbar-theme-toggle"
+          aria-label="Toggle theme"
         >
-          <LogOut size={16} />
-          <span>Logout</span>
-        </button>
+          {isDark ? (
+            <Sun className="h-4 w-4 transition-transform duration-300" />
+          ) : (
+            <Moon className="h-4 w-4 transition-transform duration-300" />
+          )}
+        </Button>
       </div>
-    </nav>
+    </header>
   );
-};
-
-export default Navbar;
+}
