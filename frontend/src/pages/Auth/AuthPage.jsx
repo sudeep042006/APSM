@@ -164,13 +164,16 @@ export default function AuthPage() {
           </form>
 
           {/* ── Divider ──────────────────────────────────────────────────── */}
+          {/* 
           <div className="my-6 flex items-center gap-3">
             <div className="h-px flex-1 bg-border" />
             <span className="text-xs text-muted-foreground">OR CONTINUE WITH</span>
             <div className="h-px flex-1 bg-border" />
           </div>
+          */}
 
           {/* ── Social OAuth Buttons ─────────────────────────────────────── */}
+          {/* 
           <div className="grid grid-cols-3 gap-3">
             <Button variant="outline" className="gap-2" id="auth-google-btn">
               <Youtube className="h-4 w-4 text-red-500" />
@@ -182,6 +185,7 @@ export default function AuthPage() {
               <Facebook className="h-4 w-4 text-blue-500" />
             </Button>
           </div>
+          */}
 
           {/* ── Toggle Login/Register ────────────────────────────────────── */}
           <p className="mt-6 text-center text-sm text-muted-foreground">

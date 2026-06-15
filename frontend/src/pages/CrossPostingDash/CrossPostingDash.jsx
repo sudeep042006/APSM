@@ -1,28 +1,25 @@
 // ── Cross-Posting Dashboard ─────────────────────────────────────────
 // Scheduling and post publishing panel for multi-platform cross-posting.
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Send, Calendar, Plus, Clock } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Send, Plus, CheckCircle2, Link2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Youtube, Linkedin, Facebook, Instagram } from "@/components/icons/BrandIcons";
 
-// ── Mock scheduled posts ────────────────────────────────────────────
-const mockPosts = [
-  { id: 1, content: "Exciting new analytics features coming soon! 🚀", platforms: ["linkedin", "facebook"], time: "Jun 15, 10:00 AM", status: "scheduled" },
-  { id: 2, content: "Check out our latest video breakdown 📊", platforms: ["youtube", "instagram"], time: "Jun 16, 2:30 PM", status: "scheduled" },
-  { id: 3, content: "Behind the scenes of our dashboard development 🛠️", platforms: ["linkedin", "instagram", "facebook"], time: "Jun 18, 9:00 AM", status: "draft" },
+const MOCK_PLATFORMS = [
+  { id: "facebook", name: "Facebook", connected: true, icon: Facebook, color: "text-blue-500", bg: "bg-blue-500/10", description: "Connect to cross-post to your pages and communities." },
+  { id: "instagram", name: "Instagram", connected: false, icon: Instagram, color: "text-pink-500", bg: "bg-pink-500/10", description: "Connect to schedule posts and reels." },
+  { id: "youtube", name: "YouTube", connected: false, icon: Youtube, color: "text-red-500", bg: "bg-red-500/10", description: "Connect to publish videos and track views." },
+  { id: "linkedin", name: "LinkedIn", connected: false, icon: Linkedin, color: "text-blue-600", bg: "bg-blue-600/10", description: "Connect to share professional updates." },
 ];
 
-// ── Platform icon map ───────────────────────────────────────────────
-const platformIcons = {
-  youtube: <Youtube className="h-3.5 w-3.5 text-red-500" />,
-  linkedin: <Linkedin className="h-3.5 w-3.5 text-blue-600" />,
-  facebook: <Facebook className="h-3.5 w-3.5 text-blue-500" />,
-  instagram: <Instagram className="h-3.5 w-3.5 text-pink-500" />,
-};
-
 export default function CrossPostingDash() {
+  const navigate = useNavigate();
+
+  const activeConnections = MOCK_PLATFORMS.filter(p => p.connected);
+  const unconnectedPlatforms = MOCK_PLATFORMS.filter(p => !p.connected);
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ── Header ─────────────────────────────────────────────────────── */}
@@ -36,61 +33,88 @@ export default function CrossPostingDash() {
             <p className="text-sm text-muted-foreground">Schedule and publish across platforms</p>
           </div>
         </div>
-        <Button className="gap-2" id="crosspost-new-btn">
+        <Button className="gap-2" id="crosspost-new-btn" onClick={() => navigate("/dashboard/crosspost/new")}>
           <Plus className="h-4 w-4" /> New Post
         </Button>
       </div>
 
-      {/* ── Quick Stats ──────────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <Card><CardContent className="p-6">
-          <p className="text-sm text-muted-foreground">Scheduled</p>
-          <p className="mt-1 text-2xl font-bold">2</p>
-          <div className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
-            <Calendar className="h-3.5 w-3.5" /> Upcoming posts
-          </div>
-        </CardContent></Card>
-        <Card><CardContent className="p-6">
-          <p className="text-sm text-muted-foreground">Drafts</p>
-          <p className="mt-1 text-2xl font-bold">1</p>
-          <div className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
-            <Clock className="h-3.5 w-3.5" /> Ready to schedule
-          </div>
-        </CardContent></Card>
-        <Card><CardContent className="p-6">
-          <p className="text-sm text-muted-foreground">Published</p>
-          <p className="mt-1 text-2xl font-bold">24</p>
-          <div className="mt-2 flex items-center gap-1 text-sm text-muted-foreground">
-            <Send className="h-3.5 w-3.5" /> This month
-          </div>
-        </CardContent></Card>
-      </div>
-
-      {/* ── Scheduled Posts List ──────────────────────────────────────── */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Upcoming Posts</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {mockPosts.map((post) => (
-            <div key={post.id} className="flex items-start gap-4 rounded-lg border p-4 transition-all hover:bg-accent/50">
-              <div className="flex-1">
-                <p className="text-sm font-medium">{post.content}</p>
-                <div className="mt-2 flex items-center gap-3">
-                  <div className="flex items-center gap-1.5">
-                    {post.platforms.map((p) => (
-                      <span key={p}>{platformIcons[p]}</span>
-                    ))}
-                  </div>
-                  <span className="text-xs text-muted-foreground">{post.time}</span>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${post.status === "scheduled" ? "bg-emerald-500/10 text-emerald-500" : "bg-amber-500/10 text-amber-500"}`}>
-                    {post.status}
-                  </span>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm">Edit</Button>
+      {/* ── Conditional Active Connections & Empty State ─────────────── */}
+      {activeConnections.length === 0 ? (
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-16 text-center">
+            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
+              <Link2 className="h-8 w-8 text-muted-foreground" />
             </div>
-          ))}
-        </CardContent>
-      </Card>
+            <h3 className="mb-2 text-lg font-semibold">No social media applications connected yet.</h3>
+            <p className="mb-6 max-w-sm text-sm text-muted-foreground">
+              Connect a platform to unlock cross-posting capabilities.
+            </p>
+            <div className="flex flex-wrap justify-center gap-4">
+              {MOCK_PLATFORMS.map(platform => (
+                <Button key={platform.id} variant="outline" className="gap-2">
+                  <platform.icon className={`h-4 w-4 ${platform.color}`} />
+                  Connect {platform.name}
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-10">
+          {/* Active Workspaces */}
+          <div className="space-y-4">
+            <h3 className="text-lg font-medium">Active Workspaces</h3>
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+              {activeConnections.map(platform => (
+                <Card key={platform.id} className="relative overflow-hidden transition-all hover:border-primary/50">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className={`flex h-12 w-12 items-center justify-center rounded-lg ${platform.bg}`}>
+                          <platform.icon className={`h-6 w-6 ${platform.color}`} />
+                        </div>
+                        <div>
+                          <h4 className="font-semibold">{platform.name}</h4>
+                          <p className="text-sm text-muted-foreground">Workspace active</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-500">
+                        <CheckCircle2 className="h-3.5 w-3.5" />
+                        Connected
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </div>
+
+          {/* Available to Connect */}
+          {unconnectedPlatforms.length > 0 && (
+            <div className="mt-10">
+              <h3 className="text-lg font-medium text-gray-300 mb-4">Available to Connect</h3>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {unconnectedPlatforms.map(platform => (
+                  <Card key={platform.id} className="opacity-80 border-dashed border-gray-700 bg-zinc-900/40 transition-all hover:opacity-100 hover:border-primary/50">
+                    <CardContent className="p-6 flex flex-col gap-4">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
+                          <platform.icon className="h-5 w-5 text-muted-foreground" />
+                        </div>
+                        <h4 className="font-semibold text-muted-foreground">{platform.name}</h4>
+                      </div>
+                      <p className="text-sm text-muted-foreground flex-1">{platform.description}</p>
+                      <Button variant="secondary" className="w-full">
+                        Connect Account
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

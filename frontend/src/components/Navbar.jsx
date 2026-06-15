@@ -3,8 +3,9 @@
 // a theme toggle button, and search placeholder.
 
 import { useTheme } from "@/context/ThemeContext";
-import { Moon, Sun, Search, Bell } from "lucide-react";
+import { Moon, Sun, Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router-dom";
 
 export default function Navbar({ title = "Dashboard" }) {
   const { isDark, toggleTheme } = useTheme();
@@ -16,15 +17,12 @@ export default function Navbar({ title = "Dashboard" }) {
 
       {/* ── Right-side Actions ────────────────────────────────────────── */}
       <div className="flex items-center gap-2">
-        {/* ── Search Button (placeholder) ──────────────────────────────── */}
-        <Button variant="ghost" size="icon" id="navbar-search-btn">
-          <Search className="h-4 w-4" />
-        </Button>
-
         {/* ── Notifications Button (placeholder) ──────────────────────── */}
-        <Button variant="ghost" size="icon" id="navbar-notifications-btn">
-          <Bell className="h-4 w-4" />
-        </Button>
+        <Link to="/notifications">
+          <Button variant="ghost" size="icon" id="navbar-notifications-btn">
+            <Bell className="h-4 w-4" />
+          </Button>
+        </Link>
 
         {/* ── Theme Toggle ──────────────────────────────────────────────── */}
         <Button

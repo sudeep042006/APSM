@@ -73,7 +73,7 @@ const Dashboard = () => {
       return;
     }
     addLog('auth', `Redirecting browser to OAuth gateway: /auth/${platform}`);
-    window.location.href = `http://localhost:5000/auth/${platform}?token=${token}`;
+    window.location.href = `${import.meta.env.VITE_BASE_URL}/auth/${platform}?token=${token}`;
   };
 
   // Disconnect a platform

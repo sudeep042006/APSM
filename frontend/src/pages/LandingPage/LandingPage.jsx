@@ -14,6 +14,7 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { Youtube, Linkedin } from "@/components/icons/BrandIcons";
+import ApsmLogo from "@/assets/images/apsm-logo.svg";
 
 // ── Feature card data ───────────────────────────────────────────────
 const features = [
@@ -63,10 +64,8 @@ export default function LandingPage() {
         {/* ── Navigation Bar ──────────────────────────────────────────── */}
         <nav className="relative z-10 flex items-center justify-between px-6 py-4 lg:px-16">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-indigo-600">
-              <BarChart3 className="h-5 w-5 text-white" />
-            </div>
-            <span className="text-xl font-bold tracking-tight">Incubein</span>
+            <img src={ApsmLogo} alt="APSM Logo" className="h-8 w-auto object-contain shrink-0" />
+            <span className="text-xl font-bold tracking-wide text-white">APSM</span>
           </div>
           <Link to="/login">
             <Button variant="outline" size="sm" id="landing-login-btn">
