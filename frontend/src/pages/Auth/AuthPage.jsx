@@ -13,8 +13,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { BarChart3, Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { Youtube, Linkedin, Facebook } from "@/components/icons/BrandIcons";
+import ApsmLogo from "@/assets/images/apsm-logo.svg";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -62,16 +63,14 @@ export default function AuthPage() {
       <Card className="relative w-full max-w-md border-border/50 shadow-2xl shadow-violet-500/5">
         {/* ── Card Header / Branding ──────────────────────────────────── */}
         <CardHeader className="text-center">
-          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-violet-600 to-indigo-600">
-            <BarChart3 className="h-7 w-7 text-white" />
-          </div>
+          <img src={ApsmLogo} alt="APSM Logo" className="h-12 w-auto object-contain mx-auto mb-4" />
           <CardTitle className="text-2xl">
             {isLogin ? "Welcome Back" : "Create Account"}
           </CardTitle>
           <CardDescription>
             {isLogin
               ? "Sign in to access your analytics dashboard"
-              : "Get started with Incubein Analytics"}
+              : "Get started with APSM"}
           </CardDescription>
         </CardHeader>
 
