@@ -89,7 +89,7 @@ export default function LinkedInDash() {
   if (!isConnected) {
     return (
       <div className="flex min-h-[60vh] items-center justify-center animate-fade-in">
-        <Card className="w-full max-w-md border-border/50 shadow-2xl p-6 text-center">
+        <Card className="w-full max-w-md border-border/50 shadow-sm dark:shadow-none bg-white dark:bg-zinc-900/50 p-6 text-center">
           <CardHeader className="flex flex-col items-center gap-2">
             <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600/10">
               <Linkedin className="h-8 w-8 text-blue-600" />

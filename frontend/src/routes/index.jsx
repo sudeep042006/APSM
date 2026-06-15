@@ -11,6 +11,7 @@ import YoutubeDash from "@/pages/YoutubeDash/YoutubeDash";
 import LinkedInDash from "@/pages/LinkedInDash/LinkedInDash";
 import MetaDash from "@/pages/MetaDash/MetaDash";
 import CrossPostingDash from "@/pages/CrossPostingDash/CrossPostingDash";
+import NewPostPage from "@/pages/CrossPostingDash/NewPostPage";
 import NotFound from "@/pages/NotFound/NotFound";
 import Settings from "@/pages/Settings";
 
@@ -35,6 +36,7 @@ const router = createBrowserRouter([
       { path: "linkedin", element: <LinkedInDash /> },
       { path: "meta", element: <MetaDash /> },
       { path: "crosspost", element: <CrossPostingDash /> },
+      { path: "crosspost/new", element: <NewPostPage /> },
     ],
   },
 
