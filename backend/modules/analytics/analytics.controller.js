@@ -1,5 +1,6 @@
 import { AnalyticsSnapshot } from './analytics.model.js';
 import { fetchAndSaveYouTubeAnalytics } from './youtube.analytics.js';
+import { fetchAndSaveMetaAnalytics } from './meta.analytics.js';
 
 const getAnalyticsSummary = async (req, res, next) => {
   try {
@@ -57,6 +58,12 @@ const getAnalyticsSummary = async (req, res, next) => {
             await fetchAndSaveYouTubeAnalytics(userId);
           } catch (err) {
             console.error(`❌ Dynamic initial fetch failed for YouTube:`, err.message);
+          }
+        } else if (p === 'meta') {
+          try {
+            await fetchAndSaveMetaAnalytics(userId);
+          } catch (err) {
+            console.error(`❌ Dynamic initial fetch failed for Meta:`, err.message);
           }
         }
       }
