@@ -27,6 +27,7 @@ The project is structured as a monorepo with separate `backend` and `frontend` e
   - **Signup Page**: Matching layout supporting full names, emails, passwords, and password confirmation.
   - **Dashboard Page**: Renders user profile information and integration connection statuses (YouTube, Facebook, Instagram). Shows connected channel usernames, connection dates, and validation badges.
   - **Settings Page**: Acts as the landing pad for OAuth callbacks. Displays success/failure alerts based on callback queries and triggers a 5-second automatic countdown redirect to the dashboard.
+  - **YouTube Analytics Dashboard**: Modular, multi-page layout rendering live and cached channel statistics (Overview, Content, Audience, Engagement, etc.) directly integrated with the YouTube Reporting and Data APIs.
 
 ---
 
@@ -97,7 +98,7 @@ git checkout himanshu
    ```env
    PORT=5000
    BASE_URL=http://localhost:5000
-   FRONTEND_URL=http://localhost:3000
+   FRONTEND_URL=http://localhost:5173
    MONGODB_URI=your_mongodb_connection_string
    JWT_SECRET=your_jwt_secret_key
    ENCRYPTION_KEY=your_aes_32_byte_hex_key
@@ -126,6 +127,9 @@ git checkout himanshu
    ```bash
    npm run dev
    ```
-   The client will run on **`http://localhost:3000`** (strictly locked to port 3000 in `vite.config.js`).
+   The client will run on **`http://localhost:5173`** (configured via `vite.config.js`). To point the frontend to the correct API endpoint, ensure your frontend directory has an `.env` file with:
+   ```env
+   VITE_BASE_URL=http://localhost:5000
+   ```
 
 ---

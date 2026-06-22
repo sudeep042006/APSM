@@ -11,7 +11,7 @@ const api = axios.create({
 // Request interceptor to automatically attach JWT token
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('incubein_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -29,7 +29,7 @@ api.interceptors.response.use(
     // Check if the error is 401 (Session Expired/Invalid token)
     if (error.response && error.response.status === 401) {
       console.warn('Unauthorized request detected, clearing session.');
-      localStorage.removeItem('token');
+      localStorage.removeItem('incubein_token');
       // If we are not already on login page, redirect to login
       if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/signup')) {
         window.location.href = '/login?expired=true';

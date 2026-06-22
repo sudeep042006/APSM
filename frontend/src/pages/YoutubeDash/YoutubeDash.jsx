@@ -1,73 +1,195 @@
-// ── YouTube Dashboard Page ──────────────────────────────────────────
-// YouTube analytics with metric cards, charts, and skeleton placeholders.
+// ── YouTube Dashboard Layout Shell ─────────────────────────────────
+// Main container for the YouTube Analytics Dashboard. Renders a
+// left sub-navigation sidebar with 8 page tabs and a content area
+// that renders the active sub-page. Handles YouTube connection check,
+// OAuth flow, data fetching, and distributes parsed data to children.
 
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar } from "recharts";
-import { Users, Eye, Clock, TrendingUp } from "lucide-react";
-import { Youtube } from "@/components/icons/BrandIcons";
-
-import { useState, useEffect } from "react";
-import api from "@/lib/api";
 import { Button } from "@/components/ui/button";
+import { Youtube } from "@/components/icons/BrandIcons";
+import {
+  LayoutDashboard,
+  FileVideo,
+  Users,
+  Heart,
+  ListVideo,
+  DollarSign,
+  Radio,
+  Download,
+  RefreshCw,
+  ChevronLeft,
+  ChevronRight,
+  AlertTriangle,
+} from "lucide-react";
+import {
+  fetchYouTubeStatus,
+  fetchYouTubeAnalytics,
+  connectYouTube,
+  revokeYouTube,
+} from "@/services/ytapi";
 
-// ── Mock chart data ─────────────────────────────────────────────────
-const viewsData = [
-  { day: "Mon", views: 1200 }, { day: "Tue", views: 1800 },
-  { day: "Wed", views: 1400 }, { day: "Thu", views: 2200 },
-  { day: "Fri", views: 2800 }, { day: "Sat", views: 3200 },
-  { day: "Sun", views: 2600 },
+// ── Sub-page imports ────────────────────────────────────────────────
+import YoutubeOverview from "./YoutubeOverview";
+import YoutubeContent from "./YoutubeContent";
+import YoutubeAudience from "./YoutubeAudience";
+import YoutubeEngagement from "./YoutubeEngagement";
+import YoutubePlaylists from "./YoutubePlaylists";
+import YoutubeRevenue from "./YoutubeRevenue";
+import YoutubeRealtime from "./YoutubeRealtime";
+import YoutubeReports from "./YoutubeReports";
+
+// ── Sub-navigation items ────────────────────────────────────────────
+const SUB_NAV_ITEMS = [
+  { key: "overview", label: "Overview", icon: LayoutDashboard },
+  { key: "content", label: "Content", icon: FileVideo },
+  { key: "audience", label: "Audience", icon: Users },
+  { key: "engagement", label: "Engagement", icon: Heart },
+  { key: "playlists", label: "Playlists", icon: ListVideo },
+  { key: "revenue", label: "Revenue", icon: DollarSign },
+  { key: "realtime", label: "Realtime", icon: Radio },
+  { key: "reports", label: "Reports", icon: Download },
 ];
 
-const subGrowth = [
-  { month: "Jan", subs: 8200 }, { month: "Feb", subs: 8900 },
-  { month: "Mar", subs: 9400 }, { month: "Apr", subs: 10100 },
-  { month: "May", subs: 11300 }, { month: "Jun", subs: 12450 },
-];
+// ── Loading Spinner ─────────────────────────────────────────────────
+// Branded loading spinner shown during initial connection check.
+function YTSpinner() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="relative w-12 h-12">
+        <div className="absolute top-0 left-0 w-full h-full border-4 border-red-500/20 rounded-full" />
+        <div className="absolute top-0 left-0 w-full h-full border-4 border-t-red-500 rounded-full animate-spin" />
+      </div>
+    </div>
+  );
+}
 
-// ── Metric cards ────────────────────────────────────────────────────
-const metrics = [
-  { title: "Subscribers", value: "12,450", change: "+2.4%", icon: Users, color: "text-red-500", bg: "bg-red-500/10" },
-  { title: "Total Views", value: "1.82M", change: "+8.7%", icon: Eye, color: "text-blue-500", bg: "bg-blue-500/10" },
-  { title: "Watch Time", value: "54,320h", change: "+5.2%", icon: Clock, color: "text-emerald-500", bg: "bg-emerald-500/10" },
-  { title: "Videos", value: "87", change: "+3", icon: Youtube, color: "text-violet-500", bg: "bg-violet-500/10" },
-];
+// ── Connect YouTube Prompt ──────────────────────────────────────────
+// Shown when YouTube account is not connected via OAuth.
+function ConnectPrompt({ onConnect }) {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center animate-fade-in">
+      <Card className="w-full max-w-md border-border/50 shadow-2xl p-6 text-center">
+        <CardHeader className="flex flex-col items-center gap-2">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10">
+            <Youtube className="h-8 w-8 text-red-500" />
+          </div>
+          <CardTitle className="text-xl mt-4">Connect YouTube Channel</CardTitle>
+          <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
+            Connect your YouTube account to view sub counts, channel views, watch time,
+            and detailed visual performance graphs.
+          </p>
+        </CardHeader>
+        <CardContent className="mt-6">
+          <Button
+            onClick={onConnect}
+            className="w-full gap-2 bg-red-600 hover:bg-red-500 text-white"
+            size="lg"
+            id="connect-youtube-btn"
+          >
+            Connect YouTube Channel
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
 
+// ── Error State ─────────────────────────────────────────────────────
+// Shown when analytics fetch fails. Includes retry button.
+function ErrorState({ onRetry }) {
+  return (
+    <div className="flex min-h-[40vh] items-center justify-center animate-fade-in">
+      <div className="text-center max-w-md">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10">
+          <AlertTriangle className="h-8 w-8 text-red-400" />
+        </div>
+        <h3 className="text-lg font-semibold">Something went wrong</h3>
+        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+          We couldn't load your YouTube analytics. Please check your connection and try again.
+        </p>
+        <Button
+          onClick={onRetry}
+          className="mt-4 gap-2"
+          variant="outline"
+          id="retry-analytics-btn"
+        >
+          <RefreshCw className="h-4 w-4" />
+          Retry
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+// ── Main YouTube Dashboard Component ────────────────────────────────
 export default function YoutubeDash() {
-  const [loading, setLoading] = useState(true);
+  // ── State management ──────────────────────────────────────────────
+  const [connectionLoading, setConnectionLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
   const [username, setUsername] = useState("");
   const [revokeLoading, setRevokeLoading] = useState(false);
 
+  const [analyticsData, setAnalyticsData] = useState(null);
+  const [analyticsLoading, setAnalyticsLoading] = useState(false);
+  const [analyticsError, setAnalyticsError] = useState(false);
+
+  const [activePage, setActivePage] = useState("overview");
+  const [subNavCollapsed, setSubNavCollapsed] = useState(false);
+
+  // ── Check YouTube connection status on mount ──────────────────────
   useEffect(() => {
     const checkConnection = async () => {
       try {
-        const res = await api.get("/auth/status");
-        const status = res.data.status?.find((p) => p.platform === "youtube");
-        if (status && status.connected) {
+        const status = await fetchYouTubeStatus();
+        if (status.connected) {
           setIsConnected(true);
           setUsername(status.username);
         }
       } catch (err) {
         console.error("Error checking YouTube connection:", err);
       } finally {
-        setLoading(false);
+        setConnectionLoading(false);
       }
     };
     checkConnection();
   }, []);
 
+  // ── Fetch analytics data when connected ───────────────────────────
+  const loadAnalytics = useCallback(async () => {
+    setAnalyticsLoading(true);
+    setAnalyticsError(false);
+    try {
+      const data = await fetchYouTubeAnalytics();
+      setAnalyticsData(data);
+    } catch (err) {
+      console.error("Error fetching YouTube analytics:", err);
+      setAnalyticsError(true);
+    } finally {
+      setAnalyticsLoading(false);
+    }
+  }, []);
+
+  // ── Auto-fetch analytics when connection is confirmed ─────────────
+  useEffect(() => {
+    if (isConnected) {
+      loadAnalytics();
+    }
+  }, [isConnected, loadAnalytics]);
+
+  // ── Handle YouTube OAuth connect ──────────────────────────────────
   const handleConnect = () => {
-    const token = localStorage.getItem("incubein_token");
-    window.location.href = `/api/auth/youtube?token=${token}`;
+    connectYouTube();
   };
 
+  // ── Handle YouTube revoke ─────────────────────────────────────────
   const handleRevoke = async () => {
     setRevokeLoading(true);
     try {
-      await api.delete("/auth/youtube/revoke");
+      await revokeYouTube();
       setIsConnected(false);
       setUsername("");
+      setAnalyticsData(null);
     } catch (err) {
       console.error("Error revoking YouTube access:", err);
     } finally {
@@ -75,133 +197,166 @@ export default function YoutubeDash() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center">
-        <div className="relative w-12 h-12">
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-red-500/20 rounded-full"></div>
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-t-red-500 rounded-full animate-spin"></div>
-        </div>
-      </div>
-    );
-  }
+  // ── Loading state (checking connection) ───────────────────────────
+  if (connectionLoading) return <YTSpinner />;
 
-  if (!isConnected) {
-    return (
-      <div className="flex min-h-[60vh] items-center justify-center animate-fade-in">
-        <Card className="w-full max-w-md border-border/50 shadow-2xl p-6 text-center">
-          <CardHeader className="flex flex-col items-center gap-2">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10">
-              <Youtube className="h-8 w-8 text-red-500" />
-            </div>
-            <CardTitle className="text-xl mt-4">Connect YouTube Channel</CardTitle>
-            <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-              Connect your YouTube account to view sub counts, channel views, watch time, and detailed visual performance graphs.
-            </p>
-          </CardHeader>
-          <CardContent className="mt-6">
-            <Button onClick={handleConnect} className="w-full gap-2 bg-red-600 hover:bg-red-500 text-white" size="lg" id="connect-youtube-btn">
-              Connect YouTube Channel
-            </Button>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
+  // ── Not connected state ───────────────────────────────────────────
+  if (!isConnected) return <ConnectPrompt onConnect={handleConnect} />;
+
+  // ── Render the active sub-page ────────────────────────────────────
+  const renderActivePage = () => {
+    // Error state (applies to all pages except empty-state pages)
+    if (analyticsError && ["overview", "content", "audience", "engagement"].includes(activePage)) {
+      return <ErrorState onRetry={loadAnalytics} />;
+    }
+
+    switch (activePage) {
+      case "overview":
+        return <YoutubeOverview data={analyticsData} loading={analyticsLoading} />;
+      case "content":
+        return <YoutubeContent data={analyticsData} loading={analyticsLoading} />;
+      case "audience":
+        return <YoutubeAudience data={analyticsData} loading={analyticsLoading} />;
+      case "engagement":
+        return <YoutubeEngagement data={analyticsData} loading={analyticsLoading} />;
+      case "playlists":
+        return <YoutubePlaylists loading={analyticsLoading} />;
+      case "revenue":
+        return <YoutubeRevenue loading={analyticsLoading} />;
+      case "realtime":
+        return <YoutubeRealtime loading={analyticsLoading} />;
+      case "reports":
+        return <YoutubeReports loading={analyticsLoading} />;
+      default:
+        return <YoutubeOverview data={analyticsData} loading={analyticsLoading} />;
+    }
+  };
 
   return (
-    <div className="space-y-6 animate-fade-in">
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-red-500/10">
-            <Youtube className="h-5 w-5 text-red-500" />
+    <div className="flex gap-0 -m-6 min-h-[calc(100vh-4rem)]">
+      {/* ── YouTube Sub-Navigation Sidebar ────────────────────────────── */}
+      <aside
+        className={`shrink-0 border-r border-border/30 bg-card/30 backdrop-blur-sm transition-all duration-300 ${
+          subNavCollapsed ? "w-14" : "w-52"
+        }`}
+      >
+        <div className="sticky top-0 flex flex-col h-full">
+          {/* ── Header with channel info ──────────────────────────────── */}
+          <div className={`border-b border-border/30 p-3 ${subNavCollapsed ? "text-center" : ""}`}>
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
+                <Youtube className="h-4 w-4 text-red-500" />
+              </div>
+              {!subNavCollapsed && (
+                <div className="min-w-0 flex-1">
+                  <p className="text-xs font-semibold truncate">YouTube</p>
+                  <p className="text-[10px] text-muted-foreground truncate">
+                    {username || "Connected"}
+                  </p>
+                </div>
+              )}
+            </div>
           </div>
-          <div>
-            <h2 className="text-2xl font-bold">YouTube Analytics</h2>
-            <p className="text-sm text-muted-foreground">Channel: {username || "Connected"}</p>
+
+          {/* ── Navigation Links ──────────────────────────────────────── */}
+          <nav className="flex-1 py-2 px-1.5 space-y-0.5 overflow-y-auto">
+            {SUB_NAV_ITEMS.map((item) => {
+              const isActive = activePage === item.key;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => setActivePage(item.key)}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-200 ${
+                    subNavCollapsed ? "justify-center" : ""
+                  } ${
+                    isActive
+                      ? "bg-red-500/10 text-red-400 shadow-sm"
+                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+                  }`}
+                  title={subNavCollapsed ? item.label : undefined}
+                  id={`yt-nav-${item.key}`}
+                >
+                  <item.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-red-400" : ""}`} />
+                  {!subNavCollapsed && <span className="truncate">{item.label}</span>}
+                </button>
+              );
+            })}
+          </nav>
+
+          {/* ── Bottom Actions ────────────────────────────────────────── */}
+          <div className="border-t border-border/30 p-2 space-y-1">
+            {/* Refresh button */}
+            <button
+              onClick={loadAnalytics}
+              disabled={analyticsLoading}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-all duration-200 ${
+                subNavCollapsed ? "justify-center" : ""
+              }`}
+              title={subNavCollapsed ? "Refresh Data" : undefined}
+              id="yt-refresh-btn"
+            >
+              <RefreshCw className={`h-4 w-4 shrink-0 ${analyticsLoading ? "animate-spin" : ""}`} />
+              {!subNavCollapsed && <span>Refresh</span>}
+            </button>
+            {/* Collapse toggle */}
+            <button
+              onClick={() => setSubNavCollapsed(!subNavCollapsed)}
+              className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-all duration-200 ${
+                subNavCollapsed ? "justify-center" : ""
+              }`}
+              title={subNavCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+              id="yt-collapse-btn"
+            >
+              {subNavCollapsed ? (
+                <ChevronRight className="h-4 w-4 shrink-0" />
+              ) : (
+                <>
+                  <ChevronLeft className="h-4 w-4 shrink-0" />
+                  <span>Collapse</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
-        <Button
-          variant="destructive"
-          onClick={handleRevoke}
-          disabled={revokeLoading}
-          id="revoke-youtube-btn"
-        >
-          {revokeLoading ? "Revoking..." : "Revoke Access"}
-        </Button>
-      </div>
+      </aside>
 
-      {/* ── Metric Cards ─────────────────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {metrics.map((m) => (
-          <Card key={m.title} className="hover:shadow-md transition-all">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-muted-foreground">{m.title}</p>
-                  <p className="mt-1 text-2xl font-bold">{m.value}</p>
-                </div>
-                <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${m.bg}`}>
-                  <m.icon className={`h-5 w-5 ${m.color}`} />
-                </div>
+      {/* ── Main Content Area ────────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 overflow-y-auto">
+        {/* ── Page Header ──────────────────────────────────────────────── */}
+        <div className="sticky top-0 z-10 border-b border-border/30 bg-background/80 backdrop-blur-md px-6 py-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10">
+                <Youtube className="h-4.5 w-4.5 text-red-500" />
               </div>
-              <div className="mt-3 flex items-center gap-1">
-                <TrendingUp className="h-3.5 w-3.5 text-emerald-500" />
-                <span className="text-sm font-medium text-emerald-500">{m.change}</span>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* ── Charts ───────────────────────────────────────────────────── */}
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader><CardTitle className="text-base">Daily Views</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={viewsData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="day" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <Tooltip />
-                <Area type="monotone" dataKey="views" stroke="#ef4444" fill="#ef444433" strokeWidth={2} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader><CardTitle className="text-base">Subscriber Growth</CardTitle></CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={subGrowth}>
-                <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                <Tooltip />
-                <Bar dataKey="subs" fill="#ef4444" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* ── Recent Videos Skeleton ───────────────────────────────────── */}
-      <Card>
-        <CardHeader><CardTitle className="text-base">Recent Videos</CardTitle></CardHeader>
-        <CardContent className="space-y-4">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="flex items-center gap-4">
-              <Skeleton className="h-16 w-28 rounded-lg" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-3 w-1/2" />
+              <div>
+                <h2 className="text-lg font-bold">
+                  {SUB_NAV_ITEMS.find((i) => i.key === activePage)?.label || "Overview"}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  {username ? `Channel: ${username}` : "YouTube Analytics"}
+                </p>
               </div>
             </div>
-          ))}
-        </CardContent>
-      </Card>
+            {/* Revoke Access button */}
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleRevoke}
+              disabled={revokeLoading}
+              className="text-xs text-muted-foreground hover:text-destructive"
+              id="revoke-youtube-btn"
+            >
+              {revokeLoading ? "Revoking..." : "Disconnect"}
+            </Button>
+          </div>
+        </div>
+
+        {/* ── Active Page Content ──────────────────────────────────────── */}
+        <div className="p-6">
+          {renderActivePage()}
+        </div>
+      </div>
     </div>
   );
 }

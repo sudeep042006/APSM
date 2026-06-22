@@ -3,6 +3,11 @@ import Redis from 'ioredis';
 let redisClient = null;
 
 const connectRedis = () => {
+    if (!process.env.REDIS_URL) {
+        console.warn('⚠️ REDIS_URL is not defined. Redis will not be connected. Automation features may not work.');
+        return null;
+    }
+
     if (!redisClient) {
         redisClient = new Redis(process.env.REDIS_URL, {
             maxRetriesPerRequest: null,

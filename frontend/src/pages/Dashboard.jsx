@@ -66,7 +66,7 @@ const Dashboard = () => {
 
   // Initiate OAuth flow by navigating the browser to the backend endpoint with the token
   const handleConnect = (platform) => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('incubein_token');
     if (!token) {
       setErrorMessage('Auth token not found. Please log in again.');
       addLog('error', 'OAuth aborted: Missing JWT session token');
