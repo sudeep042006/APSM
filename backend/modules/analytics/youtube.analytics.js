@@ -200,23 +200,37 @@ export const fetchAndSaveYouTubeAnalytics = async (userId) => {
       }
     };
 
-    const snapshot = await AnalyticsSnapshot.create({
-      incubationCenterId: userId,
-      platform: 'youtube',
-      metrics: {
-        followers: parseInt(stats.subscriberCount) || 0,
-        impressions: totalViews30Days,
-        reach: totalViews30Days,
-        profileViews: 0,
-        totalEngagement
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const snapshot = await AnalyticsSnapshot.findOneAndUpdate(
+      {
+        incubationCenterId: userId,
+        platform: 'youtube',
+        snapshotDate: { $gte: startOfDay, $lte: endOfDay }
       },
-      demographics: {
-        topCountries,
-        topCities: [],
-        ageAndGender
+      {
+        incubationCenterId: userId,
+        platform: 'youtube',
+        snapshotDate: new Date(),
+        metrics: {
+          followers: parseInt(stats.subscriberCount) || 0,
+          impressions: totalViews30Days,
+          reach: totalViews30Days,
+          profileViews: 0,
+          totalEngagement
+        },
+        demographics: {
+          topCountries,
+          topCities: [],
+          ageAndGender
+        },
+        rawPlatformData
       },
-      rawPlatformData
-    });
+      { upsert: true, new: true }
+    );
 
     console.log(`✅ [youtube.analytics] Full YouTube data saved for user ${userId}`);
     return snapshot;
@@ -224,41 +238,55 @@ export const fetchAndSaveYouTubeAnalytics = async (userId) => {
     // FALLBACK: If no accounts connected or API calls fail completely, generate mock YouTube analytics
     console.warn(`[youtube.analytics] No valid YouTube connection found. Generating mock YouTube snapshot for user ${userId}...`);
 
-    const snapshot = await AnalyticsSnapshot.create({
-      incubationCenterId: userId,
-      platform: 'youtube',
-      metrics: {
-        followers: Math.floor(Math.random() * 5000) + 1000,
-        impressions: Math.floor(Math.random() * 15000) + 5000,
-        reach: Math.floor(Math.random() * 12000) + 4000,
-        profileViews: 0,
-        totalEngagement: Math.floor(Math.random() * 1500) + 200
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 59, 999);
+
+    const snapshot = await AnalyticsSnapshot.findOneAndUpdate(
+      {
+        incubationCenterId: userId,
+        platform: 'youtube',
+        snapshotDate: { $gte: startOfDay, $lte: endOfDay }
       },
-      demographics: {
-        topCountries: [
-          { name: 'IN', count: Math.floor(Math.random() * 5000) + 2000 },
-          { name: 'US', count: Math.floor(Math.random() * 2000) + 500 },
-          { name: 'GB', count: Math.floor(Math.random() * 1000) + 200 }
-        ],
-        topCities: [],
-        ageAndGender: [
-          { group: '18-24_male', count: Math.floor(Math.random() * 3000) + 1000 },
-          { group: '25-34_female', count: Math.floor(Math.random() * 4000) + 1500 },
-          { group: '35-44_male', count: Math.floor(Math.random() * 1500) + 500 }
-        ]
+      {
+        incubationCenterId: userId,
+        platform: 'youtube',
+        snapshotDate: new Date(),
+        metrics: {
+          followers: Math.floor(Math.random() * 5000) + 1000,
+          impressions: Math.floor(Math.random() * 15000) + 5000,
+          reach: Math.floor(Math.random() * 12000) + 4000,
+          profileViews: 0,
+          totalEngagement: Math.floor(Math.random() * 1500) + 200
+        },
+        demographics: {
+          topCountries: [
+            { name: 'IN', count: Math.floor(Math.random() * 5000) + 2000 },
+            { name: 'US', count: Math.floor(Math.random() * 2000) + 500 },
+            { name: 'GB', count: Math.floor(Math.random() * 1000) + 200 }
+          ],
+          topCities: [],
+          ageAndGender: [
+            { group: '18-24_male', count: Math.floor(Math.random() * 3000) + 1000 },
+            { group: '25-34_female', count: Math.floor(Math.random() * 4000) + 1500 },
+            { group: '35-44_male', count: Math.floor(Math.random() * 1500) + 500 }
+          ]
+        },
+        ads: {
+          activeCampaigns: 0,
+          totalSpend: 0,
+          currency: 'INR',
+          adImpressions: 0,
+          costPerClick: 0
+        },
+        rawPlatformData: {
+          mock: true,
+          channelDetails: { snippet: { title: 'Mock Incubation Channel' } }
+        }
       },
-      ads: {
-        activeCampaigns: 0,
-        totalSpend: 0,
-        currency: 'INR',
-        adImpressions: 0,
-        costPerClick: 0
-      },
-      rawPlatformData: {
-        mock: true,
-        channelDetails: { snippet: { title: 'Mock Incubation Channel' } }
-      }
-    });
+      { upsert: true, new: true }
+    );
 
     console.log(`✅ [youtube.analytics] Mock YouTube data saved successfully for user ${userId}`);
     return snapshot;

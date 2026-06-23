@@ -21,8 +21,9 @@ export const fetchYouTubeStatus = async () => {
 // ── Fetch Full YouTube Analytics Snapshot ────────────────────────────
 // Calls GET /analytics/youtube which triggers a fresh YouTube API fetch
 // on the backend, or returns the latest cached snapshot.
-export const fetchYouTubeAnalytics = async () => {
-  const res = await api.get("/analytics/youtube");
+export const fetchYouTubeAnalytics = async (force = false) => {
+  const url = force ? "/analytics/youtube?forceRefresh=true" : "/analytics/youtube";
+  const res = await api.get(url);
   return res.data?.data ?? null;
 };
 

@@ -19,8 +19,39 @@ const getAnalyticsSummary = async (req, res, next) => {
     // For YouTube direct request, perform a fresh fetch and return the complete JSON data
     if (platform === 'youtube') {
       try {
+        const { forceRefresh } = req.query;
+
+        // 1. If not forcing a refresh, look for a snapshot created within the last 24 hours
+        if (forceRefresh !== 'true') {
+          const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+          const existingSnapshot = await AnalyticsSnapshot.findOne({
+            incubationCenterId: userId,
+            platform: 'youtube',
+            snapshotDate: { $gte: oneDayAgo }
+          }).sort({ snapshotDate: -1 });
+
+          if (existingSnapshot) {
+            console.log(`[analytics.controller] Returning cached YouTube snapshot for user ${userId}`);
+            return res.json({
+              message: 'YouTube analytics retrieved from cache',
+              data: existingSnapshot
+            });
+          }
+        }
+
         console.log(`[analytics.controller] Fetching fresh YouTube data for user ${userId}...`);
         const snapshot = await fetchAndSaveYouTubeAnalytics(userId);
+
+        // Maintain DB hygiene: Keep only the 30 most recent snapshots for this user & platform
+        const oldestAllowed = await AnalyticsSnapshot.find({ incubationCenterId: userId, platform: 'youtube' })
+          .sort({ snapshotDate: -1 })
+          .skip(30)
+          .select('_id');
+        if (oldestAllowed.length > 0) {
+          const idsToDelete = oldestAllowed.map(doc => doc._id);
+          await AnalyticsSnapshot.deleteMany({ _id: { $in: idsToDelete } });
+        }
+
         return res.json({
           message: 'YouTube analytics retrieved successfully',
           data: snapshot
