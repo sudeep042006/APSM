@@ -18,9 +18,27 @@ export default defineConfig({
 
   // ── Dev Server Configuration ────────────────────────────────────────
   server: {
-    port: 5173,
+    strictPort: true,
     proxy: {
-      // Proxy API requests to the Express backend during development
+      // Proxy /auth requests to the Express backend during development
+      "/auth": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+      },
+      // Proxy /analytics requests to the Express backend during development
+      "/analytics": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+      },
+      // Proxy /user requests to the Express backend during development
+      "/user": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+      },
+      // Proxy /api catch-all requests to the Express backend during development
       "/api": {
         target: "http://localhost:5000",
         changeOrigin: true,

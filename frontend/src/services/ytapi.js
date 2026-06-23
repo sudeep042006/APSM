@@ -31,6 +31,8 @@ export const fetchYouTubeAnalytics = async () => {
 export const connectYouTube = () => {
   const token = localStorage.getItem("incubein_token");
   const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5000";
+  // Save current path to localStorage so Settings trampoline can route back
+  localStorage.setItem("returnPath", window.location.pathname);
   window.location.href = `${baseUrl}/auth/youtube?token=${token}`;
 };
 

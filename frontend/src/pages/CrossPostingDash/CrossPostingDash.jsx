@@ -1,24 +1,79 @@
 // ── Cross-Posting Dashboard ─────────────────────────────────────────
 // Scheduling and post publishing panel for multi-platform cross-posting.
 
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Send, Plus, CheckCircle2, Link2 } from "lucide-react";
+import { Send, Plus, CheckCircle2, Link2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Youtube, Linkedin, Facebook, Instagram } from "@/components/icons/BrandIcons";
+import api from "@/services/api";
 
-const MOCK_PLATFORMS = [
-  { id: "facebook", name: "Facebook", connected: true, icon: Facebook, color: "text-blue-500", bg: "bg-blue-500/10", description: "Connect to cross-post to your pages and communities." },
-  { id: "instagram", name: "Instagram", connected: false, icon: Instagram, color: "text-pink-500", bg: "bg-pink-500/10", description: "Connect to schedule posts and reels." },
-  { id: "youtube", name: "YouTube", connected: false, icon: Youtube, color: "text-red-500", bg: "bg-red-500/10", description: "Connect to publish videos and track views." },
-  { id: "linkedin", name: "LinkedIn", connected: false, icon: Linkedin, color: "text-blue-600", bg: "bg-blue-600/10", description: "Connect to share professional updates." },
+const SUPPORTED_PLATFORMS = [
+  { id: "facebook", name: "Facebook", icon: Facebook, color: "text-blue-500", bg: "bg-blue-500/10", description: "Connect to cross-post to your pages and communities." },
+  { id: "instagram", name: "Instagram", icon: Instagram, color: "text-pink-500", bg: "bg-pink-500/10", description: "Connect to schedule posts and reels." },
+  { id: "youtube", name: "YouTube", icon: Youtube, color: "text-red-500", bg: "bg-red-500/10", description: "Connect to publish videos and track views." },
+  { id: "linkedin", name: "LinkedIn", icon: Linkedin, color: "text-blue-600", bg: "bg-blue-600/10", description: "Connect to share professional updates." },
 ];
 
 export default function CrossPostingDash() {
   const navigate = useNavigate();
+  
+  const [connectedPlatforms, setConnectedPlatforms] = useState([]);
+  const [availablePlatforms, setAvailablePlatforms] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const activeConnections = MOCK_PLATFORMS.filter(p => p.connected);
-  const unconnectedPlatforms = MOCK_PLATFORMS.filter(p => !p.connected);
+  useEffect(() => {
+    const fetchConnectionStatus = async () => {
+      setIsLoading(true);
+      try {
+        const response = await api.get('/auth/status'); // Use your existing configured axios instance
+        
+        // 1. SAFELY EXTRACT THE ARRAY
+        // Backends wrap arrays differently. We check the most common nested paths.
+        const rawPayload = response.data;
+        const statusArray = Array.isArray(rawPayload) 
+          ? rawPayload 
+          : (rawPayload?.data || rawPayload?.status || rawPayload?.connections || []);
+
+        // CRITICAL DEBUG: Check the browser console to see EXACTLY what the backend sent
+        console.log("Extracted Auth Status Array:", statusArray);
+
+        // 2. SORT THE PLATFORMS
+        const connected = [];
+        const available = [];
+
+        SUPPORTED_PLATFORMS.forEach(platform => {
+          // Use case-insensitive matching and explicit boolean checks
+          const isConnected = statusArray.some(
+            statusItem => 
+              String(statusItem.platform).toLowerCase() === String(platform.id).toLowerCase() && 
+              statusItem.connected === true
+          );
+
+          if (isConnected) {
+            connected.push(platform);
+          } else {
+            available.push(platform);
+          }
+        });
+
+        // 3. UPDATE STATE
+        setConnectedPlatforms(connected);
+        setAvailablePlatforms(available);
+
+      } catch (error) {
+        console.error("Cross-Posting Status Fetch Error:", error);
+        // Fallback: If network fails, show all as available
+        setConnectedPlatforms([]);
+        setAvailablePlatforms(SUPPORTED_PLATFORMS);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchConnectionStatus();
+  }, []);
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -38,19 +93,22 @@ export default function CrossPostingDash() {
         </Button>
       </div>
 
-      {/* ── Conditional Active Connections & Empty State ─────────────── */}
-      {activeConnections.length === 0 ? (
+      {isLoading ? (
+        <div className="flex h-[40vh] items-center justify-center">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+        </div>
+      ) : connectedPlatforms.length === 0 ? (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-16 text-center">
             <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-muted">
               <Link2 className="h-8 w-8 text-muted-foreground" />
             </div>
-            <h3 className="mb-2 text-lg font-semibold">No social media applications connected yet.</h3>
+            <h3 className="mb-2 text-lg font-semibold">No platforms connected yet.</h3>
             <p className="mb-6 max-w-sm text-sm text-muted-foreground">
-              Connect a platform to unlock cross-posting capabilities.
+              Select one below to get started and unlock cross-posting capabilities.
             </p>
             <div className="flex flex-wrap justify-center gap-4">
-              {MOCK_PLATFORMS.map(platform => (
+              {SUPPORTED_PLATFORMS.map(platform => (
                 <Button key={platform.id} variant="outline" className="gap-2">
                   <platform.icon className={`h-4 w-4 ${platform.color}`} />
                   Connect {platform.name}
@@ -65,7 +123,7 @@ export default function CrossPostingDash() {
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Active Workspaces</h3>
             <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-              {activeConnections.map(platform => (
+              {connectedPlatforms.map(platform => (
                 <Card key={platform.id} className="relative overflow-hidden transition-all hover:border-primary/50">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
@@ -78,9 +136,14 @@ export default function CrossPostingDash() {
                           <p className="text-sm text-muted-foreground">Workspace active</p>
                         </div>
                       </div>
-                      <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-500">
-                        <CheckCircle2 className="h-3.5 w-3.5" />
-                        Connected
+                      <div className="flex flex-col items-end gap-2">
+                        <div className="flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-0.5 text-xs font-medium text-emerald-500">
+                          <CheckCircle2 className="h-3.5 w-3.5" />
+                          Connected
+                        </div>
+                        <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground hover:text-red-500 px-2">
+                          Disconnect
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -90,11 +153,11 @@ export default function CrossPostingDash() {
           </div>
 
           {/* Available to Connect */}
-          {unconnectedPlatforms.length > 0 && (
+          {availablePlatforms.length > 0 && (
             <div className="mt-10">
               <h3 className="text-lg font-medium text-gray-300 mb-4">Available to Connect</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {unconnectedPlatforms.map(platform => (
+                {availablePlatforms.map(platform => (
                   <Card key={platform.id} className="opacity-80 border-dashed border-gray-700 bg-zinc-900/40 transition-all hover:opacity-100 hover:border-primary/50">
                     <CardContent className="p-6 flex flex-col gap-4">
                       <div className="flex items-center gap-3">
@@ -118,3 +181,4 @@ export default function CrossPostingDash() {
     </div>
   );
 }
+

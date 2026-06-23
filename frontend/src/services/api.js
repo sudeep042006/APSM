@@ -1,8 +1,8 @@
 import axios from 'axios';
 
-// Create Axios client with backend Base URL
+// Create Axios client — uses relative paths so requests route through Vite proxy in dev
 const api = axios.create({
-  baseURL: import.meta.env.VITE_BASE_URL || 'http://localhost:5000',
+  baseURL: '',
   headers: {
     'Content-Type': 'application/json',
   },

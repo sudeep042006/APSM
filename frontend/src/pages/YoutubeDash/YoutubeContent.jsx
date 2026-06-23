@@ -92,15 +92,11 @@ export default function YoutubeContent({ data, loading }) {
   const [sortBy, setSortBy] = useState("date");
   const [sortOrder, setSortOrder] = useState("desc");
 
-  // ── Loading state ─────────────────────────────────────────────────
-  if (loading) return <ContentSkeleton />;
-
-  // ── Parse video data ──────────────────────────────────────────────
-  const allVideos = parseRecentVideos(data);
-
-  // ── Filter and sort videos ────────────────────────────────────────
+  // ── Filter and sort videos (hook must be above any early return) ──
   const filteredVideos = useMemo(() => {
-    let filtered = allVideos;
+    if (!data) return [];
+    const allVideos = parseRecentVideos(data);
+    let filtered = [...allVideos];
 
     // Apply search filter (case-insensitive title search)
     if (searchQuery.trim()) {
@@ -134,7 +130,10 @@ export default function YoutubeContent({ data, loading }) {
     });
 
     return filtered;
-  }, [allVideos, searchQuery, sortBy, sortOrder]);
+  }, [data, searchQuery, sortBy, sortOrder]);
+
+  // ── Loading state (placed AFTER all hooks) ────────────────────────
+  if (loading) return <ContentSkeleton />;
 
   // ── Toggle sort order ─────────────────────────────────────────────
   const handleSort = (key) => {
