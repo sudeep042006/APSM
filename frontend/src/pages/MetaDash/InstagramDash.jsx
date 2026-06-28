@@ -43,7 +43,7 @@ export default function InstagramDash() {
     
     setError(null);
     try {
-      const res = await metaApi.getMetaAnalytics();
+      const res = await metaApi.getMetaAnalytics(isRefresh);
       setAnalyticsData(res?.instagram || res || {});
     } catch (err) {
       console.error("Error fetching Instagram data:", err);

@@ -197,44 +197,32 @@ export const fetchAndSaveMetaAnalytics = async (userId) => {
       incubationCenterId: userId,
       platform: 'meta',
       metrics: {
-        followers: Math.floor(Math.random() * 4000) + 1500,
-        impressions: Math.floor(Math.random() * 30000) + 8000,
-        reach: Math.floor(Math.random() * 20000) + 5000,
-        profileViews: Math.floor(Math.random() * 1000) + 200,
-        totalEngagement: Math.floor(Math.random() * 2000) + 300
+        followers: 0,
+        impressions: 0,
+        reach: 0,
+        profileViews: 0,
+        totalEngagement: 0
       },
       demographics: {
-        topCountries: [
-          { name: 'IN', count: Math.floor(Math.random() * 2500) + 1200 },
-          { name: 'US', count: Math.floor(Math.random() * 1000) + 300 },
-          { name: 'GB', count: Math.floor(Math.random() * 400) + 100 }
-        ],
-        topCities: [
-          { name: 'Mumbai', count: Math.floor(Math.random() * 1000) + 400 },
-          { name: 'Bangalore', count: Math.floor(Math.random() * 800) + 300 },
-          { name: 'New York', count: Math.floor(Math.random() * 500) + 200 }
-        ],
-        ageAndGender: [
-          { group: '18-24_M', count: Math.floor(Math.random() * 600) + 200 },
-          { group: '25-34_F', count: Math.floor(Math.random() * 800) + 250 },
-          { group: '35-44_M', count: Math.floor(Math.random() * 400) + 100 }
-        ]
+        topCountries: [],
+        topCities: [],
+        ageAndGender: []
       },
       ads: {
-        activeCampaigns: 1,
-        totalSpend: 8000,
+        activeCampaigns: 0,
+        totalSpend: 0,
         currency: 'INR',
-        adImpressions: 22000,
-        costPerClick: 2.8
+        adImpressions: 0,
+        costPerClick: 0
       },
       rawPlatformData: {
-        mock: true,
-        facebook: { pageName: 'Mock Center FB Page', likes: 2100 },
-        instagram: { username: 'mock_center_instagram', followers: 1650 }
+        mock: false,
+        facebook: null,
+        instagram: null
       }
     });
 
-    console.log(`✅ [meta.analytics] Mock Meta data saved successfully for user ${userId}`);
+    console.log(`✅ [meta.analytics] Empty Meta data saved successfully for user ${userId} (No real connection/data found)`);
     return snapshot;
   }
 };

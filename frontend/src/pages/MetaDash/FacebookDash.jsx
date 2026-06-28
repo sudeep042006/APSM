@@ -44,7 +44,7 @@ export default function FacebookDash() {
     
     setError(null);
     try {
-      const res = await metaApi.getMetaAnalytics();
+      const res = await metaApi.getMetaAnalytics(isRefresh);
       // Assume the API might return { facebook: {...}, instagram: {...} } or an array. We rely on optional chaining down the line.
       setAnalyticsData(res?.facebook || res || {});
     } catch (err) {

@@ -16,8 +16,8 @@ const getAnalyticsSummary = async (req, res, next) => {
 
     const userId = req.user._id;
 
-    // For YouTube direct request, perform a fresh fetch and return the complete JSON data
-    if (platform === 'youtube') {
+    // For YouTube or Meta direct request, perform a fresh fetch and return the complete JSON data
+    if (platform === 'youtube' || platform === 'meta') {
       try {
         const { forceRefresh } = req.query;
 
@@ -26,24 +26,27 @@ const getAnalyticsSummary = async (req, res, next) => {
           const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
           const existingSnapshot = await AnalyticsSnapshot.findOne({
             incubationCenterId: userId,
-            platform: 'youtube',
+            platform: platform,
             snapshotDate: { $gte: oneDayAgo }
           }).sort({ snapshotDate: -1 });
 
           if (existingSnapshot) {
-            console.log(`[analytics.controller] Returning cached YouTube snapshot for user ${userId}`);
+            console.log(`[analytics.controller] Returning cached ${platform} snapshot for user ${userId}`);
+            // To ensure compatibility with frontend expecting { message, data: snapshot } or array
             return res.json({
-              message: 'YouTube analytics retrieved from cache',
-              data: existingSnapshot
+              message: `${platform} analytics retrieved from cache`,
+              data: [existingSnapshot]
             });
           }
         }
 
-        console.log(`[analytics.controller] Fetching fresh YouTube data for user ${userId}...`);
-        const snapshot = await fetchAndSaveYouTubeAnalytics(userId);
+        console.log(`[analytics.controller] Fetching fresh ${platform} data for user ${userId}...`);
+        const snapshot = await (platform === 'youtube' 
+          ? fetchAndSaveYouTubeAnalytics(userId) 
+          : fetchAndSaveMetaAnalytics(userId));
 
         // Maintain DB hygiene: Keep only the 30 most recent snapshots for this user & platform
-        const oldestAllowed = await AnalyticsSnapshot.find({ incubationCenterId: userId, platform: 'youtube' })
+        const oldestAllowed = await AnalyticsSnapshot.find({ incubationCenterId: userId, platform: platform })
           .sort({ snapshotDate: -1 })
           .skip(30)
           .select('_id');
@@ -53,22 +56,22 @@ const getAnalyticsSummary = async (req, res, next) => {
         }
 
         return res.json({
-          message: 'YouTube analytics retrieved successfully',
-          data: snapshot
+          message: `${platform} analytics retrieved successfully`,
+          data: [snapshot]
         });
       } catch (err) {
-        console.error(`⚠️ [analytics.controller] Live YouTube fetch failed, returning latest snapshot:`, err.message);
-        const latestSnapshot = await AnalyticsSnapshot.findOne({ incubationCenterId: userId, platform: 'youtube' })
+        console.error(`⚠️ [analytics.controller] Live ${platform} fetch failed, returning latest snapshot:`, err.message);
+        const latestSnapshot = await AnalyticsSnapshot.findOne({ incubationCenterId: userId, platform: platform })
                                                        .sort({ snapshotDate: -1 });
         if (!latestSnapshot) {
           return res.status(400).json({
-            error: 'Failed to fetch live YouTube analytics, and no saved snapshot was found.',
+            error: `Failed to fetch live ${platform} analytics, and no saved snapshot was found.`,
             details: err.message
           });
         }
         return res.json({
-          message: 'Retrieved latest cached YouTube analytics (live fetch failed)',
-          data: latestSnapshot
+          message: `Retrieved latest cached ${platform} analytics (live fetch failed)`,
+          data: [latestSnapshot]
         });
       }
     }
