@@ -9,7 +9,8 @@ import LandingPage from "@/pages/LandingPage/LandingPage";
 import AuthPage from "@/pages/Auth/AuthPage";
 import YoutubeDash from "@/pages/YoutubeDash/YoutubeDash";
 import LinkedInDash from "@/pages/LinkedInDash/LinkedInDash";
-import MetaDash from "@/pages/MetaDash/MetaDash";
+import FacebookDash from "@/pages/MetaDash/FacebookDash";
+import InstagramDash from "@/pages/MetaDash/InstagramDash";
 import CrossPostingDash from "@/pages/CrossPostingDash/CrossPostingDash";
 import NewPostPage from "@/pages/CrossPostingDash/NewPostPage";
 import NotFound from "@/pages/NotFound/NotFound";
@@ -34,7 +35,10 @@ const router = createBrowserRouter([
       { index: true, element: <Navigate to="/dashboard/youtube" replace /> },
       { path: "youtube", element: <YoutubeDash /> },
       { path: "linkedin", element: <LinkedInDash /> },
-      { path: "meta", element: <MetaDash /> },
+      // ── Meta sub-routes (flat — each has its own internal sidebar) ──
+      { path: "meta", element: <Navigate to="/dashboard/meta/facebook" replace /> },
+      { path: "meta/facebook", element: <FacebookDash /> },
+      { path: "meta/instagram", element: <InstagramDash /> },
       { path: "crosspost", element: <CrossPostingDash /> },
       { path: "crosspost/new", element: <NewPostPage /> },
     ],

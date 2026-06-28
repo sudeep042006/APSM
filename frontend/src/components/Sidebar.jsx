@@ -9,12 +9,12 @@ import {
   Send,
   LogOut,
   Menu,
-  Bell
 } from "lucide-react";
 import { Youtube, Linkedin } from "@/components/icons/BrandIcons";
 import { Button } from "@/components/ui/button";
 import ApsmLogo from "@/assets/images/apsm-logo.svg";
-// ── Navigation link items ───────────────────────────────────────────
+
+// Navigation link items
 const navItems = [
   { label: "YouTube", path: "/dashboard/youtube", icon: Youtube },
   { label: "LinkedIn", path: "/dashboard/linkedin", icon: Linkedin },

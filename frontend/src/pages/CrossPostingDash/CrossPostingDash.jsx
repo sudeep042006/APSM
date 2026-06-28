@@ -77,6 +77,23 @@ export default function CrossPostingDash() {
     fetchConnectionStatus();
   }, []);
 
+  // ── Platform connect handler ──────────────────────────────────────
+  // Sets the correct returnPath for the OAuth trampoline before redirecting.
+  const handleConnectPlatform = (platformId) => {
+    const token = localStorage.getItem("incubein_token");
+    if (!token) { console.error("No auth token found."); return; }
+
+    // Map each platform to its correct return destination
+    const returnPaths = {
+      facebook: "/dashboard/meta/facebook",
+      instagram: "/dashboard/meta/instagram",
+      youtube: "/dashboard/youtube",
+      linkedin: "/dashboard/linkedin",
+    };
+    localStorage.setItem("returnPath", returnPaths[platformId] ?? "/dashboard/youtube");
+    window.location.href = `http://localhost:5000/auth/${platformId}?token=${token}`;
+  };
+
   return (
     <div className="min-h-screen bg-[#0B1121] text-slate-100 p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8 relative">
       <ConfirmDisconnectModal 
@@ -177,7 +194,11 @@ export default function CrossPostingDash() {
                         <h4 className="font-semibold text-muted-foreground">{platform.name}</h4>
                       </div>
                       <p className="text-sm text-slate-400 flex-1">{platform.description}</p>
-                      <Button variant="secondary" className="w-full bg-white/10 text-slate-100 border border-transparent hover:bg-white/20">
+                      <Button
+                        variant="secondary"
+                        className="w-full bg-white/10 text-slate-100 border border-transparent hover:bg-white/20"
+                        onClick={() => handleConnectPlatform(platform.id)}
+                      >
                         Connect Account
                       </Button>
                     </CardContent>

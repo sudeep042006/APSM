@@ -5,10 +5,11 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ResponsiveContainer, AreaChart, Area, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
-import { Users, Search, Eye, MousePointerClick, AlertCircle, Loader2, TrendingUp, Filter } from "lucide-react";
+import { Users, Search, Eye, MousePointerClick, AlertCircle, Loader2, TrendingUp, Filter, RefreshCw } from "lucide-react";
 import { Linkedin } from "@/components/icons/BrandIcons";
 import { Button } from "@/components/ui/button";
 import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
+import DateRangePicker from "@/components/DateRangePicker";
 import linkedinApi from "@/services/linkedinApi";
 
 const formatNumber = (num) => {
@@ -25,6 +26,14 @@ export default function LinkedInDash() {
   const [error, setError] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+
+  // Default to Last 7 Days
+  const d = new Date();
+  d.setDate(d.getDate() - 7);
+  const defaultStart = d.toISOString().split('T')[0];
+  const defaultEnd = new Date().toISOString().split('T')[0];
+  
+  const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
 
   const [isConnected, setIsConnected] = useState(false);
   const [username, setUsername] = useState("");
@@ -169,7 +178,7 @@ export default function LinkedInDash() {
         }} 
       />
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between pt-6 px-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-6 px-4 gap-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/20">
             <Linkedin className="h-5 w-5 text-blue-500" />
@@ -180,9 +189,26 @@ export default function LinkedInDash() {
           </div>
         </div>
         {isConnected && (
-          <Button variant="outline" size="sm" onClick={() => setShowDisconnectModal(true)} disabled={revokeLoading} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
-            {revokeLoading ? "Revoking..." : "Revoke Access"}
-          </Button>
+          <div className="flex items-center gap-2 flex-wrap">
+            <DateRangePicker 
+              startDate={dateRange.start} 
+              endDate={dateRange.end} 
+              onChange={setDateRange} 
+            />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={fetchData}
+              disabled={loading}
+              className="text-xs text-slate-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-slate-100 h-9 px-3"
+            >
+              <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? "animate-spin" : ""}`} />
+              Refresh Data
+            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setShowDisconnectModal(true)} disabled={revokeLoading} className="text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 h-9">
+              {revokeLoading ? "Revoking..." : "Revoke Access"}
+            </Button>
+          </div>
         )}
       </div>
 

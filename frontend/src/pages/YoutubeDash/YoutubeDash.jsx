@@ -29,6 +29,8 @@ import {
   revokeYouTube,
 } from "@/services/ytapi";
 
+import DateRangePicker from "@/components/DateRangePicker";
+
 // ── Sub-page imports ────────────────────────────────────────────────
 import YoutubeOverview from "./YoutubeOverview";
 import YoutubeContent from "./YoutubeContent";
@@ -139,6 +141,14 @@ export default function YoutubeDash() {
   const [subNavCollapsed, setSubNavCollapsed] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
+  // Default to Last 7 Days
+  const d = new Date();
+  d.setDate(d.getDate() - 7);
+  const defaultStart = d.toISOString().split('T')[0];
+  const defaultEnd = new Date().toISOString().split('T')[0];
+  
+  const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
+
   // ── Check YouTube connection status on mount ──────────────────────
   useEffect(() => {
     const checkConnection = async () => {
@@ -162,7 +172,7 @@ export default function YoutubeDash() {
     setAnalyticsLoading(true);
     setAnalyticsError(false);
     try {
-      const data = await fetchYouTubeAnalytics(force);
+      const data = await fetchYouTubeAnalytics(force, { startDate: dateRange.start, endDate: dateRange.end });
       setAnalyticsData(data);
     } catch (err) {
       console.error("Error fetching YouTube analytics:", err);
@@ -170,7 +180,7 @@ export default function YoutubeDash() {
     } finally {
       setAnalyticsLoading(false);
     }
-  }, []);
+  }, [dateRange]);
 
   // ── Auto-fetch analytics when connection is confirmed ─────────────
   useEffect(() => {
@@ -336,23 +346,28 @@ export default function YoutubeDash() {
             </div>
             {/* Header Actions */}
             <div className="flex items-center gap-2">
+              <DateRangePicker 
+                startDate={dateRange.start} 
+                endDate={dateRange.end} 
+                onChange={setDateRange} 
+              />
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => loadAnalytics(true)}
                 disabled={analyticsLoading}
-                className="text-xs text-slate-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-slate-100 h-8 px-3"
+                className="text-xs text-slate-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-slate-100 h-9 px-3"
                 id="yt-refresh-btn-new"
               >
                 <RefreshCw className={`h-3.5 w-3.5 mr-2 ${analyticsLoading ? "animate-spin" : ""}`} />
-                Refresh
+                Refresh Data
               </Button>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowDisconnectModal(true)}
                 disabled={revokeLoading}
-                className="text-xs text-slate-400 hover:text-red-400 h-8"
+                className="text-xs text-slate-400 hover:text-red-400 h-9"
                 id="revoke-youtube-btn"
               >
                 {revokeLoading ? "Revoking..." : "Disconnect"}
