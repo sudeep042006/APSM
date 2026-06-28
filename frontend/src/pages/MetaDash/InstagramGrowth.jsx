@@ -4,7 +4,6 @@ import {
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockInstagramData } from "@/utils/metaMockData";
 
 const IG_PINK = "#E1306C";
 const PIE_COLORS = ["#E1306C", "#8b5cf6", "#10b981", "#64748b"];

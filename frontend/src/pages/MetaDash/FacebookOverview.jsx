@@ -4,7 +4,6 @@ import {
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockFacebookData } from "@/utils/metaMockData";
 
 const FB_BLUE = "#1877F2";
 const PIE_COLORS = ["#1877F2", "#10b981", "#8b5cf6", "#64748b"];
@@ -12,7 +11,7 @@ import { EmptyState, KpiCard, DarkTooltip, FacebookDataTable, InstagramDataTable
 
 
 export function FacebookOverview({ data, dateRange }) {
-  const d = data || mockFacebookData;
+  const d = data || {};
 
   const filterByDate = (arr) => {
     if (!dateRange || !arr) return arr;
@@ -25,8 +24,8 @@ export function FacebookOverview({ data, dateRange }) {
     });
   };
 
-  const filteredReach = filterByDate(d.charts.reachOverTime);
-  const filteredEngagements = filterByDate(d.charts.engagementsOverTime);
+  const filteredReach = filterByDate(d?.charts?.reachOverTime);
+  const filteredEngagements = filterByDate(d?.charts?.engagementsOverTime);
 
   const kpiIcons = [Users, Eye, Heart, ThumbsUp, MessageCircle, Share2];
   const kpiColors = [
@@ -42,7 +41,7 @@ export function FacebookOverview({ data, dateRange }) {
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        {d.kpis.map((k, i) => (
+        {(d?.kpis || []).map((k, i) => (
           <KpiCard key={i} {...k} icon={kpiIcons[i]} color={kpiColors[i]} />
         ))}
       </div>
@@ -122,7 +121,7 @@ export function FacebookOverview({ data, dateRange }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {d.tables.topPosts.map((p, i) => (
+                    {(d?.tables?.topPosts || []).map((p, i) => (
                       <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                         <td className="py-3">
                           <div className="flex items-center gap-3">
@@ -162,7 +161,7 @@ export function FacebookOverview({ data, dateRange }) {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
-                    {d.tables.topVideos.map((v, i) => (
+                    {(d?.tables?.topVideos || []).map((v, i) => (
                       <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                         <td className="py-3">
                           <div className="flex items-center gap-3">
@@ -194,16 +193,16 @@ export function FacebookOverview({ data, dateRange }) {
             <CardHeader className="pb-0">
               <CardTitle className="text-sm font-medium text-slate-200">Engagement Rate</CardTitle>
               <div className="mt-2">
-                <p className="text-2xl font-bold">{d.charts.engagementRate.rate}</p>
+                <p className="text-2xl font-bold">{d?.charts?.engagementRate?.rate}</p>
                 <div className="flex items-center gap-1 mt-1 text-emerald-400 text-xs font-medium">
-                  <TrendingUp className="h-3 w-3" /> +{d.charts.engagementRate.change}% <span className="text-slate-500 font-normal">vs previous 7 days</span>
+                  <TrendingUp className="h-3 w-3" /> +{d?.charts?.engagementRate?.change}% <span className="text-slate-500 font-normal">vs previous 7 days</span>
                 </div>
               </div>
             </CardHeader>
             <CardContent className="pt-4">
               <div className="h-[120px] w-full">
                 <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={d.charts.engagementRate.data}>
+                  <LineChart data={d?.charts?.engagementRate?.data}>
                     <Tooltip content={<DarkTooltip />} />
                     <Line type="monotone" dataKey="rate" name="Rate" stroke="#1877F2" strokeWidth={2} dot={{ r: 3, fill: "#1877F2", strokeWidth: 0 }} activeDot={{ r: 5 }} />
                   </LineChart>
@@ -221,15 +220,15 @@ export function FacebookOverview({ data, dateRange }) {
                 <div className="h-[140px] w-1/2">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={d.charts.reachBySource} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" stroke="none">
-                        {d.charts.reachBySource.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                      <Pie data={d?.charts?.reachBySource} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" stroke="none">
+                        {(d?.charts?.reachBySource || []).map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                       </Pie>
                       <Tooltip content={<DarkTooltip />} />
                     </PieChart>
                   </ResponsiveContainer>
                 </div>
                 <div className="w-1/2 space-y-2">
-                  {d.charts.reachBySource.map((s, i) => (
+                  {(d?.charts?.reachBySource || []).map((s, i) => (
                     <div key={i} className="flex items-center justify-between text-xs">
                       <div className="flex items-center gap-2">
                         <div className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
@@ -255,7 +254,7 @@ export function FacebookOverview({ data, dateRange }) {
                     <div className="absolute inset-0 rounded-full border-4 border-t-[#1877F2] border-r-[#1877F2] border-b-[#10b981] border-l-[#8b5cf6]" style={{ transform: "rotate(-45deg)" }} />
                   </div>
                   <div className="flex-1 space-y-1">
-                    {d.charts.audience.ageGender.map((ag, i) => (
+                    {(d?.charts?.audience?.ageGender || []).map((ag, i) => (
                       <div key={i} className="flex items-center justify-between text-xs">
                         <div className="flex items-center gap-2">
                           <div className="h-1.5 w-1.5 rounded-full" style={{ background: PIE_COLORS[i] }} />
@@ -270,7 +269,7 @@ export function FacebookOverview({ data, dateRange }) {
               <div className="border-t border-white/5 pt-4">
                 <p className="text-xs text-slate-400 mb-3 font-medium">Top Countries</p>
                 <div className="space-y-2.5">
-                  {d.charts.audience.topCountries.map((c, i) => (
+                  {(d?.charts?.audience?.topCountries || []).map((c, i) => (
                     <ProgressBar key={i} label={c.country} value={c.value} max={100} />
                   ))}
                 </div>

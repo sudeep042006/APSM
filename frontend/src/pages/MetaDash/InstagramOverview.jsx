@@ -4,7 +4,6 @@ import {
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockInstagramData } from "@/utils/metaMockData";
 
 const IG_PINK = "#E1306C";
 const PIE_COLORS = ["#E1306C", "#8b5cf6", "#10b981", "#64748b"];
@@ -12,7 +11,7 @@ import { EmptyState, KpiCard, DarkTooltip, FacebookDataTable, InstagramDataTable
 
 
 export function InstagramOverview({ data }) {
-  const d = data || mockInstagramData;
+  const d = data || {};
 
   const kpiIcons = [Users, Eye, Eye, Heart, Eye, Bookmark];
   const kpiColors = [
@@ -28,7 +27,7 @@ export function InstagramOverview({ data }) {
     <div className="space-y-6">
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-4">
-        {d.kpis.map((k, i) => (
+        {(d?.kpis || []).map((k, i) => (
           <KpiCard key={i} {...k} icon={kpiIcons[i]} color={kpiColors[i]} />
         ))}
       </div>
@@ -45,7 +44,7 @@ export function InstagramOverview({ data }) {
           <CardContent>
             <div className="h-[220px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={d.charts.reachOverTime} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <AreaChart data={d?.charts?.reachOverTime} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="igReach" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={IG_PINK} stopOpacity={0.3} />
@@ -71,7 +70,7 @@ export function InstagramOverview({ data }) {
           <CardContent>
             <div className="h-[220px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={d.charts.followerGrowth} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <BarChart data={d?.charts?.followerGrowth} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
                   <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} dy={10} />
                   <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
@@ -92,15 +91,15 @@ export function InstagramOverview({ data }) {
               <div className="h-[120px] w-1/2">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    <Pie data={d.charts.gender} cx="50%" cy="50%" innerRadius={35} outerRadius={50} paddingAngle={0} dataKey="value" stroke="#161B22" strokeWidth={3}>
-                      {d.charts.gender.map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
+                    <Pie data={d?.charts?.gender} cx="50%" cy="50%" innerRadius={35} outerRadius={50} paddingAngle={0} dataKey="value" stroke="#161B22" strokeWidth={3}>
+                      {(d?.charts?.gender || []).map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
                     <Tooltip content={<DarkTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
               <div className="w-1/2 space-y-3">
-                {d.charts.gender.map((s, i) => (
+                {(d?.charts?.gender || []).map((s, i) => (
                   <div key={i} className="flex items-center justify-between text-xs">
                     <div className="flex items-center gap-2">
                       <div className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
@@ -115,7 +114,7 @@ export function InstagramOverview({ data }) {
             <div className="border-t border-white/5 pt-4">
               <p className="text-xs text-slate-400 mb-3 font-medium">Top Countries</p>
               <div className="space-y-3">
-                {d.charts.topCountries.map((c, i) => (
+                {(d?.charts?.topCountries || []).map((c, i) => (
                   <ProgressBar key={i} label={c.country} value={c.value} max={100} />
                 ))}
               </div>
@@ -142,7 +141,7 @@ export function InstagramOverview({ data }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {d.tables.topPosts.map((p, i) => (
+                {(d?.tables?.topPosts || []).map((p, i) => (
                   <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                     <td className="py-3">
                       <div className="flex items-center gap-3">
@@ -188,7 +187,7 @@ export function InstagramOverview({ data }) {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {d.tables.topReels.map((v, i) => (
+                {(d?.tables?.topReels || []).map((v, i) => (
                   <tr key={i} className="hover:bg-white/[0.02] transition-colors">
                     <td className="py-3">
                       <div className="flex items-center gap-3">
@@ -222,9 +221,9 @@ export function InstagramOverview({ data }) {
             <div>
               <CardTitle className="text-sm font-medium text-slate-200">Engagement Rate</CardTitle>
               <div className="mt-2">
-                <p className="text-2xl font-bold">{d.charts.engagementRate.rate}</p>
+                <p className="text-2xl font-bold">{d?.charts?.engagementRate?.rate}</p>
                 <div className="flex items-center gap-1 mt-1 text-emerald-400 text-xs font-medium">
-                  <TrendingUp className="h-3 w-3" /> +{d.charts.engagementRate.change}% <span className="text-slate-500 font-normal">vs previous 7 days</span>
+                  <TrendingUp className="h-3 w-3" /> +{d?.charts?.engagementRate?.change}% <span className="text-slate-500 font-normal">vs previous 7 days</span>
                 </div>
               </div>
             </div>
@@ -233,7 +232,7 @@ export function InstagramOverview({ data }) {
           <CardContent className="pt-4">
             <div className="h-[140px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={d.charts.engagementRate.data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <LineChart data={d?.charts?.engagementRate?.data} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
                   <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} dy={5} />
                   <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />

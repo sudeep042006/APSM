@@ -4,7 +4,6 @@ import {
   PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { mockFacebookData } from "@/utils/metaMockData";
 
 const FB_BLUE = "#1877F2";
 const PIE_COLORS = ["#1877F2", "#10b981", "#8b5cf6", "#64748b"];

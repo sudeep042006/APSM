@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { mockFacebookData } from "@/utils/metaMockData";
+import { useState, useEffect, useCallback } from "react";
+import metaApi from "@/services/metaApi";
 import { Facebook } from "@/components/icons/BrandIcons";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MetaInnerSidebar, { FB_NAV } from "./MetaInnerSidebar";
 import DateRangePicker from "@/components/DateRangePicker";
@@ -28,6 +28,7 @@ export default function FacebookDash() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState(null);
   
   // Default to Last 7 Days
   const d = new Date();
@@ -37,22 +38,30 @@ export default function FacebookDash() {
   
   const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
 
-  // Simulate API fetch
-  useEffect(() => {
-    const fetchFacebookData = async () => {
-      setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setAnalyticsData(mockFacebookData);
+  const fetchFacebookData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setIsRefreshing(true);
+    else setIsLoading(true);
+    
+    setError(null);
+    try {
+      const res = await metaApi.getMetaAnalytics();
+      // Assume the API might return { facebook: {...}, instagram: {...} } or an array. We rely on optional chaining down the line.
+      setAnalyticsData(res?.facebook || res || {});
+    } catch (err) {
+      console.error("Error fetching Facebook data:", err);
+      setError("Failed to load Facebook analytics.");
+    } finally {
       setIsLoading(false);
-    };
-    fetchFacebookData();
+      setIsRefreshing(false);
+    }
   }, []);
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setAnalyticsData({...mockFacebookData}); // force re-render
-    setIsRefreshing(false);
+  useEffect(() => {
+    fetchFacebookData();
+  }, [fetchFacebookData]);
+
+  const handleRefresh = () => {
+    fetchFacebookData(true);
   };
 
   if (isLoading) {
@@ -107,17 +116,17 @@ export default function FacebookDash() {
         {/* Content Area */}
         <div className="p-6 flex flex-col gap-6">
           {activeTab === "overview" && <FacebookOverview data={analyticsData} dateRange={dateRange} />}
-          {activeTab === "content" && <FacebookContent data={analyticsData.extended.contentData.posts} dateRange={dateRange} />}
-          {activeTab === "audience" && <FacebookAudience data={analyticsData.extended.audienceDetails} dateRange={dateRange} />}
-          {activeTab === "engagement" && <FacebookEngagement data={analyticsData.extended.engagementDetails} dateRange={dateRange} />}
-          {activeTab === "page_likes" && <FacebookPageLikes data={analyticsData.extended.growth} dateRange={dateRange} />}
-          {activeTab === "reach_views" && <FacebookReachViews data={analyticsData.extended.reachAndViews} dateRange={dateRange} />}
-          {activeTab === "videos" && <FacebookVideos data={analyticsData.extended.contentData.videos} dateRange={dateRange} />}
-          {activeTab === "stories" && <FacebookStories data={analyticsData.extended.contentData.stories} dateRange={dateRange} />}
-          {activeTab === "groups" && <FacebookGroups data={analyticsData.extended.groups} dateRange={dateRange} />}
-          {activeTab === "ads" && <FacebookAds data={analyticsData.extended.ads} dateRange={dateRange} />}
-          {activeTab === "reports" && <FacebookReports data={analyticsData.extended.utilityData.recentExports} dateRange={dateRange} />}
-          {activeTab === "insights" && <FacebookInsights data={analyticsData.extended.insights} dateRange={dateRange} />}
+          {activeTab === "content" && <FacebookContent data={analyticsData?.extended?.contentData?.posts} dateRange={dateRange} />}
+          {activeTab === "audience" && <FacebookAudience data={analyticsData?.extended?.audienceDetails} dateRange={dateRange} />}
+          {activeTab === "engagement" && <FacebookEngagement data={analyticsData?.extended?.engagementDetails} dateRange={dateRange} />}
+          {activeTab === "page_likes" && <FacebookPageLikes data={analyticsData?.extended?.growth} dateRange={dateRange} />}
+          {activeTab === "reach_views" && <FacebookReachViews data={analyticsData?.extended?.reachAndViews} dateRange={dateRange} />}
+          {activeTab === "videos" && <FacebookVideos data={analyticsData?.extended?.contentData?.videos} dateRange={dateRange} />}
+          {activeTab === "stories" && <FacebookStories data={analyticsData?.extended?.contentData?.stories} dateRange={dateRange} />}
+          {activeTab === "groups" && <FacebookGroups data={analyticsData?.extended?.groups} dateRange={dateRange} />}
+          {activeTab === "ads" && <FacebookAds data={analyticsData?.extended?.ads} dateRange={dateRange} />}
+          {activeTab === "reports" && <FacebookReports data={analyticsData?.extended?.utilityData?.recentExports} dateRange={dateRange} />}
+          {activeTab === "insights" && <FacebookInsights data={analyticsData?.extended?.insights} dateRange={dateRange} />}
           {activeTab === "settings" && <FacebookSettings />}
           {activeTab === "help" && <FacebookHelp />}
         </div>

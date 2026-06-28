@@ -24,20 +24,28 @@ api.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-// ── Response Interceptor: Catch 401s and redirect to login ──────────
+// ── Response Interceptor: Catch auth failures globally ───────────────
+// Dispatches a 'sessionExpired' window event on 401/403 so AuthContext
+// can render the re-authentication modal without a page flash or hard redirect.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // ── Clear stale credentials ─────────────────────────────────────
+    const status = error.response?.status;
+
+    if (status === 401 || status === 403) {
+      console.warn(`[lib/api] ${status} detected — dispatching sessionExpired event.`);
+
+      // ── Dispatch global event to trigger AuthContext modal ───────────
+      window.dispatchEvent(new CustomEvent('sessionExpired', {
+        detail: { status, url: error.config?.url }
+      }));
+
+      // ── Clear stale credentials from storage ─────────────────────────
       localStorage.removeItem("incubein_token");
       localStorage.removeItem("incubein_user");
-
-      // ── Redirect to login (unless already there) ────────────────────
-      if (window.location.pathname !== "/login") {
-        window.location.href = "/login";
-      }
     }
+
+    // ── Always reject so callers can handle gracefully ───────────────
     return Promise.reject(error);
   }
 );

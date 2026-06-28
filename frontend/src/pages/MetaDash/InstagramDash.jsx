@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
-import { mockInstagramData } from "@/utils/metaMockData";
+import { useState, useEffect, useCallback } from "react";
+import metaApi from "@/services/metaApi";
 import { Instagram } from "@/components/icons/BrandIcons";
-import { RefreshCw } from "lucide-react";
+import { RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import MetaInnerSidebar, { IG_NAV } from "./MetaInnerSidebar";
 import DateRangePicker from "@/components/DateRangePicker";
@@ -27,6 +27,7 @@ export default function InstagramDash() {
   const [analyticsData, setAnalyticsData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [error, setError] = useState(null);
 
   // Default to Last 7 Days
   const d = new Date();
@@ -36,22 +37,29 @@ export default function InstagramDash() {
   
   const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
 
-  // Simulate API fetch
-  useEffect(() => {
-    const fetchInstagramData = async () => {
-      setIsLoading(true);
-      await new Promise(resolve => setTimeout(resolve, 800));
-      setAnalyticsData(mockInstagramData);
+  const fetchInstagramData = useCallback(async (isRefresh = false) => {
+    if (isRefresh) setIsRefreshing(true);
+    else setIsLoading(true);
+    
+    setError(null);
+    try {
+      const res = await metaApi.getMetaAnalytics();
+      setAnalyticsData(res?.instagram || res || {});
+    } catch (err) {
+      console.error("Error fetching Instagram data:", err);
+      setError("Failed to load Instagram analytics.");
+    } finally {
       setIsLoading(false);
-    };
-    fetchInstagramData();
+      setIsRefreshing(false);
+    }
   }, []);
 
-  const handleRefresh = async () => {
-    setIsRefreshing(true);
-    await new Promise(resolve => setTimeout(resolve, 800));
-    setAnalyticsData({...mockInstagramData}); // force re-render
-    setIsRefreshing(false);
+  useEffect(() => {
+    fetchInstagramData();
+  }, [fetchInstagramData]);
+
+  const handleRefresh = () => {
+    fetchInstagramData(true);
   };
 
   if (isLoading) {
@@ -106,16 +114,16 @@ export default function InstagramDash() {
         {/* Content Area */}
         <div className="p-6 flex flex-col gap-6">
           {activeTab === "overview" && <InstagramOverview data={analyticsData} dateRange={dateRange} />}
-          {activeTab === "content" && <InstagramContent data={analyticsData.extended.contentData.posts} dateRange={dateRange} />}
-          {activeTab === "audience" && <InstagramAudience data={analyticsData.extended.audienceDetails} dateRange={dateRange} />}
-          {activeTab === "engagement" && <InstagramEngagement data={analyticsData.extended.engagementDetails} dateRange={dateRange} />}
-          {activeTab === "stories" && <InstagramStories data={analyticsData.extended.contentData.stories} dateRange={dateRange} />}
-          {activeTab === "reels" && <InstagramReels data={analyticsData.extended.contentData.reels} dateRange={dateRange} />}
-          {activeTab === "growth" && <InstagramGrowth data={analyticsData.extended.growth} dateRange={dateRange} />}
-          {activeTab === "hashtags" && <InstagramHashtags data={analyticsData.extended.hashtags} dateRange={dateRange} />}
-          {activeTab === "ads" && <InstagramAds data={analyticsData.extended.ads} dateRange={dateRange} />}
-          {activeTab === "insights" && <InstagramInsights data={analyticsData.extended.insights} dateRange={dateRange} />}
-          {activeTab === "reports" && <InstagramReports data={analyticsData.extended.utilityData.recentExports} dateRange={dateRange} />}
+          {activeTab === "content" && <InstagramContent data={analyticsData?.extended?.contentData?.posts} dateRange={dateRange} />}
+          {activeTab === "audience" && <InstagramAudience data={analyticsData?.extended?.audienceDetails} dateRange={dateRange} />}
+          {activeTab === "engagement" && <InstagramEngagement data={analyticsData?.extended?.engagementDetails} dateRange={dateRange} />}
+          {activeTab === "stories" && <InstagramStories data={analyticsData?.extended?.contentData?.stories} dateRange={dateRange} />}
+          {activeTab === "reels" && <InstagramReels data={analyticsData?.extended?.contentData?.reels} dateRange={dateRange} />}
+          {activeTab === "growth" && <InstagramGrowth data={analyticsData?.extended?.growth} dateRange={dateRange} />}
+          {activeTab === "hashtags" && <InstagramHashtags data={analyticsData?.extended?.hashtags} dateRange={dateRange} />}
+          {activeTab === "ads" && <InstagramAds data={analyticsData?.extended?.ads} dateRange={dateRange} />}
+          {activeTab === "insights" && <InstagramInsights data={analyticsData?.extended?.insights} dateRange={dateRange} />}
+          {activeTab === "reports" && <InstagramReports data={analyticsData?.extended?.utilityData?.recentExports} dateRange={dateRange} />}
           {activeTab === "settings" && <InstagramSettings />}
           {activeTab === "help" && <InstagramHelp />}
         </div>
