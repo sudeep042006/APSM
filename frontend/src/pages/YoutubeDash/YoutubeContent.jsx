@@ -39,7 +39,7 @@ function ContentSkeleton() {
       {/* Search bar skeleton */}
       <Skeleton className="h-10 w-full max-w-sm rounded-lg" />
       {/* Table skeleton */}
-      <Card className="border-border/30">
+      <Card className="border-white/10">
         <CardContent className="p-0">
           <div className="space-y-0 divide-y divide-border/30">
             {[1, 2, 3, 4, 5].map((i) => (
@@ -68,10 +68,10 @@ function EmptyTabState({ icon: Icon, title, description }) {
     <div className="flex min-h-[40vh] items-center justify-center animate-fade-in">
       <div className="text-center max-w-sm">
         <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-muted/50">
-          <Icon className="h-7 w-7 text-muted-foreground" />
+          <Icon className="h-7 w-7 text-slate-400" />
         </div>
         <h3 className="text-base font-semibold">{title}</h3>
-        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">{description}</p>
+        <p className="mt-2 text-sm text-slate-400 leading-relaxed">{description}</p>
       </div>
     </div>
   );
@@ -182,13 +182,13 @@ export default function YoutubeContent({ data, loading }) {
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
             {/* Search bar */}
             <div className="relative flex-1 w-full sm:max-w-sm">
-              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
               <input
                 type="text"
                 placeholder="Search videos..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="h-10 w-full rounded-lg border border-border/50 bg-card/50 pl-10 pr-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-red-500/30 transition-all"
+                className="h-10 w-full rounded-lg border border-white/10 bg-card/50 pl-10 pr-4 text-sm text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-red-500/30 transition-all"
                 id="yt-content-search"
               />
             </div>
@@ -214,10 +214,10 @@ export default function YoutubeContent({ data, loading }) {
 
           {/* Video Table */}
           {filteredVideos.length > 0 ? (
-            <Card className="border-border/30 bg-card/50 backdrop-blur-sm overflow-hidden">
+            <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none overflow-hidden">
               <CardContent className="p-0">
                 {/* Table Header */}
-                <div className="hidden md:grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-4 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground border-b border-border/30 bg-muted/20">
+                <div className="hidden md:grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-4 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-white/10 bg-muted/20">
                   <span>Video</span>
                   <span className="text-center">Views</span>
                   <span className="text-center">Likes</span>
@@ -247,12 +247,12 @@ export default function YoutubeContent({ data, loading }) {
                           </div>
                         ) : (
                           <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-md bg-muted">
-                            <Play className="h-4 w-4 text-muted-foreground" />
+                            <Play className="h-4 w-4 text-slate-400" />
                           </div>
                         )}
                         <div className="min-w-0 flex-1">
                           <p className="text-sm font-medium truncate">{video.title}</p>
-                          <div className="flex items-center gap-2 md:hidden mt-1 text-xs text-muted-foreground">
+                          <div className="flex items-center gap-2 md:hidden mt-1 text-xs text-slate-400">
                             <span>{formatCompactNumber(video.viewCount)} views</span>
                             <span>•</span>
                             <span>{formatRelativeTime(video.publishedAt)}</span>
@@ -272,11 +272,11 @@ export default function YoutubeContent({ data, loading }) {
                         <MessageSquare className="h-3 w-3 text-amber-400" />
                         {formatCompactNumber(video.commentCount)}
                       </span>
-                      <span className="hidden md:flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                      <span className="hidden md:flex items-center justify-center gap-1 text-xs text-slate-400">
                         <Clock className="h-3 w-3" />
                         {formatDuration(video.duration)}
                       </span>
-                      <span className="hidden md:block text-right text-xs text-muted-foreground">
+                      <span className="hidden md:block text-right text-xs text-slate-400">
                         {formatRelativeTime(video.publishedAt)}
                       </span>
                     </div>

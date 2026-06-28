@@ -1,3 +1,4 @@
+import { useTheme } from "@/context/ThemeContext";
 // ── YouTube Engagement Page ─────────────────────────────────────────
 // Engagement analytics dashboard showing total engagement metrics,
 // engagement trend charts, watch time analysis, and top engaging videos.
@@ -53,8 +54,8 @@ const COLORS = {
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-border/50 bg-card/95 px-3 py-2 shadow-xl backdrop-blur-sm">
-      <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p>
+    <div className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-lg px-3 py-2 shadow-xl backdrop-blur-sm">
+      <p className="mb-1 text-xs font-medium text-slate-400">{label}</p>
       {payload.map((entry, i) => (
         <p key={i} className="text-sm font-semibold" style={{ color: entry.color }}>
           {entry.name}: {formatCompactNumber(entry.value)}
@@ -70,7 +71,7 @@ function EngagementSkeleton() {
     <div className="space-y-6 animate-fade-in">
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="border-border/30">
+          <Card key={i} className="border-white/10">
             <CardContent className="p-5">
               <Skeleton className="h-3 w-20 mb-2" />
               <Skeleton className="h-7 w-24" />
@@ -80,7 +81,7 @@ function EngagementSkeleton() {
       </div>
       <div className="grid gap-6 lg:grid-cols-2">
         {[1, 2].map((i) => (
-          <Card key={i} className="border-border/30">
+          <Card key={i} className="border-white/10">
             <CardHeader><Skeleton className="h-5 w-40" /></CardHeader>
             <CardContent><Skeleton className="h-[280px] w-full rounded-lg" /></CardContent>
           </Card>
@@ -99,7 +100,7 @@ function EmptyEngagement() {
           <Activity className="h-8 w-8 text-emerald-400" />
         </div>
         <h3 className="text-lg font-semibold">Not enough engagement data yet</h3>
-        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+        <p className="mt-2 text-sm text-slate-400 leading-relaxed">
           Engagement metrics will populate here as viewers interact with your content.
           Check back after your channel receives more activity.
         </p>
@@ -195,12 +196,12 @@ export default function YoutubeEngagement({ data, loading }) {
         {engagementKPIs.map((kpi) => (
           <Card
             key={kpi.title}
-            className="border-border/30 bg-card/50 backdrop-blur-sm hover:shadow-lg hover:shadow-black/5 transition-all duration-300 group"
+            className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none hover:shadow-lg hover:shadow-black/5 transition-all duration-300 group"
           >
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                     {kpi.title}
                   </p>
                   <p className="mt-1.5 text-2xl font-bold tracking-tight">{kpi.value}</p>
@@ -217,12 +218,12 @@ export default function YoutubeEngagement({ data, loading }) {
       {/* ── Secondary Metrics Row ─────────────────────────────────────── */}
       <div className="grid gap-4 grid-cols-3">
         {secondaryMetrics.map((m) => (
-          <Card key={m.title} className="border-border/30 bg-card/50 backdrop-blur-sm">
+          <Card key={m.title} className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
                 <m.icon className={`h-4 w-4 ${m.color}`} />
                 <div>
-                  <p className="text-xs text-muted-foreground">{m.title}</p>
+                  <p className="text-xs text-slate-400">{m.title}</p>
                   <p className="text-lg font-bold">{m.value}</p>
                 </div>
               </div>
@@ -234,7 +235,7 @@ export default function YoutubeEngagement({ data, loading }) {
       {/* ── Engagement Trends Chart ───────────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Engagement Trend (Likes + Comments + Shares over time) */}
-        <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <TrendingUp className="h-4 w-4 text-emerald-400" />
@@ -245,15 +246,15 @@ export default function YoutubeEngagement({ data, loading }) {
             {dailyData.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
                 <LineChart data={dailyData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={"#ffffff10"} vertical={false} />
                   <XAxis
                     dataKey="date"
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
                     tickLine={false}
                     interval="preserveStartEnd"
                   />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} />
+                  <YAxis stroke={"#94a3b8"} tickLine={false} axisLine={false} fontSize={10} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
                   <Line type="monotone" dataKey="likes" name="Likes" stroke={COLORS.blue} strokeWidth={2} dot={false} />
@@ -262,7 +263,7 @@ export default function YoutubeEngagement({ data, loading }) {
                 </LineChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
                 No engagement trend data available
               </div>
             )}
@@ -270,7 +271,7 @@ export default function YoutubeEngagement({ data, loading }) {
         </Card>
 
         {/* Watch Time / Avg Duration Chart */}
-        <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Clock className="h-4 w-4 text-amber-400" />
@@ -287,15 +288,15 @@ export default function YoutubeEngagement({ data, loading }) {
                       <stop offset="95%" stopColor={COLORS.amber} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={"#ffffff10"} vertical={false} />
                   <XAxis
                     dataKey="date"
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
                     tickLine={false}
                     interval="preserveStartEnd"
                   />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickLine={false} />
+                  <YAxis stroke={"#94a3b8"} tickLine={false} axisLine={false} fontSize={10} tickLine={false} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area
                     type="monotone"
@@ -308,7 +309,7 @@ export default function YoutubeEngagement({ data, loading }) {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
                 No watch time data available
               </div>
             )}
@@ -317,7 +318,7 @@ export default function YoutubeEngagement({ data, loading }) {
       </div>
 
       {/* ── Top Engaging Videos ───────────────────────────────────────── */}
-      <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+      <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Heart className="h-4 w-4 text-red-400" />
@@ -333,7 +334,7 @@ export default function YoutubeEngagement({ data, loading }) {
                   className="flex items-center gap-4 rounded-lg p-3 hover:bg-accent/30 transition-colors duration-200 group"
                 >
                   {/* Rank badge */}
-                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-xs font-bold text-muted-foreground">
+                  <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-muted/50 text-xs font-bold text-slate-400">
                     {i + 1}
                   </div>
                   {/* Thumbnail */}
@@ -350,13 +351,13 @@ export default function YoutubeEngagement({ data, loading }) {
                     </div>
                   ) : (
                     <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-md bg-muted">
-                      <Play className="h-4 w-4 text-muted-foreground" />
+                      <Play className="h-4 w-4 text-slate-400" />
                     </div>
                   )}
                   {/* Info */}
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium truncate">{video.title}</p>
-                    <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="mt-1 flex items-center gap-3 text-xs text-slate-400">
                       <span className="flex items-center gap-1">
                         <ThumbsUp className="h-3 w-3 text-blue-400" />
                         {formatCompactNumber(video.likeCount)}
@@ -375,7 +376,7 @@ export default function YoutubeEngagement({ data, loading }) {
               ))}
             </div>
           ) : (
-            <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+            <div className="flex h-40 items-center justify-center text-sm text-slate-400">
               No video engagement data available
             </div>
           )}

@@ -8,6 +8,7 @@ import { ResponsiveContainer, AreaChart, Area, LineChart, Line, BarChart, Bar, P
 import { Users, Search, Eye, MousePointerClick, AlertCircle, Loader2, TrendingUp, Filter } from "lucide-react";
 import { Linkedin } from "@/components/icons/BrandIcons";
 import { Button } from "@/components/ui/button";
+import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
 import linkedinApi from "@/services/linkedinApi";
 
 const formatNumber = (num) => {
@@ -23,6 +24,7 @@ export default function LinkedInDash() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [analyticsData, setAnalyticsData] = useState(null);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
   const [isConnected, setIsConnected] = useState(false);
   const [username, setUsername] = useState("");
@@ -157,7 +159,15 @@ export default function LinkedInDash() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0B1121] text-white p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8">
+    <div className="min-h-screen bg-[#0B1121] text-white p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8 relative">
+      <ConfirmDisconnectModal 
+        isOpen={showDisconnectModal} 
+        onClose={() => setShowDisconnectModal(false)} 
+        onConfirm={() => {
+          setShowDisconnectModal(false);
+          handleRevoke();
+        }} 
+      />
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex items-center justify-between pt-6 px-4">
         <div className="flex items-center gap-3">
@@ -170,7 +180,7 @@ export default function LinkedInDash() {
           </div>
         </div>
         {isConnected && (
-          <Button variant="outline" size="sm" onClick={handleRevoke} disabled={revokeLoading} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+          <Button variant="outline" size="sm" onClick={() => setShowDisconnectModal(true)} disabled={revokeLoading} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
             {revokeLoading ? "Revoking..." : "Revoke Access"}
           </Button>
         )}

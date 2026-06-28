@@ -20,7 +20,7 @@ function ReportsSkeleton() {
     <div className="space-y-6 animate-fade-in">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="border-border/30">
+          <Card key={i} className="border-white/10">
             <CardContent className="p-5">
               <Skeleton className="h-12 w-12 rounded-xl mb-3" />
               <Skeleton className="h-4 w-3/4 mb-2" />
@@ -97,7 +97,7 @@ export default function YoutubeReports({ loading }) {
           <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-500/30 animate-pulse" />
         </div>
         <h2 className="text-xl font-bold">Reports & Exports</h2>
-        <p className="mt-2 text-sm text-muted-foreground max-w-md leading-relaxed">
+        <p className="mt-2 text-sm text-slate-400 max-w-md leading-relaxed">
           Report exports are coming soon. You'll be able to download detailed analytics
           reports as CSV or PDF files, with custom date ranges and historical data.
         </p>
@@ -108,14 +108,14 @@ export default function YoutubeReports({ loading }) {
         {reportTypes.map((report) => (
           <Card
             key={report.title}
-            className="border-border/30 bg-card/30 backdrop-blur-sm opacity-60 hover:opacity-80 transition-all duration-300 hover:shadow-lg hover:shadow-black/5"
+            className="border-white/10 bg-white/5 dark:backdrop-blur-sm shadow-sm shadow-none opacity-60 hover:opacity-80 transition-all duration-300 hover:shadow-lg hover:shadow-black/5"
           >
             <CardContent className="p-5">
               <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${report.bg} mb-4`}>
                 <report.icon className={`h-6 w-6 ${report.color}`} />
               </div>
               <h3 className="text-sm font-semibold">{report.title}</h3>
-              <p className="mt-1.5 text-xs text-muted-foreground leading-relaxed">
+              <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
                 {report.description}
               </p>
             </CardContent>

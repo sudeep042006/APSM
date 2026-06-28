@@ -20,7 +20,7 @@ function RevenueSkeleton() {
     <div className="space-y-6 animate-fade-in">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="border-border/30">
+          <Card key={i} className="border-white/10">
             <CardContent className="p-5">
               <Skeleton className="h-3 w-20 mb-2" />
               <Skeleton className="h-7 w-24" />
@@ -82,7 +82,7 @@ export default function YoutubeRevenue({ loading }) {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-amber-300">Monetisation Not Connected</h3>
-              <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+              <p className="mt-1 text-xs text-slate-400 leading-relaxed">
                 Revenue analytics require access to the YouTube Partner Program (YPP).
                 Once your channel is enrolled in YPP and monetisation data access is enabled,
                 revenue metrics will automatically appear here.
@@ -97,19 +97,19 @@ export default function YoutubeRevenue({ loading }) {
         {revenueMetrics.map((metric) => (
           <Card
             key={metric.title}
-            className="border-border/30 bg-card/30 backdrop-blur-sm opacity-50"
+            className="border-white/10 bg-white/5 dark:backdrop-blur-sm shadow-sm shadow-none opacity-50"
           >
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                     {metric.title}
                   </p>
-                  <p className="mt-1.5 text-2xl font-bold tracking-tight text-muted-foreground">
+                  <p className="mt-1.5 text-2xl font-bold tracking-tight text-slate-400">
                     {metric.value}
                   </p>
                   {metric.subtitle && (
-                    <p className="mt-0.5 text-xs text-muted-foreground/60">{metric.subtitle}</p>
+                    <p className="mt-0.5 text-xs text-slate-400/60">{metric.subtitle}</p>
                   )}
                 </div>
                 <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${metric.bg} opacity-50`}>
@@ -122,7 +122,7 @@ export default function YoutubeRevenue({ loading }) {
       </div>
 
       {/* ── Revenue Chart Placeholder ─────────────────────────────────── */}
-      <Card className="border-border/30 bg-card/30 backdrop-blur-sm opacity-50">
+      <Card className="border-white/10 bg-white/5 dark:backdrop-blur-sm shadow-sm shadow-none opacity-50">
         <CardContent className="p-8">
           <div className="flex flex-col items-center justify-center text-center py-12">
             <div className="relative mb-6">
@@ -132,7 +132,7 @@ export default function YoutubeRevenue({ loading }) {
               <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-emerald-500/30 animate-pulse" />
             </div>
             <h2 className="text-xl font-bold">Revenue Trends</h2>
-            <p className="mt-2 text-sm text-muted-foreground max-w-md leading-relaxed">
+            <p className="mt-2 text-sm text-slate-400 max-w-md leading-relaxed">
               Revenue trend charts, ad performance graphs, and earning breakdowns
               will be displayed here once monetisation is enabled for your channel.
             </p>
@@ -141,7 +141,7 @@ export default function YoutubeRevenue({ loading }) {
       </Card>
 
       {/* ── Requirements Info ─────────────────────────────────────────── */}
-      <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+      <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
         <CardContent className="p-5">
           <div className="flex items-start gap-3">
             <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-blue-500/10">
@@ -149,7 +149,7 @@ export default function YoutubeRevenue({ loading }) {
             </div>
             <div>
               <h3 className="text-sm font-semibold">YouTube Partner Program Requirements</h3>
-              <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+              <ul className="mt-2 space-y-1 text-xs text-slate-400">
                 <li className="flex items-center gap-2">
                   <span className="h-1 w-1 rounded-full bg-muted-foreground" />
                   1,000+ subscribers

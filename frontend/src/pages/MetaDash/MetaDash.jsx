@@ -8,6 +8,7 @@ import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cel
 import { Share2, TrendingUp, AlertCircle, Loader2 } from "lucide-react";
 import { Facebook, Instagram } from "@/components/icons/BrandIcons";
 import { Button } from "@/components/ui/button";
+import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
 import metaApi from "@/services/metaApi";
 
 // Helper for formatting large numbers
@@ -32,6 +33,7 @@ export default function MetaDash() {
   
   const [fbRevokeLoading, setFbRevokeLoading] = useState(false);
   const [igRevokeLoading, setIgRevokeLoading] = useState(false);
+  const [disconnectTarget, setDisconnectTarget] = useState(null);
 
   const fetchData = async () => {
     setLoading(true);
@@ -221,7 +223,16 @@ export default function MetaDash() {
 
   // Main Render
   return (
-    <div className="min-h-screen bg-[#0B1121] text-white p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8">
+    <div className="min-h-screen bg-[#0B1121] text-white p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8 relative">
+      <ConfirmDisconnectModal 
+        isOpen={!!disconnectTarget} 
+        onClose={() => setDisconnectTarget(null)} 
+        onConfirm={() => {
+          if (disconnectTarget === 'fb') handleRevokeFb();
+          else if (disconnectTarget === 'ig') handleRevokeIg();
+          setDisconnectTarget(null);
+        }} 
+      />
       {/* ── Header ─────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-3 pt-6 px-4">
         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-indigo-500/20">
@@ -251,7 +262,7 @@ export default function MetaDash() {
                 <>
                   <div className="flex items-center justify-between pb-2">
                     <p className="text-sm text-gray-400">Page: <span className="text-white font-medium">{fbUsername || fbData?.pageName || "Connected"}</span></p>
-                    <Button variant="outline" size="sm" onClick={handleRevokeFb} disabled={fbRevokeLoading} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+                    <Button variant="outline" size="sm" onClick={() => setDisconnectTarget('fb')} disabled={fbRevokeLoading} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
                       {fbRevokeLoading ? "Revoking..." : "Revoke Access"}
                     </Button>
                   </div>
@@ -321,7 +332,7 @@ export default function MetaDash() {
                 <>
                   <div className="flex items-center justify-between pb-2">
                     <p className="text-sm text-gray-400">Profile: <span className="text-white font-medium">{igUsername || igData?.username || "Connected"}</span></p>
-                    <Button variant="outline" size="sm" onClick={handleRevokeIg} disabled={igRevokeLoading} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
+                    <Button variant="outline" size="sm" onClick={() => setDisconnectTarget('ig')} disabled={igRevokeLoading} className="border-red-500/30 text-red-400 hover:bg-red-500/10">
                       {igRevokeLoading ? "Revoking..." : "Revoke Access"}
                     </Button>
                   </div>

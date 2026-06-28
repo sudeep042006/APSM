@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Send, Plus, CheckCircle2, Link2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Youtube, Linkedin, Facebook, Instagram } from "@/components/icons/BrandIcons";
+import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
 import api from "@/services/api";
 
 const SUPPORTED_PLATFORMS = [
@@ -22,6 +23,7 @@ export default function CrossPostingDash() {
   const [connectedPlatforms, setConnectedPlatforms] = useState([]);
   const [availablePlatforms, setAvailablePlatforms] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [disconnectTarget, setDisconnectTarget] = useState(null);
 
   useEffect(() => {
     const fetchConnectionStatus = async () => {
@@ -76,9 +78,17 @@ export default function CrossPostingDash() {
   }, []);
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="min-h-screen bg-[#0B1121] text-slate-100 p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8 relative">
+      <ConfirmDisconnectModal 
+        isOpen={!!disconnectTarget} 
+        onClose={() => setDisconnectTarget(null)} 
+        onConfirm={() => {
+          // No API function currently implemented for this page, just close the modal
+          setDisconnectTarget(null);
+        }} 
+      />
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between pt-6 px-4">
         <div className="flex items-center gap-3">
           <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10">
             <Send className="h-5 w-5 text-emerald-500" />
@@ -122,9 +132,9 @@ export default function CrossPostingDash() {
           {/* Active Workspaces */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Active Workspaces</h3>
-            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 px-4">
               {connectedPlatforms.map(platform => (
-                <Card key={platform.id} className="relative overflow-hidden transition-all hover:border-primary/50">
+                <Card key={platform.id} className="relative overflow-hidden transition-all hover:border-primary/50 bg-white/5 border border-white/10 shadow-none">
                   <CardContent className="p-6">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-4">
@@ -132,8 +142,8 @@ export default function CrossPostingDash() {
                           <platform.icon className={`h-6 w-6 ${platform.color}`} />
                         </div>
                         <div>
-                          <h4 className="font-semibold">{platform.name}</h4>
-                          <p className="text-sm text-muted-foreground">Workspace active</p>
+                          <h4 className="font-semibold text-slate-100">{platform.name}</h4>
+                          <p className="text-sm text-slate-400">Workspace active</p>
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-2">
@@ -141,7 +151,7 @@ export default function CrossPostingDash() {
                           <CheckCircle2 className="h-3.5 w-3.5" />
                           Connected
                         </div>
-                        <Button variant="ghost" size="sm" className="h-6 text-xs text-muted-foreground hover:text-red-500 px-2">
+                        <Button variant="ghost" size="sm" onClick={() => setDisconnectTarget(platform.id)} className="h-6 text-xs text-muted-foreground hover:text-red-500 px-2">
                           Disconnect
                         </Button>
                       </div>
@@ -154,11 +164,11 @@ export default function CrossPostingDash() {
 
           {/* Available to Connect */}
           {availablePlatforms.length > 0 && (
-            <div className="mt-10">
-              <h3 className="text-lg font-medium text-gray-300 mb-4">Available to Connect</h3>
+            <div className="mt-10 px-4">
+              <h3 className="text-lg font-medium text-slate-100 mb-4">Available to Connect</h3>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {availablePlatforms.map(platform => (
-                  <Card key={platform.id} className="opacity-80 border-dashed border-gray-700 bg-zinc-900/40 transition-all hover:opacity-100 hover:border-primary/50">
+                  <Card key={platform.id} className="opacity-80 border-dashed border-white/10 bg-white/5 transition-all hover:opacity-100 hover:border-primary/50">
                     <CardContent className="p-6 flex flex-col gap-4">
                       <div className="flex items-center gap-3">
                         <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-muted">
@@ -166,8 +176,8 @@ export default function CrossPostingDash() {
                         </div>
                         <h4 className="font-semibold text-muted-foreground">{platform.name}</h4>
                       </div>
-                      <p className="text-sm text-muted-foreground flex-1">{platform.description}</p>
-                      <Button variant="secondary" className="w-full">
+                      <p className="text-sm text-slate-400 flex-1">{platform.description}</p>
+                      <Button variant="secondary" className="w-full bg-white/10 text-slate-100 border border-transparent hover:bg-white/20">
                         Connect Account
                       </Button>
                     </CardContent>

@@ -73,8 +73,8 @@ const DEVICE_COLORS = ["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-border/50 bg-card/95 px-3 py-2 shadow-xl backdrop-blur-sm">
-      <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p>
+    <div className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-lg px-3 py-2 shadow-xl backdrop-blur-sm">
+      <p className="mb-1 text-xs font-medium text-slate-400">{label}</p>
       {payload.map((entry, i) => (
         <p key={i} className="text-sm font-semibold" style={{ color: entry.color }}>
           {entry.name}: {formatCompactNumber(entry.value)}
@@ -92,7 +92,7 @@ function OverviewSkeleton() {
       {/* KPI Cards skeleton */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="border-border/30">
+          <Card key={i} className="border-white/10">
             <CardContent className="p-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-2">
@@ -109,14 +109,14 @@ function OverviewSkeleton() {
       {/* Charts skeleton */}
       <div className="grid gap-6 lg:grid-cols-2">
         {[1, 2].map((i) => (
-          <Card key={i} className="border-border/30">
+          <Card key={i} className="border-white/10">
             <CardHeader><Skeleton className="h-5 w-32" /></CardHeader>
             <CardContent><Skeleton className="h-[280px] w-full rounded-lg" /></CardContent>
           </Card>
         ))}
       </div>
       {/* Videos skeleton */}
-      <Card className="border-border/30">
+      <Card className="border-white/10">
         <CardHeader><Skeleton className="h-5 w-28" /></CardHeader>
         <CardContent className="space-y-4">
           {[1, 2, 3].map((i) => (
@@ -144,7 +144,7 @@ function EmptyOverview() {
           <BarChart3 className="h-8 w-8 text-red-400" />
         </div>
         <h3 className="text-lg font-semibold">Not enough data available yet</h3>
-        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+        <p className="mt-2 text-sm text-slate-400 leading-relaxed">
           Your YouTube analytics will appear here once we have enough data to display.
           This usually takes a few hours after connecting your channel.
         </p>
@@ -243,7 +243,7 @@ export default function YoutubeOverview({ data, loading }) {
     <div className="space-y-6 animate-fade-in">
       {/* ── Channel Info Card ─────────────────────────────────────────── */}
       {channel && (
-        <Card className="border-border/30 bg-card/50 backdrop-blur-sm overflow-hidden">
+        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none overflow-hidden">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               {/* Channel thumbnail */}
@@ -262,10 +262,10 @@ export default function YoutubeOverview({ data, loading }) {
               <div className="flex-1 min-w-0">
                 <h3 className="text-lg font-bold truncate">{channel.title}</h3>
                 {channel.customUrl && (
-                  <p className="text-sm text-muted-foreground">{channel.customUrl}</p>
+                  <p className="text-sm text-slate-400">{channel.customUrl}</p>
                 )}
                 {channel.description && (
-                  <p className="mt-1 text-xs text-muted-foreground line-clamp-2 max-w-xl">
+                  <p className="mt-1 text-xs text-slate-400 line-clamp-2 max-w-xl">
                     {channel.description}
                   </p>
                 )}
@@ -280,12 +280,12 @@ export default function YoutubeOverview({ data, loading }) {
         {kpiCards.map((kpi) => (
           <Card
             key={kpi.title}
-            className="border-border/30 bg-card/50 backdrop-blur-sm hover:shadow-lg hover:shadow-black/5 transition-all duration-300 group"
+            className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none hover:shadow-lg hover:shadow-black/5 transition-all duration-300 group"
           >
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                     {kpi.title}
                   </p>
                   <p className="mt-1.5 text-2xl font-bold tracking-tight">{kpi.value}</p>
@@ -303,8 +303,8 @@ export default function YoutubeOverview({ data, loading }) {
                   </>
                 ) : (
                   <>
-                    <TrendingDown className="h-3.5 w-3.5 text-muted-foreground" />
-                    <span className="text-xs font-medium text-muted-foreground">No data</span>
+                    <TrendingDown className="h-3.5 w-3.5 text-slate-400" />
+                    <span className="text-xs font-medium text-slate-400">No data</span>
                   </>
                 )}
               </div>
@@ -318,7 +318,7 @@ export default function YoutubeOverview({ data, loading }) {
         {secondaryKPIs.map((kpi) => (
           <Card
             key={kpi.title}
-            className="border-border/30 bg-card/50 backdrop-blur-sm hover:shadow-lg hover:shadow-black/5 transition-all duration-300"
+            className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none hover:shadow-lg hover:shadow-black/5 transition-all duration-300"
           >
             <CardContent className="p-4">
               <div className="flex items-center gap-3">
@@ -326,7 +326,7 @@ export default function YoutubeOverview({ data, loading }) {
                   <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">{kpi.title}</p>
+                  <p className="text-xs text-slate-400">{kpi.title}</p>
                   <p className="text-lg font-bold">{kpi.value}</p>
                 </div>
               </div>
@@ -338,7 +338,7 @@ export default function YoutubeOverview({ data, loading }) {
       {/* ── Charts Row: Daily Views + Subscriber Growth ───────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Daily Views Area Chart */}
-        <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Eye className="h-4 w-4 text-blue-400" />
@@ -355,16 +355,16 @@ export default function YoutubeOverview({ data, loading }) {
                       <stop offset="95%" stopColor={COLORS.red} stopOpacity={0} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={"#ffffff10"} vertical={false} />
                   <XAxis
                     dataKey="date"
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
                     tickLine={false}
                     interval="preserveStartEnd"
                   />
                   <YAxis
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
                     tickLine={false}
                     tickFormatter={formatCompactNumber}
@@ -381,7 +381,7 @@ export default function YoutubeOverview({ data, loading }) {
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
                 No daily view data available yet
               </div>
             )}
@@ -389,7 +389,7 @@ export default function YoutubeOverview({ data, loading }) {
         </Card>
 
         {/* Subscriber Growth Bar Chart */}
-        <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Users className="h-4 w-4 text-emerald-400" />
@@ -400,16 +400,16 @@ export default function YoutubeOverview({ data, loading }) {
             {subGrowth.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={subGrowth}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={"#ffffff10"} vertical={false} />
                   <XAxis
                     dataKey="date"
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
                     tickLine={false}
                     interval="preserveStartEnd"
                   />
                   <YAxis
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
                     tickLine={false}
                   />
@@ -419,7 +419,7 @@ export default function YoutubeOverview({ data, loading }) {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
                 No subscriber growth data available yet
               </div>
             )}
@@ -428,7 +428,7 @@ export default function YoutubeOverview({ data, loading }) {
       </div>
 
       {/* ── Top Recent Videos ─────────────────────────────────────────── */}
-      <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+      <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
         <CardHeader className="pb-2">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Play className="h-4 w-4 text-red-400" />
@@ -457,13 +457,13 @@ export default function YoutubeOverview({ data, loading }) {
                     </div>
                   ) : (
                     <div className="flex h-16 w-28 shrink-0 items-center justify-center rounded-lg bg-muted">
-                      <Play className="h-6 w-6 text-muted-foreground" />
+                      <Play className="h-6 w-6 text-slate-400" />
                     </div>
                   )}
                   {/* Video info */}
                   <div className="flex-1 min-w-0">
                     <h4 className="text-sm font-medium truncate">{video.title}</h4>
-                    <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
+                    <div className="mt-1 flex items-center gap-3 text-xs text-slate-400">
                       <span className="flex items-center gap-1">
                         <Eye className="h-3 w-3" />
                         {formatCompactNumber(video.viewCount)}
@@ -485,7 +485,7 @@ export default function YoutubeOverview({ data, loading }) {
               ))}
             </div>
           ) : (
-            <div className="flex h-40 items-center justify-center text-sm text-muted-foreground">
+            <div className="flex h-40 items-center justify-center text-sm text-slate-400">
               No recent videos found
             </div>
           )}
@@ -495,7 +495,7 @@ export default function YoutubeOverview({ data, loading }) {
       {/* ── Traffic Sources + Device Breakdown ────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Top Countries Bar Chart */}
-        <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Globe className="h-4 w-4 text-cyan-400" />
@@ -506,17 +506,17 @@ export default function YoutubeOverview({ data, loading }) {
             {countryData.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={countryData} layout="vertical">
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                  <CartesianGrid strokeDasharray="3 3" stroke={"#ffffff10"} vertical={false} />
                   <XAxis
                     type="number"
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
                     tickFormatter={formatCompactNumber}
                   />
                   <YAxis
                     type="category"
                     dataKey="country"
-                    stroke="hsl(var(--muted-foreground))"
+                    stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={11}
                     width={40}
                   />
@@ -525,7 +525,7 @@ export default function YoutubeOverview({ data, loading }) {
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
                 No geographic data available yet
               </div>
             )}
@@ -533,7 +533,7 @@ export default function YoutubeOverview({ data, loading }) {
         </Card>
 
         {/* Device Breakdown Donut Chart */}
-        <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Smartphone className="h-4 w-4 text-violet-400" />
@@ -567,7 +567,7 @@ export default function YoutubeOverview({ data, loading }) {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
                 No device data available yet
               </div>
             )}
@@ -580,7 +580,7 @@ export default function YoutubeOverview({ data, loading }) {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Age Distribution */}
           {ageData.length > 0 && (
-            <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+            <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Users className="h-4 w-4 text-amber-400" />
@@ -590,9 +590,9 @@ export default function YoutubeOverview({ data, loading }) {
               <CardContent>
                 <ResponsiveContainer width="100%" height={220}>
                   <BarChart data={ageData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="group" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={formatCompactNumber} />
+                    <CartesianGrid strokeDasharray="3 3" stroke={"#ffffff10"} vertical={false} />
+                    <XAxis dataKey="group" stroke={"#94a3b8"} tickLine={false} axisLine={false} fontSize={11} />
+                    <YAxis stroke={"#94a3b8"} tickLine={false} axisLine={false} fontSize={10} tickFormatter={formatCompactNumber} />
                     <Tooltip content={<CustomTooltip />} />
                     <Bar dataKey="count" name="Viewers" fill={COLORS.amber} radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -603,7 +603,7 @@ export default function YoutubeOverview({ data, loading }) {
 
           {/* Gender Distribution */}
           {genderData.length > 0 && (
-            <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+            <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Users className="h-4 w-4 text-pink-400" />
