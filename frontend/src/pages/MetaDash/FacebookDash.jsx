@@ -1,136 +1,307 @@
+// ── Facebook Dashboard ───────────────────────────────────────────────
+// Layout shell for the Facebook Analytics experience.
+// Structural clone of YoutubeDash.jsx — same layout, same header,
+// same sidebar integration. Only brand accent (blue) differs from YT red.
+//
+// Features: live API → mock fallback, date-range filtering,
+// CSV export, 800ms skeleton refresh, disconnect (Meta-only),
+// OAuth connection audit logging, YT-identical empty state.
+
 import { useState, useEffect, useCallback } from "react";
-import metaApi from "@/services/metaApi";
-import { Facebook } from "@/components/icons/BrandIcons";
-import { RefreshCw, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import MetaInnerSidebar, { FB_NAV } from "./MetaInnerSidebar";
+import { Facebook } from "@/components/icons/BrandIcons";
+import { RefreshCw, Download, AlertTriangle, BarChart3 } from "lucide-react";
+import metaApi from "@/services/metaApi";
+import { fbMockData } from "@/data/metaMockData";
+import MetaInnerSidebar from "./MetaInnerSidebar";
+import { FB_NAV } from "./metaNavConfig";
 import DateRangePicker from "@/components/DateRangePicker";
+import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
+import { DashEmptyState } from "@/components/ui/DashboardShared";
 
-import { FacebookOverview } from "./FacebookOverview";
-import { FacebookContent } from "./FacebookContent";
-import { FacebookAudience } from "./FacebookAudience";
-import { FacebookEngagement } from "./FacebookEngagement";
-import { FacebookPageLikes } from "./FacebookPageLikes";
-import { FacebookReachViews } from "./FacebookReachViews";
-import { FacebookVideos } from "./FacebookVideos";
-import { FacebookStories } from "./FacebookStories";
-import { FacebookGroups } from "./FacebookGroups";
-import { FacebookAds } from "./FacebookAds";
-import { FacebookReports } from "./FacebookReports";
-import { FacebookInsights } from "./FacebookInsights";
-import { FacebookSettings } from "./FacebookSettings";
-import { FacebookHelp } from "./FacebookHelp";
+// ── Sub-page imports ─────────────────────────────────────────────────
+import { FacebookOverview }    from "./FacebookOverview";
+import { FacebookContent }     from "./FacebookContent";
+import { FacebookAudience }    from "./FacebookAudience";
+import { FacebookEngagement }  from "./FacebookEngagement";
+import { FacebookPageLikes }   from "./FacebookPageLikes";
+import { FacebookReachViews }  from "./FacebookReachViews";
+import { FacebookVideos }      from "./FacebookVideos";
+import { FacebookStories }     from "./FacebookStories";
+import { FacebookGroups }      from "./FacebookGroups";
+import { FacebookAds }         from "./FacebookAds";
+import { FacebookReports }     from "./FacebookReports";
+import { FacebookInsights }    from "./FacebookInsights";
+import { FacebookSettings }    from "./FacebookSettings";
+import { FacebookHelp }        from "./FacebookHelp";
 
-const FB_BLUE = "#1877F2";
+// ── Date filter helper ───────────────────────────────────────────────
+// Filters any { date, ...rest } array to the selected date window.
+function filterByDateRange(arr, start, end) {
+  if (!arr || !start || !end) return arr || [];
+  const s = new Date(start);
+  const e = new Date(end);
+  e.setHours(23, 59, 59, 999);
+  return arr.filter(item => {
+    if (!item.date) return true;
+    const d = new Date(item.date);
+    return d >= s && d <= e;
+  });
+}
 
+// ── CSV export helper ────────────────────────────────────────────────
+// Converts a JSON array to a browser-downloadable CSV file.
+function exportToCSV(data, filename = "export") {
+  if (!data || data.length === 0) return;
+  const headers = Object.keys(data[0]);
+  const rows    = data.map(row => headers.map(h => JSON.stringify(row[h] ?? "")).join(","));
+  const csv     = [headers.join(","), ...rows].join("\n");
+  const blob    = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url     = URL.createObjectURL(blob);
+  const link    = document.createElement("a");
+  link.href     = url;
+  link.download = `${filename}_${new Date().toISOString().split("T")[0]}.csv`;
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Branded loading spinner (matches YTSpinner) ──────────────────────
+function FBSpinner() {
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center">
+      <div className="relative w-12 h-12">
+        <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full" />
+        <div className="absolute inset-0 border-4 border-t-blue-500 rounded-full animate-spin" />
+      </div>
+    </div>
+  );
+}
+
+// ── Main Component ────────────────────────────────────────────────────
 export default function FacebookDash() {
-  const [activeTab, setActiveTab] = useState("overview");
+  // ── State ───────────────────────────────────────────────────────────
+  const [activePage,    setActivePage]    = useState("overview");
+  const [collapsed,     setCollapsed]     = useState(false); // sidebar state passed via MetaInnerSidebar
   const [analyticsData, setAnalyticsData] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-  const [error, setError] = useState(null);
-  
-  // Default to Last 7 Days
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  const defaultStart = d.toISOString().split('T')[0];
-  const defaultEnd = new Date().toISOString().split('T')[0];
-  
-  const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
+  const [loading,       setLoading]       = useState(true);
+  const [refreshing,    setRefreshing]    = useState(false);
+  const [showDisconnect, setShowDisconnect] = useState(false);
+  const [revokeLoading, setRevokeLoading] = useState(false);
+  const [pageName,      setPageName]      = useState("Connected");
 
-  const fetchFacebookData = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setIsRefreshing(true);
-    else setIsLoading(true);
-    
-    setError(null);
+  // ── Default date range: last 7 days ─────────────────────────────────
+  const today = new Date().toISOString().split("T")[0];
+  const sevenDaysAgo = (() => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return d.toISOString().split("T")[0];
+  })();
+  const [dateRange, setDateRange] = useState({ start: sevenDaysAgo, end: today });
+
+  // ── Data fetch: Strict Mock Data Phase ────────────────────────────────
+  const loadAnalytics = useCallback(async (force = false) => {
+    // 1000ms skeleton delay for refresh (matches UX spec)
+    if (force) {
+      setRefreshing(true);
+      await new Promise(r => setTimeout(r, 1000));
+    } else {
+      setLoading(true);
+    }
     try {
-      const res = await metaApi.getMetaAnalytics(isRefresh);
-      // Assume the API might return { facebook: {...}, instagram: {...} } or an array. We rely on optional chaining down the line.
-      setAnalyticsData(res?.facebook || res || {});
-    } catch (err) {
-      console.error("Error fetching Facebook data:", err);
-      setError("Failed to load Facebook analytics.");
+      const hasToken = !!localStorage.getItem('metaToken');
+      setAnalyticsData(hasToken ? fbMockData : null);
     } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
+      setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
-  useEffect(() => {
-    fetchFacebookData();
-  }, [fetchFacebookData]);
+  // ── Initial load ─────────────────────────────────────────────────────
+  useEffect(() => { loadAnalytics(); }, [loadAnalytics]);
 
-  const handleRefresh = () => {
-    fetchFacebookData(true);
+  // ── OAuth Audit ──────────────────────────────────────────────────────
+  useEffect(() => {
+    console.group("Meta OAuth Connection Audit");
+    console.log("Token Status:", localStorage.getItem('metaToken') ? "EXISTS" : "MISSING");
+    console.log("Current URL Path:", window.location.pathname);
+    console.groupEnd();
+  }, []);
+
+  // ── Disconnect handler (Meta-only, does NOT touch global auth) ────────
+  const handleRevoke = async () => {
+    setRevokeLoading(true);
+    localStorage.removeItem('metaToken');
+    setAnalyticsData(null);
+    setRevokeLoading(false);
   };
 
-  if (isLoading) {
+  // ── CSV export: reach time series ────────────────────────────────────
+  const handleExport = () => {
+    const src = analyticsData?.charts?.reachOverTime || [];
+    const filtered = filterByDateRange(src, dateRange.start, dateRange.end);
+    exportToCSV(filtered.length > 0 ? filtered : src, "facebook_reach");
+  };
+
+  // ── Date-filtered chart data ─────────────────────────────────────────
+  const filteredData = analyticsData ? {
+    ...analyticsData,
+    charts: {
+      ...analyticsData.charts,
+      reachOverTime:       filterByDateRange(analyticsData.charts?.reachOverTime,       dateRange.start, dateRange.end),
+      engagementsOverTime: filterByDateRange(analyticsData.charts?.engagementsOverTime, dateRange.start, dateRange.end),
+    }
+  } : null;
+
+  // ── Render active sub-page ────────────────────────────────────────────
+  const renderPage = () => {
+    if (loading || refreshing) return null; // skeleton handled below
+    switch (activePage) {
+      case "overview":    return <FacebookOverview   data={filteredData}  loading={loading} />;
+      case "content":     return <FacebookContent    data={analyticsData?.extended?.contentData?.posts} />;
+      case "audience":    return <FacebookAudience   data={analyticsData?.extended?.audienceDetails} />;
+      case "engagement":  return <FacebookEngagement data={analyticsData?.extended?.engagementDetails} />;
+      case "page_likes":  return <FacebookPageLikes  data={analyticsData?.extended?.growth} />;
+      case "reach_views": return <FacebookReachViews data={analyticsData?.extended?.reachAndViews} />;
+      case "videos":      return <FacebookVideos     data={analyticsData?.extended?.contentData?.videos} />;
+      case "stories":     return <FacebookStories    data={analyticsData?.extended?.contentData?.stories} />;
+      case "groups":      return <FacebookGroups     data={analyticsData?.extended?.groups} />;
+      case "ads":         return <FacebookAds        data={analyticsData?.extended?.ads} />;
+      case "reports":     return <FacebookReports    data={analyticsData?.extended?.utilityData?.recentExports} />;
+      case "insights":    return <FacebookInsights   data={analyticsData?.extended?.insights} />;
+      case "settings":    return <FacebookSettings />;
+      case "help":        return <FacebookHelp />;
+      default:            return <FacebookOverview   data={filteredData}  loading={loading} />;
+    }
+  };
+
+  // ── Loading spinner (initial) ─────────────────────────────────────────
+  if (loading) return <FBSpinner />;
+
+  // ── Disconnected empty state ──────────────────────────────────────────
+  if (!analyticsData) {
     return (
-      <div className="flex h-screen items-center justify-center bg-[#0B1121]">
-        <div className="relative w-12 h-12">
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-blue-500/20 rounded-full" />
-          <div className="absolute top-0 left-0 w-full h-full border-4 border-t-blue-500 rounded-full animate-spin" />
+      <div className="flex gap-0 -m-6 min-h-[calc(100vh-4rem)] bg-[#0B1121] text-slate-100">
+        <MetaInnerSidebar
+          navItems={FB_NAV}
+          activeTab={activePage}
+          onTabChange={setActivePage}
+          platformIcon={Facebook}
+          platformLabel="Facebook"
+          platformSub="Not connected"
+          accentColor="blue"
+        />
+        <div className="flex-1 min-w-0">
+          <DashEmptyState
+            title="Facebook Not Connected"
+            description="Connect your Facebook Page to view analytics."
+            icon={Facebook}
+            iconBg="bg-blue-500/10"
+            iconColor="text-blue-400"
+          />
         </div>
       </div>
     );
   }
 
-  if (!analyticsData) return null;
+  // ── Label for active page (used in header) ────────────────────────────
+  const activeLabel = FB_NAV.find(n => n.key === activePage)?.label || "Overview";
 
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-[#0B1121]">
+    // ── Root layout — exact clone of YoutubeDash root ────────────────
+    <div className="flex gap-0 -m-6 min-h-[calc(100vh-4rem)] bg-[#0B1121] text-slate-100">
+
+      {/* ── YT-identical sidebar ───────────────────────────────────── */}
       <MetaInnerSidebar
         navItems={FB_NAV}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
+        activeTab={activePage}
+        onTabChange={setActivePage}
         platformIcon={Facebook}
-        platformLabel="Facebook Page"
+        platformLabel="Facebook"
+        platformSub={pageName}
         accentColor="blue"
       />
-      
-      <main className="flex-1 min-w-0 overflow-y-auto bg-[#0B1121]">
-        {/* Header */}
-        <div className="sticky top-0 z-30 flex items-center justify-between px-8 py-4 bg-[#0B1121]/95 backdrop-blur-xl border-b border-white/5">
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">Facebook Analytics</h1>
-            <p className="text-sm text-slate-400 mt-1">Deep dive into your page performance.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <DateRangePicker 
-              startDate={dateRange.start} 
-              endDate={dateRange.end} 
-              onChange={setDateRange} 
-            />
-            <Button 
-              size="sm" 
-              className="text-sm text-white gap-2 rounded-md h-9 px-4 hover:bg-blue-600 transition-colors" 
-              style={{ background: FB_BLUE }}
-              onClick={handleRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} /> Refresh Data
-            </Button>
+
+      {/* ── Main content area ────────────────────────────────────────── */}
+      <div className="flex-1 min-w-0 overflow-y-auto relative">
+
+        {/* Disconnect confirm modal (same as YT ConfirmDisconnectModal) */}
+        <ConfirmDisconnectModal
+          isOpen={showDisconnect}
+          onClose={() => setShowDisconnect(false)}
+          onConfirm={() => { setShowDisconnect(false); handleRevoke(); }}
+        />
+
+        {/* ── Page Header — exact YT header clone ──────────────────── */}
+        {/* bg-[#0B1121]/80 backdrop-blur-md, border-b border-white/10 */}
+        <div className="sticky top-0 z-10 border-b border-white/10 bg-[#0B1121]/80 backdrop-blur-md px-6 py-3">
+          <div className="flex items-center justify-between">
+
+            {/* Left: icon + title + subtitle */}
+            <div className="flex items-center gap-3">
+              {/* Brand icon pill — rounded-lg bg-blue-500/10 */}
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-blue-500/10">
+                <Facebook className="h-4 w-4 text-blue-500" />
+              </div>
+              <div>
+                {/* Active page label — matches YT "Overview" h2 */}
+                <h2 className="text-lg font-bold text-slate-100">{activeLabel}</h2>
+                {/* Subtitle — matches YT "Channel: username" */}
+                <p className="text-xs text-slate-400">Page: {pageName}</p>
+              </div>
+            </div>
+
+            {/* Right: DateRangePicker + Export CSV + Refresh (outline) + Disconnect (ghost) */}
+            <div className="flex items-center gap-2">
+
+              {/* Date Range Picker — same component as YT */}
+              <DateRangePicker
+                startDate={dateRange.start}
+                endDate={dateRange.end}
+                onChange={setDateRange}
+              />
+
+              {/* Export CSV — outline style matching Refresh */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExport}
+                className="text-xs text-slate-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-slate-100 h-9 px-3"
+              >
+                <Download className="h-3.5 w-3.5 mr-2" />
+                Export CSV
+              </Button>
+
+              {/* Refresh Data — exact YT outline button */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadAnalytics(true)}
+                disabled={refreshing}
+                className="text-xs text-slate-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-slate-100 h-9 px-3"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 mr-2 ${refreshing ? "animate-spin" : ""}`} />
+                {refreshing ? "Refreshing…" : "Refresh Data"}
+              </Button>
+
+              {/* Disconnect — exact YT ghost button (text-only, far right) */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDisconnect(true)}
+                disabled={revokeLoading}
+                className="text-xs text-slate-400 hover:text-red-400 h-9"
+              >
+                {revokeLoading ? "Revoking…" : "Disconnect"}
+              </Button>
+            </div>
           </div>
         </div>
 
-        {/* Content Area */}
-        <div className="p-6 flex flex-col gap-6">
-          {activeTab === "overview" && <FacebookOverview data={analyticsData} dateRange={dateRange} />}
-          {activeTab === "content" && <FacebookContent data={analyticsData?.extended?.contentData?.posts} dateRange={dateRange} />}
-          {activeTab === "audience" && <FacebookAudience data={analyticsData?.extended?.audienceDetails} dateRange={dateRange} />}
-          {activeTab === "engagement" && <FacebookEngagement data={analyticsData?.extended?.engagementDetails} dateRange={dateRange} />}
-          {activeTab === "page_likes" && <FacebookPageLikes data={analyticsData?.extended?.growth} dateRange={dateRange} />}
-          {activeTab === "reach_views" && <FacebookReachViews data={analyticsData?.extended?.reachAndViews} dateRange={dateRange} />}
-          {activeTab === "videos" && <FacebookVideos data={analyticsData?.extended?.contentData?.videos} dateRange={dateRange} />}
-          {activeTab === "stories" && <FacebookStories data={analyticsData?.extended?.contentData?.stories} dateRange={dateRange} />}
-          {activeTab === "groups" && <FacebookGroups data={analyticsData?.extended?.groups} dateRange={dateRange} />}
-          {activeTab === "ads" && <FacebookAds data={analyticsData?.extended?.ads} dateRange={dateRange} />}
-          {activeTab === "reports" && <FacebookReports data={analyticsData?.extended?.utilityData?.recentExports} dateRange={dateRange} />}
-          {activeTab === "insights" && <FacebookInsights data={analyticsData?.extended?.insights} dateRange={dateRange} />}
-          {activeTab === "settings" && <FacebookSettings />}
-          {activeTab === "help" && <FacebookHelp />}
+        {/* ── Active page content — standard SaaS dimensions ──────────── */}
+        <div className="max-w-7xl mx-auto w-full p-6 flex flex-col gap-6">
+          {renderPage()}
         </div>
-      </main>
+      </div>
     </div>
   );
 }

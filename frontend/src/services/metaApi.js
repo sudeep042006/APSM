@@ -51,12 +51,13 @@ const metaApi = {
 
     const instagram = {
       kpis: [
-        { title: "Total Followers", value: ig.followers || 0 },
-        { title: "Profile Views", value: ig.insights?.find(m=>m.name==='profile_views')?.values?.reduce((a,b)=>a+(b.value||0), 0) || 0 },
-        { title: "Reach", value: ig.insights?.find(m=>m.name==='reach')?.values?.reduce((a,b)=>a+(b.value||0), 0) || 0 },
-        { title: "Impressions", value: ig.insights?.find(m=>m.name==='impressions')?.values?.reduce((a,b)=>a+(b.value||0), 0) || 0 },
-        { title: "Media Count", value: ig.mediaCount || 0 },
-        { title: "Engagement", value: 0 }
+        // Fallback to igSnapshot.metrics when rawPlatformData.instagram has no insights (e.g. mock data)
+        { title: "Total Followers", value: ig.followers || igSnapshot.metrics?.followers || 0 },
+        { title: "Profile Views",  value: ig.insights?.find(m=>m.name==='profile_views')?.values?.reduce((a,b)=>a+(b.value||0), 0) || igSnapshot.metrics?.profileViews || 0 },
+        { title: "Reach",          value: ig.insights?.find(m=>m.name==='reach')?.values?.reduce((a,b)=>a+(b.value||0), 0)         || igSnapshot.metrics?.reach || 0 },
+        { title: "Impressions",    value: ig.insights?.find(m=>m.name==='impressions')?.values?.reduce((a,b)=>a+(b.value||0), 0)  || igSnapshot.metrics?.impressions || 0 },
+        { title: "Media Count",    value: ig.mediaCount || 0 },
+        { title: "Engagement",     value: igSnapshot.metrics?.totalEngagement || 0 }
       ],
       charts: {
         reachOverTime: formatChartData(ig.insights, 'reach'),
@@ -64,6 +65,7 @@ const metaApi = {
         engagementRate: { rate: "N/A", change: 0, data: [] },
         reachBySource: [{ name: "Followers", value: 50 }, { name: "Non-Followers", value: 50 }],
         audience: {
+          // Map ageGender group/count pairs from the snapshot demographics
           ageGender: (igSnapshot.demographics?.ageAndGender || []).map(a => ({ group: a.group, value: a.count })),
           topCountries: (igSnapshot.demographics?.topCountries || []).map(c => ({ country: c.name, value: c.count }))
         }

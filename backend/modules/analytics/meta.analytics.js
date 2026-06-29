@@ -189,19 +189,25 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
 
   try {
     console.log(`[meta.analytics] Checking Instagram connection for user ${userId}...`);
-    const igToken = await getValidToken(userId, 'instagram');
 
-    if (igToken) {
+    // Bug fix: Instagram Business accounts are accessed via the linked Facebook Page.
+    // The /me/accounts endpoint requires a Facebook User token, NOT an Instagram token.
+    // So we always use the facebook token here, then look up the linked IG business account.
+    const fbToken = await getValidToken(userId, 'facebook');
+
+    if (fbToken) {
       console.log(`[meta.analytics] Fetching FB Page linked to Instagram for user ${userId}...`);
       const pagesRes = await axios.get('https://graph.facebook.com/v18.0/me/accounts', {
-        params: { access_token: igToken }
+        params: { access_token: fbToken }
       });
 
       const page = pagesRes.data.data?.[0];
       if (page) {
+        // Use the page-level access token (not the user token) for IG business account
+        const pageToken = page.access_token;
         console.log(`[meta.analytics] Fetching IG Business Account linked to FB Page ${page.id}...`);
         const igAccountRes = await axios.get(`https://graph.facebook.com/v18.0/${page.id}`, {
-          params: { fields: 'instagram_business_account', access_token: igToken }
+          params: { fields: 'instagram_business_account', access_token: pageToken }
         });
 
         const igAccountId = igAccountRes.data.instagram_business_account?.id;
@@ -209,14 +215,14 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
           console.log(`[meta.analytics] Fetching IG insights for Business Account ${igAccountId}...`);
 
           const profileRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}`, {
-            params: { fields: 'followers_count,media_count,username', access_token: igToken }
+            params: { fields: 'followers_count,media_count,username', access_token: pageToken }
           });
 
           const insightsRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/insights`, {
             params: {
               metric: 'impressions,reach,profile_views',
               period: 'day',
-              access_token: igToken
+              access_token: pageToken
             }
           });
 
@@ -224,7 +230,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
             params: {
               metric: 'audience_country,audience_gender_age',
               period: 'lifetime',
-              access_token: igToken
+              access_token: pageToken
             }
           });
 
@@ -263,8 +269,14 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
               count: parseFloat(count) || 0
             }));
           }
+        } else {
+          console.warn(`[meta.analytics] No Instagram Business Account linked to FB Page ${page.id}`);
         }
+      } else {
+        console.warn(`[meta.analytics] No Facebook Pages found for user ${userId} — cannot look up linked IG account`);
       }
+    } else {
+      console.warn(`[meta.analytics] No Facebook token found for user ${userId} — skipping Instagram lookup`);
     }
   } catch (err) {
     console.warn(`⚠️ [meta.analytics] Instagram API fetch skipped/failed for user ${userId}:`, err.message);

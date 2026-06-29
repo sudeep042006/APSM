@@ -12,6 +12,9 @@ router.get('/youtube', requireAuth, analyticsController.getAnalyticsSummary);
 router.get('/meta', requireAuth, analyticsController.getAnalyticsSummary);
 router.get('/meta/facebook', requireAuth, analyticsController.getAnalyticsSummary);
 router.get('/meta/instagram', requireAuth, analyticsController.getAnalyticsSummary);
+// Standalone platform routes (required for direct platform queries)
+router.get('/facebook', requireAuth, analyticsController.getAnalyticsSummary);
+router.get('/instagram', requireAuth, analyticsController.getAnalyticsSummary);
 router.get('/linkedin', requireAuth, analyticsController.getAnalyticsSummary);
 
 export default router;
