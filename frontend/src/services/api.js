@@ -22,19 +22,29 @@ api.interceptors.request.use(
   }
 );
 
-// Response interceptor to handle errors (like 401 Unauthorized) globally
+// ── Response Interceptor: Catch auth failures globally ───────────────
+// Instead of hard-redirecting on 401/403 (which causes a page flash and
+// loses React state), we dispatch a custom 'sessionExpired' window event.
+// AuthContext listens for this event and renders the AuthErrorModal overlay
+// non-destructively, keeping the dashboard UI intact beneath it.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // Check if the error is 401 (Session Expired/Invalid token)
-    if (error.response && error.response.status === 401) {
-      console.warn('Unauthorized request detected, clearing session.');
+    const status = error.response?.status;
+
+    if (status === 401 || status === 403) {
+      console.warn(`[api] ${status} detected — dispatching sessionExpired event.`);
+
+      // ── Dispatch global event to trigger AuthContext modal ───────────
+      window.dispatchEvent(new CustomEvent('sessionExpired', {
+        detail: { status, url: error.config?.url }
+      }));
+
+      // ── Clear the stale JWT token from storage ───────────────────────
       localStorage.removeItem('incubein_token');
-      // If we are not already on login page, redirect to login
-      if (!window.location.pathname.includes('/login') && !window.location.pathname.includes('/signup')) {
-        window.location.href = '/login?expired=true';
-      }
     }
+
+    // ── Always reject so individual catch blocks can handle gracefully ─
     return Promise.reject(error);
   }
 );

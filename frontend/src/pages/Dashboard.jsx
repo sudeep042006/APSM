@@ -7,12 +7,14 @@ import {
   Video, Terminal, User, Bell, ChevronRight, Activity, ArrowUpRight
 } from 'lucide-react';
 import { Youtube, Facebook, Instagram } from '../components/BrandIcons';
+import ConfirmDisconnectModal from '../components/ConfirmDisconnectModal';
 
 const Dashboard = () => {
   const { user, refreshUser, logout } = useAuth();
   const [platformStatuses, setPlatformStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [disconnecting, setDisconnecting] = useState(null);
+  const [disconnectTarget, setDisconnectTarget] = useState(null);
   const [errorMessage, setErrorMessage] = useState('');
   const [activeTab, setActiveTab] = useState('overview'); // overview, integrations, videos, logs
 
@@ -184,7 +186,15 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="flex min-h-screen bg-[#070a13]">
+    <div className="flex min-h-screen bg-[#070a13] relative">
+      <ConfirmDisconnectModal
+        isOpen={!!disconnectTarget}
+        onClose={() => setDisconnectTarget(null)}
+        onConfirm={() => {
+          handleDisconnect(disconnectTarget);
+          setDisconnectTarget(null);
+        }}
+      />
       
       {/* 1. Sidebar Panel */}
       <aside className="hidden md:flex flex-col w-64 bg-slate-950 border-r border-slate-900 shrink-0">
@@ -635,7 +645,7 @@ const Dashboard = () => {
                               <div className="mt-6 flex gap-3">
                                 {status.connected ? (
                                   <button
-                                    onClick={() => handleDisconnect(status.platform)}
+                                    onClick={() => setDisconnectTarget(status.platform)}
                                     disabled={disconnecting === status.platform}
                                     className="bg-slate-950/60 hover:bg-red-950/20 border border-slate-800/80 hover:border-red-900/50 hover:text-red-400 text-slate-300 font-semibold px-4 py-2.5 rounded-xl text-xs transition-all active:scale-[0.98] disabled:opacity-50"
                                   >

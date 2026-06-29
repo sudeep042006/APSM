@@ -4,6 +4,7 @@
 // Provides login, register, and logout actions to all child components.
 
 import { createContext, useContext, useState, useEffect } from "react";
+import AuthErrorModal from "../components/AuthErrorModal";
 import api from "../lib/api";
 
 // ── Create the Auth Context ─────────────────────────────────────────
@@ -14,6 +15,21 @@ export function AuthProvider({ children }) {
   // ── State: User object and loading flag ─────────────────────────────
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+
+  // ── State: Session expiry modal trigger ───────────────────────────
+  // Set to true when the API interceptor fires a 401/403 event.
+  // This causes the AuthErrorModal to overlay the entire dashboard.
+  const [isSessionExpired, setIsSessionExpired] = useState(false);
+
+  // ── Listen for sessionExpired events from API interceptors ──────────
+  // The Axios interceptors in src/services/api.js and src/lib/api.js live
+  // outside the React tree, so they communicate via a window CustomEvent.
+  // This effect bridges that event into React state.
+  useEffect(() => {
+    const handleSessionExpired = () => setIsSessionExpired(true);
+    window.addEventListener('sessionExpired', handleSessionExpired);
+    return () => window.removeEventListener('sessionExpired', handleSessionExpired);
+  }, []);
 
   // ── On mount: Restore session from localStorage ─────────────────────
   useEffect(() => {
@@ -96,9 +112,21 @@ export function AuthProvider({ children }) {
     register,
     logout,
     refreshUser,
+    // Expose the expiry state so any component can check/reset it if needed
+    isSessionExpired,
+    clearSessionExpiry: () => setIsSessionExpired(false),
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {children}
+      {/* ── Session Expired Modal ──────────────────────────────────────── */}
+      {/* Renders on top of everything when a 401/403 is globally intercepted */}
+      {isSessionExpired && (
+        <AuthErrorModal onDismiss={() => setIsSessionExpired(false)} />
+      )}
+    </AuthContext.Provider>
+  );
 }
 
 // ── Custom Hook: useAuth ────────────────────────────────────────────

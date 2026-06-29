@@ -20,7 +20,7 @@ function RealtimeSkeleton() {
     <div className="space-y-6 animate-fade-in">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="border-border/30">
+          <Card key={i} className="border-white/10">
             <CardContent className="p-5">
               <Skeleton className="h-3 w-20 mb-2" />
               <Skeleton className="h-10 w-24" />
@@ -28,7 +28,7 @@ function RealtimeSkeleton() {
           </Card>
         ))}
       </div>
-      <Card className="border-border/30">
+      <Card className="border-white/10">
         <CardContent className="p-5">
           <Skeleton className="h-[300px] w-full rounded-lg" />
         </CardContent>
@@ -92,7 +92,7 @@ export default function YoutubeRealtime({ loading }) {
           </div>
         </div>
         <h2 className="text-xl font-bold">Realtime Analytics</h2>
-        <p className="mt-2 text-sm text-muted-foreground max-w-md leading-relaxed">
+        <p className="mt-2 text-sm text-slate-400 max-w-md leading-relaxed">
           Realtime analytics are coming soon. You'll be able to monitor live viewer counts,
           trending content, and minute-by-minute performance metrics for your channel.
         </p>
@@ -101,29 +101,29 @@ export default function YoutubeRealtime({ loading }) {
       {/* ── Simulated Live Metrics (disabled) ─────────────────────────── */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-3">
         {/* Active viewers placeholder */}
-        <Card className="border-emerald-500/10 bg-card/30 backdrop-blur-sm col-span-2 lg:col-span-1 opacity-50">
+        <Card className="border-emerald-500/10 bg-white/5 dark:backdrop-blur-sm shadow-sm shadow-none col-span-2 lg:col-span-1 opacity-50">
           <CardContent className="p-6 text-center">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
               Active Viewers
             </p>
-            <p className="text-4xl font-bold text-muted-foreground/50">--</p>
-            <p className="mt-1 text-xs text-muted-foreground">Right now</p>
+            <p className="text-4xl font-bold text-slate-400/50">--</p>
+            <p className="mt-1 text-xs text-slate-400">Right now</p>
           </CardContent>
         </Card>
-        <Card className="border-border/30 bg-card/30 backdrop-blur-sm opacity-50">
+        <Card className="border-white/10 bg-white/5 dark:backdrop-blur-sm shadow-sm shadow-none opacity-50">
           <CardContent className="p-6 text-center">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
               Views (Last 48h)
             </p>
-            <p className="text-4xl font-bold text-muted-foreground/50">--</p>
+            <p className="text-4xl font-bold text-slate-400/50">--</p>
           </CardContent>
         </Card>
-        <Card className="border-border/30 bg-card/30 backdrop-blur-sm opacity-50">
+        <Card className="border-white/10 bg-white/5 dark:backdrop-blur-sm shadow-sm shadow-none opacity-50">
           <CardContent className="p-6 text-center">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2">
               Watch Time (Last 48h)
             </p>
-            <p className="text-4xl font-bold text-muted-foreground/50">--</p>
+            <p className="text-4xl font-bold text-slate-400/50">--</p>
           </CardContent>
         </Card>
       </div>
@@ -133,7 +133,7 @@ export default function YoutubeRealtime({ loading }) {
         {realtimeFeatures.map((feature) => (
           <Card
             key={feature.title}
-            className="border-border/30 bg-card/30 backdrop-blur-sm opacity-60 hover:opacity-80 transition-opacity duration-300"
+            className="border-white/10 bg-white/5 dark:backdrop-blur-sm shadow-sm shadow-none opacity-60 hover:opacity-80 transition-opacity duration-300"
           >
             <CardContent className="p-5">
               <div className="flex items-start gap-3">
@@ -142,7 +142,7 @@ export default function YoutubeRealtime({ loading }) {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">{feature.title}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  <p className="mt-1 text-xs text-slate-400 leading-relaxed">
                     {feature.description}
                   </p>
                 </div>

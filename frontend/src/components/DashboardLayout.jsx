@@ -11,7 +11,7 @@ export default function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-slate-50 dark:bg-[#0B1121]">
       {/* ── Sidebar (fixed left) ───────────────────────────────────────── */}
       <Sidebar isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
 

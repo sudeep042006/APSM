@@ -13,7 +13,7 @@ function PlaylistsSkeleton() {
     <div className="space-y-6 animate-fade-in">
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3].map((i) => (
-          <Card key={i} className="border-border/30">
+          <Card key={i} className="border-white/10">
             <CardContent className="p-5">
               <Skeleton className="h-32 w-full rounded-lg mb-3" />
               <Skeleton className="h-4 w-3/4 mb-2" />
@@ -76,7 +76,7 @@ export default function YoutubePlaylists({ loading }) {
           <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-violet-500/30 animate-pulse" />
         </div>
         <h2 className="text-xl font-bold">Playlist Analytics</h2>
-        <p className="mt-2 text-sm text-muted-foreground max-w-md leading-relaxed">
+        <p className="mt-2 text-sm text-slate-400 max-w-md leading-relaxed">
           Playlist-level analytics are coming soon. You'll be able to track performance,
           views, watch time, and engagement for each of your YouTube playlists.
         </p>
@@ -87,7 +87,7 @@ export default function YoutubePlaylists({ loading }) {
         {upcomingFeatures.map((feature) => (
           <Card
             key={feature.title}
-            className="border-border/30 bg-card/30 backdrop-blur-sm opacity-60 hover:opacity-80 transition-opacity duration-300"
+            className="border-white/10 bg-white/5 dark:backdrop-blur-sm shadow-sm shadow-none opacity-60 hover:opacity-80 transition-opacity duration-300"
           >
             <CardContent className="p-5">
               <div className="flex items-start gap-3">
@@ -96,7 +96,7 @@ export default function YoutubePlaylists({ loading }) {
                 </div>
                 <div>
                   <h3 className="text-sm font-semibold">{feature.title}</h3>
-                  <p className="mt-1 text-xs text-muted-foreground leading-relaxed">
+                  <p className="mt-1 text-xs text-slate-400 leading-relaxed">
                     {feature.description}
                   </p>
                 </div>

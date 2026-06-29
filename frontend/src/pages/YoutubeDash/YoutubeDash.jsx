@@ -29,6 +29,8 @@ import {
   revokeYouTube,
 } from "@/services/ytapi";
 
+import DateRangePicker from "@/components/DateRangePicker";
+
 // ── Sub-page imports ────────────────────────────────────────────────
 import YoutubeOverview from "./YoutubeOverview";
 import YoutubeContent from "./YoutubeContent";
@@ -38,6 +40,7 @@ import YoutubePlaylists from "./YoutubePlaylists";
 import YoutubeRevenue from "./YoutubeRevenue";
 import YoutubeRealtime from "./YoutubeRealtime";
 import YoutubeReports from "./YoutubeReports";
+import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
 
 // ── Sub-navigation items ────────────────────────────────────────────
 const SUB_NAV_ITEMS = [
@@ -136,6 +139,15 @@ export default function YoutubeDash() {
 
   const [activePage, setActivePage] = useState("overview");
   const [subNavCollapsed, setSubNavCollapsed] = useState(false);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+
+  // Default to Last 7 Days
+  const d = new Date();
+  d.setDate(d.getDate() - 7);
+  const defaultStart = d.toISOString().split('T')[0];
+  const defaultEnd = new Date().toISOString().split('T')[0];
+  
+  const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
 
   // ── Check YouTube connection status on mount ──────────────────────
   useEffect(() => {
@@ -160,7 +172,7 @@ export default function YoutubeDash() {
     setAnalyticsLoading(true);
     setAnalyticsError(false);
     try {
-      const data = await fetchYouTubeAnalytics(force);
+      const data = await fetchYouTubeAnalytics(force, { startDate: dateRange.start, endDate: dateRange.end });
       setAnalyticsData(data);
     } catch (err) {
       console.error("Error fetching YouTube analytics:", err);
@@ -168,7 +180,7 @@ export default function YoutubeDash() {
     } finally {
       setAnalyticsLoading(false);
     }
-  }, []);
+  }, [dateRange]);
 
   // ── Auto-fetch analytics when connection is confirmed ─────────────
   useEffect(() => {
@@ -233,24 +245,24 @@ export default function YoutubeDash() {
   };
 
   return (
-    <div className="flex gap-0 -m-6 min-h-[calc(100vh-4rem)]">
+    <div className="flex gap-0 -m-6 min-h-[calc(100vh-4rem)] bg-[#0B1121] text-slate-100">
       {/* ── YouTube Sub-Navigation Sidebar ────────────────────────────── */}
       <aside
-        className={`shrink-0 border-r border-border/30 bg-card/30 backdrop-blur-sm transition-all duration-300 ${
+        className={`shrink-0 border-r border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 backdrop-blur-sm transition-all duration-300 ${
           subNavCollapsed ? "w-14" : "w-52"
         }`}
       >
         <div className="sticky top-0 flex flex-col h-full">
           {/* ── Header with channel info ──────────────────────────────── */}
-          <div className={`border-b border-border/30 p-3 ${subNavCollapsed ? "text-center" : ""}`}>
+          <div className={`border-b border-gray-200 dark:border-white/10 p-3 ${subNavCollapsed ? "text-center" : ""}`}>
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
                 <Youtube className="h-4 w-4 text-red-500" />
               </div>
               {!subNavCollapsed && (
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold truncate">YouTube</p>
-                  <p className="text-[10px] text-muted-foreground truncate">
+                  <p className="text-xs font-semibold truncate text-gray-900 dark:text-slate-100">YouTube</p>
+                  <p className="text-[10px] text-gray-500 dark:text-slate-400 truncate">
                     {username || "Connected"}
                   </p>
                 </div>
@@ -258,50 +270,11 @@ export default function YoutubeDash() {
             </div>
           </div>
 
-          {/* ── Navigation Links ──────────────────────────────────────── */}
-          <nav className="flex-1 py-2 px-1.5 space-y-0.5 overflow-y-auto">
-            {SUB_NAV_ITEMS.map((item) => {
-              const isActive = activePage === item.key;
-              return (
-                <button
-                  key={item.key}
-                  onClick={() => setActivePage(item.key)}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-200 ${
-                    subNavCollapsed ? "justify-center" : ""
-                  } ${
-                    isActive
-                      ? "bg-red-500/10 text-red-400 shadow-sm"
-                      : "text-muted-foreground hover:bg-accent/50 hover:text-foreground"
-                  }`}
-                  title={subNavCollapsed ? item.label : undefined}
-                  id={`yt-nav-${item.key}`}
-                >
-                  <item.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-red-400" : ""}`} />
-                  {!subNavCollapsed && <span className="truncate">{item.label}</span>}
-                </button>
-              );
-            })}
-          </nav>
-
-          {/* ── Bottom Actions ────────────────────────────────────────── */}
-          <div className="border-t border-border/30 p-2 space-y-1">
-            {/* Refresh button */}
-            <button
-              onClick={() => loadAnalytics(true)}
-              disabled={analyticsLoading}
-              className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-all duration-200 ${
-                subNavCollapsed ? "justify-center" : ""
-              }`}
-              title={subNavCollapsed ? "Refresh Data" : undefined}
-              id="yt-refresh-btn"
-            >
-              <RefreshCw className={`h-4 w-4 shrink-0 ${analyticsLoading ? "animate-spin" : ""}`} />
-              {!subNavCollapsed && <span>Refresh</span>}
-            </button>
-            {/* Collapse toggle */}
+          {/* ── Collapse Toggle ───────────────────────────────────────── */}
+          <div className="p-2 border-b border-gray-200 dark:border-white/10">
             <button
               onClick={() => setSubNavCollapsed(!subNavCollapsed)}
-              className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-muted-foreground hover:bg-accent/50 hover:text-foreground transition-all duration-200 ${
+              className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-slate-100 transition-all duration-200 ${
                 subNavCollapsed ? "justify-center" : ""
               }`}
               title={subNavCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
@@ -317,38 +290,89 @@ export default function YoutubeDash() {
               )}
             </button>
           </div>
+
+          {/* ── Navigation Links ──────────────────────────────────────── */}
+          <nav className="flex-1 py-2 px-1.5 space-y-0.5 overflow-y-auto">
+            {SUB_NAV_ITEMS.map((item) => {
+              const isActive = activePage === item.key;
+              return (
+                <button
+                  key={item.key}
+                  onClick={() => setActivePage(item.key)}
+                  className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-200 ${
+                    subNavCollapsed ? "justify-center" : ""
+                  } ${
+                    isActive
+                      ? "bg-red-500/10 text-red-500 shadow-sm"
+                      : "text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-slate-100"
+                  }`}
+                  title={subNavCollapsed ? item.label : undefined}
+                  id={`yt-nav-${item.key}`}
+                >
+                  <item.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-red-400" : ""}`} />
+                  {!subNavCollapsed && <span className="truncate">{item.label}</span>}
+                </button>
+              );
+            })}
+          </nav>
         </div>
       </aside>
 
       {/* ── Main Content Area ────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0 overflow-y-auto">
+      <div className="flex-1 min-w-0 overflow-y-auto relative">
+        <ConfirmDisconnectModal 
+          isOpen={showDisconnectModal} 
+          onClose={() => setShowDisconnectModal(false)} 
+          onConfirm={() => {
+            setShowDisconnectModal(false);
+            handleRevoke();
+          }} 
+        />
         {/* ── Page Header ──────────────────────────────────────────────── */}
-        <div className="sticky top-0 z-10 border-b border-border/30 bg-background/80 backdrop-blur-md px-6 py-3">
+        <div className="sticky top-0 z-10 border-b border-white/10 bg-[#0B1121]/80 backdrop-blur-md px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10">
                 <Youtube className="h-4.5 w-4.5 text-red-500" />
               </div>
               <div>
-                <h2 className="text-lg font-bold">
+                <h2 className="text-lg font-bold text-slate-100">
                   {SUB_NAV_ITEMS.find((i) => i.key === activePage)?.label || "Overview"}
                 </h2>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-slate-400">
                   {username ? `Channel: ${username}` : "YouTube Analytics"}
                 </p>
               </div>
             </div>
-            {/* Revoke Access button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleRevoke}
-              disabled={revokeLoading}
-              className="text-xs text-muted-foreground hover:text-destructive"
-              id="revoke-youtube-btn"
-            >
-              {revokeLoading ? "Revoking..." : "Disconnect"}
-            </Button>
+            {/* Header Actions */}
+            <div className="flex items-center gap-2">
+              <DateRangePicker 
+                startDate={dateRange.start} 
+                endDate={dateRange.end} 
+                onChange={setDateRange} 
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => loadAnalytics(true)}
+                disabled={analyticsLoading}
+                className="text-xs text-slate-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-slate-100 h-9 px-3"
+                id="yt-refresh-btn-new"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 mr-2 ${analyticsLoading ? "animate-spin" : ""}`} />
+                Refresh Data
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowDisconnectModal(true)}
+                disabled={revokeLoading}
+                className="text-xs text-slate-400 hover:text-red-400 h-9"
+                id="revoke-youtube-btn"
+              >
+                {revokeLoading ? "Revoking..." : "Disconnect"}
+              </Button>
+            </div>
           </div>
         </div>
 

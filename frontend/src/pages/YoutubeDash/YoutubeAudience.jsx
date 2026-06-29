@@ -54,8 +54,8 @@ const GENDER_COLORS = [COLORS.blue, COLORS.pink, COLORS.violet];
 const CustomTooltip = ({ active, payload, label }) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-lg border border-border/50 bg-card/95 px-3 py-2 shadow-xl backdrop-blur-sm">
-      <p className="mb-1 text-xs font-medium text-muted-foreground">{label}</p>
+    <div className="rounded-lg border border-white/10 bg-white/5 backdrop-blur-lg px-3 py-2 shadow-xl backdrop-blur-sm">
+      <p className="mb-1 text-xs font-medium text-slate-400">{label}</p>
       {payload.map((entry, i) => (
         <p key={i} className="text-sm font-semibold" style={{ color: entry.color }}>
           {entry.name}: {formatCompactNumber(entry.value)}
@@ -72,7 +72,7 @@ function AudienceSkeleton() {
       {/* KPI row */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="border-border/30">
+          <Card key={i} className="border-white/10">
             <CardContent className="p-5">
               <Skeleton className="h-3 w-20 mb-2" />
               <Skeleton className="h-7 w-24" />
@@ -83,7 +83,7 @@ function AudienceSkeleton() {
       {/* Charts row */}
       <div className="grid gap-6 lg:grid-cols-2">
         {[1, 2].map((i) => (
-          <Card key={i} className="border-border/30">
+          <Card key={i} className="border-white/10">
             <CardHeader><Skeleton className="h-5 w-36" /></CardHeader>
             <CardContent><Skeleton className="h-[260px] w-full rounded-lg" /></CardContent>
           </Card>
@@ -102,7 +102,7 @@ function EmptyAudience() {
           <Users className="h-8 w-8 text-violet-400" />
         </div>
         <h3 className="text-lg font-semibold">Not enough audience data yet</h3>
-        <p className="mt-2 text-sm text-muted-foreground leading-relaxed">
+        <p className="mt-2 text-sm text-slate-400 leading-relaxed">
           Audience demographics will appear here as your channel gains more viewers.
           This typically requires at least a few days of activity.
         </p>
@@ -169,17 +169,17 @@ export default function YoutubeAudience({ data, loading }) {
         {audienceKPIs.map((kpi) => (
           <Card
             key={kpi.title}
-            className="border-border/30 bg-card/50 backdrop-blur-sm hover:shadow-lg hover:shadow-black/5 transition-all duration-300 group"
+            className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none hover:shadow-lg hover:shadow-black/5 transition-all duration-300 group"
           >
             <CardContent className="p-5">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
                     {kpi.title}
                   </p>
                   <p className="mt-1.5 text-2xl font-bold tracking-tight">{kpi.value}</p>
                   {kpi.subtitle && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">{kpi.subtitle}</p>
+                    <p className="mt-0.5 text-xs text-slate-400">{kpi.subtitle}</p>
                   )}
                 </div>
                 <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpi.bg} group-hover:scale-110 transition-transform duration-300`}>
@@ -194,7 +194,7 @@ export default function YoutubeAudience({ data, loading }) {
       {/* ── Age & Gender Charts ───────────────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Age Distribution */}
-        <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Users className="h-4 w-4 text-amber-400" />
@@ -205,15 +205,15 @@ export default function YoutubeAudience({ data, loading }) {
             {ageData.length > 0 ? (
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={ageData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="group" stroke="hsl(var(--muted-foreground))" fontSize={11} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} tickFormatter={formatCompactNumber} />
+                  <CartesianGrid strokeDasharray="3 3" stroke={"#ffffff10"} vertical={false} />
+                  <XAxis dataKey="group" stroke={"#94a3b8"} tickLine={false} axisLine={false} fontSize={11} />
+                  <YAxis stroke={"#94a3b8"} tickLine={false} axisLine={false} fontSize={10} tickFormatter={formatCompactNumber} />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="count" name="Viewers" fill={COLORS.amber} radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
                 No age distribution data available
               </div>
             )}
@@ -221,7 +221,7 @@ export default function YoutubeAudience({ data, loading }) {
         </Card>
 
         {/* Gender Distribution */}
-        <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Users className="h-4 w-4 text-pink-400" />
@@ -251,7 +251,7 @@ export default function YoutubeAudience({ data, loading }) {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
                 No gender distribution data available
               </div>
             )}
@@ -262,7 +262,7 @@ export default function YoutubeAudience({ data, loading }) {
       {/* ── Top Countries & Device Breakdown ──────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Top Countries */}
-        <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Globe className="h-4 w-4 text-cyan-400" />
@@ -278,15 +278,15 @@ export default function YoutubeAudience({ data, loading }) {
                   return (
                     <div key={country.country} className="flex items-center gap-3">
                       {/* Rank */}
-                      <span className="w-5 text-xs font-bold text-muted-foreground">{i + 1}</span>
+                      <span className="w-5 text-xs font-bold text-slate-400">{i + 1}</span>
                       {/* Country name */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between mb-1">
                           <span className="text-sm font-medium flex items-center gap-1.5">
-                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            <MapPin className="h-3 w-3 text-slate-400" />
                             {country.country}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-xs text-slate-400">
                             {formatCompactNumber(country.views)} views
                           </span>
                         </div>
@@ -303,7 +303,7 @@ export default function YoutubeAudience({ data, loading }) {
                 })}
               </div>
             ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
                 No geographic data available yet
               </div>
             )}
@@ -311,7 +311,7 @@ export default function YoutubeAudience({ data, loading }) {
         </Card>
 
         {/* Device Breakdown */}
-        <Card className="border-border/30 bg-card/50 backdrop-blur-sm">
+        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Smartphone className="h-4 w-4 text-violet-400" />
@@ -341,7 +341,7 @@ export default function YoutubeAudience({ data, loading }) {
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-muted-foreground">
+              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
                 No device data available yet
               </div>
             )}
