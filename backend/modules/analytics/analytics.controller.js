@@ -5,9 +5,10 @@ import { fetchAndSaveFacebookAnalytics, fetchAndSaveInstagramAnalytics } from '.
 const getAnalyticsSummary = async (req, res, next) => {
   try {
     let { platform, startDate, endDate } = req.query;
-    
-    // Automatically detect platform from path if not provided in query
-    // e.g. /analytics/youtube -> 'youtube', /analytics/meta/facebook -> 'facebook'
+
+    // Automatically detect platform from URL path if not provided as a query param
+    // e.g. GET /analytics/youtube       -> platform = 'youtube'
+    //      GET /analytics/meta/facebook -> platform = 'facebook'
     if (!platform) {
       const pathParts = req.path.split('/');
       const lastPart = pathParts[pathParts.length - 1];
@@ -18,140 +19,196 @@ const getAnalyticsSummary = async (req, res, next) => {
 
     const userId = req.user._id;
 
-    // Helper function to handle live fetch logic for a specific platform
-    const handlePlatformFetch = async (platformName, fetchFunction) => {
-      try {
-        const { forceRefresh } = req.query;
+    // ─────────────────────────────────────────────────────────────────────────
+    // HELPER: fetch-or-cache for a single platform
+    // Returns the snapshot document directly (not wrapped in any extra object).
+    // On success → the fresh or cached snapshot
+    // On live-fetch failure → falls back to the most recent snapshot in the DB
+    // ─────────────────────────────────────────────────────────────────────────
+    const fetchOrCache = async (platformName, fetchFn) => {
+      const { forceRefresh } = req.query;
 
-        if (forceRefresh !== 'true') {
-          const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-          const existingSnapshot = await AnalyticsSnapshot.findOne({
-            incubationCenterId: userId,
-            platform: platformName,
-            snapshotDate: { $gte: oneDayAgo }
-          }).sort({ snapshotDate: -1 });
+      // 1. Return cached snapshot if it is less than 24 h old and not forcing refresh
+      if (forceRefresh !== 'true') {
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+        const cached = await AnalyticsSnapshot.findOne({
+          incubationCenterId: userId,
+          platform: platformName,
+          snapshotDate: { $gte: oneDayAgo },
+        }).sort({ snapshotDate: -1 });
 
-          if (existingSnapshot) {
-            console.log(`[analytics.controller] Returning cached ${platformName} snapshot for user ${userId}`);
-            return { fromCache: true, data: existingSnapshot };
-          }
+        if (cached) {
+          console.log(`[analytics.controller] Returning cached ${platformName} snapshot for user ${userId}`);
+          return { snapshot: cached, fromCache: true };
         }
+      }
 
-        console.log(`[analytics.controller] Fetching fresh ${platformName} data for user ${userId}...`);
-        const snapshot = await fetchFunction(userId);
+      // 2. Fetch fresh data from the platform API
+      console.log(`[analytics.controller] Fetching fresh ${platformName} data for user ${userId}...`);
+      try {
+        const snapshot = await fetchFn(userId);
 
-        // DB hygiene: Keep 30 most recent snapshots
-        const oldestAllowed = await AnalyticsSnapshot.find({ incubationCenterId: userId, platform: platformName })
+        // DB hygiene: keep only the 30 most recent snapshots per user/platform
+        const toDelete = await AnalyticsSnapshot.find({ incubationCenterId: userId, platform: platformName })
           .sort({ snapshotDate: -1 })
           .skip(30)
           .select('_id');
-        if (oldestAllowed.length > 0) {
-          const idsToDelete = oldestAllowed.map(doc => doc._id);
-          await AnalyticsSnapshot.deleteMany({ _id: { $in: idsToDelete } });
+        if (toDelete.length > 0) {
+          await AnalyticsSnapshot.deleteMany({ _id: { $in: toDelete.map(d => d._id) } });
         }
 
-        return { fromCache: false, data: snapshot };
-      } catch (err) {
-        console.error(`⚠️ [analytics.controller] Live ${platformName} fetch failed, returning latest snapshot:`, err.message);
-        const latestSnapshot = await AnalyticsSnapshot.findOne({ incubationCenterId: userId, platform: platformName })
-                                                       .sort({ snapshotDate: -1 });
-        if (!latestSnapshot) {
-          throw new Error(`Failed to fetch live ${platformName} analytics, and no saved snapshot was found: ${err.message}`);
+        return { snapshot, fromCache: false };
+      } catch (fetchErr) {
+        // 3. Live fetch failed — fall back to the most recent snapshot in the DB
+        console.error(
+          `⚠️ [analytics.controller] Live ${platformName} fetch failed, returning latest snapshot:`,
+          fetchErr.message
+        );
+        const fallback = await AnalyticsSnapshot.findOne({ incubationCenterId: userId, platform: platformName })
+          .sort({ snapshotDate: -1 });
+
+        if (!fallback) {
+          throw new Error(
+            `Failed to fetch live ${platformName} analytics and no saved snapshot found: ${fetchErr.message}`
+          );
         }
-        return { fromCache: true, data: latestSnapshot, failedLiveFetch: true };
+        return { snapshot: fallback, fromCache: true, failedLiveFetch: true };
       }
     };
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // YOUTUBE — returns a single snapshot object
+    // Frontend (ytapi.js): `return res.data?.data ?? null`  → expects single object
+    // ─────────────────────────────────────────────────────────────────────────
     if (platform === 'youtube') {
       try {
-        const result = await handlePlatformFetch('youtube', fetchAndSaveYouTubeAnalytics);
+        const { snapshot, fromCache, failedLiveFetch } = await fetchOrCache(
+          'youtube',
+          fetchAndSaveYouTubeAnalytics
+        );
         return res.json({
-          message: result.failedLiveFetch 
+          message: failedLiveFetch
             ? 'Retrieved latest cached YouTube analytics (live fetch failed)'
-            : (result.fromCache ? 'YouTube analytics retrieved from cache' : 'YouTube analytics retrieved successfully'),
-          data: [result.data]
+            : fromCache
+              ? 'YouTube analytics retrieved from cache'
+              : 'YouTube analytics retrieved successfully',
+          data: snapshot,          // ← single object (not an array)
         });
       } catch (err) {
         return res.status(400).json({ error: err.message });
       }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // FACEBOOK (individual endpoint) — returns a single snapshot object
+    // ─────────────────────────────────────────────────────────────────────────
     if (platform === 'facebook') {
       try {
-        const result = await handlePlatformFetch('facebook', fetchAndSaveFacebookAnalytics);
+        const { snapshot, fromCache, failedLiveFetch } = await fetchOrCache(
+          'facebook',
+          fetchAndSaveFacebookAnalytics
+        );
         return res.json({
-          message: result.failedLiveFetch 
+          message: failedLiveFetch
             ? 'Retrieved latest cached Facebook analytics (live fetch failed)'
-            : (result.fromCache ? 'Facebook analytics retrieved from cache' : 'Facebook analytics retrieved successfully'),
-          data: [result.data]
+            : fromCache
+              ? 'Facebook analytics retrieved from cache'
+              : 'Facebook analytics retrieved successfully',
+          data: snapshot,          // ← single object
         });
       } catch (err) {
         return res.status(400).json({ error: err.message });
       }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // INSTAGRAM (individual endpoint) — returns a single snapshot object
+    // ─────────────────────────────────────────────────────────────────────────
     if (platform === 'instagram') {
       try {
-        const result = await handlePlatformFetch('instagram', fetchAndSaveInstagramAnalytics);
+        const { snapshot, fromCache, failedLiveFetch } = await fetchOrCache(
+          'instagram',
+          fetchAndSaveInstagramAnalytics
+        );
         return res.json({
-          message: result.failedLiveFetch 
+          message: failedLiveFetch
             ? 'Retrieved latest cached Instagram analytics (live fetch failed)'
-            : (result.fromCache ? 'Instagram analytics retrieved from cache' : 'Instagram analytics retrieved successfully'),
-          data: [result.data]
+            : fromCache
+              ? 'Instagram analytics retrieved from cache'
+              : 'Instagram analytics retrieved successfully',
+          data: snapshot,          // ← single object
         });
       } catch (err) {
         return res.status(400).json({ error: err.message });
       }
     }
 
+    // ─────────────────────────────────────────────────────────────────────────
+    // META (combined Facebook + Instagram) — returns an ARRAY of two snapshots
+    // Frontend (metaApi.js): `const snapshots = response.data?.data || []`
+    //   then `.find(s => s.platform === 'facebook')` and `.find(s => s.platform === 'instagram')`
+    // ─────────────────────────────────────────────────────────────────────────
     if (platform === 'meta') {
       try {
-        const fbResult = await handlePlatformFetch('facebook', fetchAndSaveFacebookAnalytics);
-        const igResult = await handlePlatformFetch('instagram', fetchAndSaveInstagramAnalytics);
+        const [fbResult, igResult] = await Promise.allSettled([
+          fetchOrCache('facebook', fetchAndSaveFacebookAnalytics),
+          fetchOrCache('instagram', fetchAndSaveInstagramAnalytics),
+        ]);
+
+        const fbSnapshot = fbResult.status === 'fulfilled' ? fbResult.value.snapshot : null;
+        const igSnapshot = igResult.status === 'fulfilled' ? igResult.value.snapshot : null;
+
+        const anyFailedLive =
+          (fbResult.status === 'fulfilled' && fbResult.value.failedLiveFetch) ||
+          (igResult.status === 'fulfilled' && igResult.value.failedLiveFetch);
+
         return res.json({
-          message: (fbResult.failedLiveFetch || igResult.failedLiveFetch)
+          message: anyFailedLive
             ? 'Retrieved latest cached Meta analytics (some live fetches failed)'
             : 'Meta analytics retrieved successfully',
-          data: [fbResult.data, igResult.data].filter(Boolean)
+          data: [fbSnapshot, igSnapshot].filter(Boolean),   // ← array of up to 2 snapshots
         });
       } catch (err) {
         return res.status(400).json({ error: err.message });
       }
     }
 
-    // Identify active connected platforms for initial fetch logic
+    // ─────────────────────────────────────────────────────────────────────────
+    // SUMMARY / GENERAL — no specific platform specified
+    // Run an initial fetch for any active platform that has no snapshots yet,
+    // then return all snapshots for this user from the DB.
+    // ─────────────────────────────────────────────────────────────────────────
     let activePlatforms = platform
       ? [platform]
       : (req.user.socialAccounts || [])
           .filter(acc => acc.isActive)
           .map(acc => acc.platform);
 
-    // Expand 'meta' to facebook and instagram if checking active platforms
+    // Expand 'meta' into its two constituent platforms
     if (activePlatforms.includes('meta')) {
       activePlatforms = activePlatforms.filter(p => p !== 'meta');
       activePlatforms.push('facebook', 'instagram');
     }
 
-    // If 0 snapshots exist for an active platform, run the initial fetch
+    // Initial fetch for platforms with zero stored snapshots
     for (const p of activePlatforms) {
       const count = await AnalyticsSnapshot.countDocuments({ incubationCenterId: userId, platform: p });
       if (count === 0) {
-        if (p === 'youtube') {
-          try { await fetchAndSaveYouTubeAnalytics(userId); } catch (err) { console.error(`❌ Dynamic initial fetch failed for YouTube:`, err.message); }
-        } else if (p === 'facebook') {
-          try { await fetchAndSaveFacebookAnalytics(userId); } catch (err) { console.error(`❌ Dynamic initial fetch failed for Facebook:`, err.message); }
-        } else if (p === 'instagram') {
-          try { await fetchAndSaveInstagramAnalytics(userId); } catch (err) { console.error(`❌ Dynamic initial fetch failed for Instagram:`, err.message); }
+        try {
+          if (p === 'youtube')   await fetchAndSaveYouTubeAnalytics(userId);
+          if (p === 'facebook')  await fetchAndSaveFacebookAnalytics(userId);
+          if (p === 'instagram') await fetchAndSaveInstagramAnalytics(userId);
+        } catch (err) {
+          console.error(`❌ Initial fetch failed for ${p}:`, err.message);
         }
       }
     }
 
-    // Retrieve the snapshots from database with optional date filtering
+    // Build DB query with optional date filtering
     const query = { incubationCenterId: userId };
     if (platform && platform !== 'meta') {
       query.platform = platform;
     } else if (platform === 'meta') {
-      // Return both facebook and instagram if meta is queried
       query.platform = { $in: ['facebook', 'instagram', 'meta'] };
     }
 
@@ -166,13 +223,14 @@ const getAnalyticsSummary = async (req, res, next) => {
     }
 
     const data = await AnalyticsSnapshot.find(query)
-                                        .sort({ snapshotDate: -1 })
-                                        .limit(30);
+      .sort({ snapshotDate: -1 })
+      .limit(30);
 
-    res.json({
+    return res.json({
       message: 'Analytics retrieved successfully',
-      data: data
+      data,                        // ← array for the general summary view
     });
+
   } catch (err) {
     next(err);
   }
