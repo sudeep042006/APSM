@@ -6,12 +6,13 @@ const metaApi = {
     const url = forceRefresh ? "/analytics/meta?forceRefresh=true" : "/analytics/meta";
     const response = await api.get(url);
     const snapshots = response.data?.data || [];
-    const snapshot = snapshots[0];
     
-    if (!snapshot) return { facebook: null, instagram: null };
-
-    const fb = snapshot.rawPlatformData?.facebook || {};
-    const ig = snapshot.rawPlatformData?.instagram || {};
+    // Find the facebook and instagram snapshots from the array
+    const fbSnapshot = snapshots.find(s => s.platform === 'facebook' || s.rawPlatformData?.facebook) || {};
+    const igSnapshot = snapshots.find(s => s.platform === 'instagram' || s.rawPlatformData?.instagram) || {};
+    
+    const fb = fbSnapshot.rawPlatformData?.facebook || {};
+    const ig = igSnapshot.rawPlatformData?.instagram || {};
 
     const formatChartData = (insights, metricName) => {
       if (!insights) return [];
@@ -25,7 +26,7 @@ const metaApi = {
 
     const facebook = {
       kpis: [
-        { title: "Total Followers", value: fb.fanCount || snapshot.metrics?.followers || 0 },
+        { title: "Total Followers", value: fb.fanCount || fbSnapshot.metrics?.followers || 0 },
         { title: "Page Views", value: fb.insights?.find(m=>m.name==='page_views_total')?.values?.reduce((a,b)=>a+(b.value||0), 0) || 0 },
         { title: "Impressions", value: fb.insights?.find(m=>m.name==='page_impressions')?.values?.reduce((a,b)=>a+(b.value||0), 0) || 0 },
         { title: "Engagements", value: fb.insights?.find(m=>m.name==='page_post_engagements')?.values?.reduce((a,b)=>a+(b.value||0), 0) || 0 },
@@ -38,8 +39,8 @@ const metaApi = {
         engagementRate: { rate: "N/A", change: 0, data: [] },
         reachBySource: [{ name: "Organic", value: 100 }, { name: "Paid", value: 0 }],
         audience: {
-          ageGender: (snapshot.demographics?.ageAndGender || []).map(a => ({ group: a.group, value: a.count })),
-          topCountries: (snapshot.demographics?.topCountries || []).map(c => ({ country: c.name, value: c.count }))
+          ageGender: (fbSnapshot.demographics?.ageAndGender || []).map(a => ({ group: a.group, value: a.count })),
+          topCountries: (fbSnapshot.demographics?.topCountries || []).map(c => ({ country: c.name, value: c.count }))
         }
       },
       tables: {
@@ -63,8 +64,8 @@ const metaApi = {
         engagementRate: { rate: "N/A", change: 0, data: [] },
         reachBySource: [{ name: "Followers", value: 50 }, { name: "Non-Followers", value: 50 }],
         audience: {
-          ageGender: (snapshot.demographics?.ageAndGender || []).map(a => ({ group: a.group, value: a.count })),
-          topCountries: (snapshot.demographics?.topCountries || []).map(c => ({ country: c.name, value: c.count }))
+          ageGender: (igSnapshot.demographics?.ageAndGender || []).map(a => ({ group: a.group, value: a.count })),
+          topCountries: (igSnapshot.demographics?.topCountries || []).map(c => ({ country: c.name, value: c.count }))
         }
       },
       tables: {

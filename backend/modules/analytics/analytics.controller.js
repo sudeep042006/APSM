@@ -62,7 +62,6 @@ const getAnalyticsSummary = async (req, res, next) => {
       }
     };
 
-    // Live fetch check for platforms
     if (platform === 'youtube') {
       try {
         const result = await handlePlatformFetch('youtube', fetchAndSaveYouTubeAnalytics);
@@ -70,7 +69,7 @@ const getAnalyticsSummary = async (req, res, next) => {
           message: result.failedLiveFetch 
             ? 'Retrieved latest cached YouTube analytics (live fetch failed)'
             : (result.fromCache ? 'YouTube analytics retrieved from cache' : 'YouTube analytics retrieved successfully'),
-          data: result.data
+          data: [result.data]
         });
       } catch (err) {
         return res.status(400).json({ error: err.message });
@@ -84,7 +83,7 @@ const getAnalyticsSummary = async (req, res, next) => {
           message: result.failedLiveFetch 
             ? 'Retrieved latest cached Facebook analytics (live fetch failed)'
             : (result.fromCache ? 'Facebook analytics retrieved from cache' : 'Facebook analytics retrieved successfully'),
-          data: result.data
+          data: [result.data]
         });
       } catch (err) {
         return res.status(400).json({ error: err.message });
@@ -98,7 +97,22 @@ const getAnalyticsSummary = async (req, res, next) => {
           message: result.failedLiveFetch 
             ? 'Retrieved latest cached Instagram analytics (live fetch failed)'
             : (result.fromCache ? 'Instagram analytics retrieved from cache' : 'Instagram analytics retrieved successfully'),
-          data: result.data
+          data: [result.data]
+        });
+      } catch (err) {
+        return res.status(400).json({ error: err.message });
+      }
+    }
+
+    if (platform === 'meta') {
+      try {
+        const fbResult = await handlePlatformFetch('facebook', fetchAndSaveFacebookAnalytics);
+        const igResult = await handlePlatformFetch('instagram', fetchAndSaveInstagramAnalytics);
+        return res.json({
+          message: (fbResult.failedLiveFetch || igResult.failedLiveFetch)
+            ? 'Retrieved latest cached Meta analytics (some live fetches failed)'
+            : 'Meta analytics retrieved successfully',
+          data: [fbResult.data, igResult.data].filter(Boolean)
         });
       } catch (err) {
         return res.status(400).json({ error: err.message });
