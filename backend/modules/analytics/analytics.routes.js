@@ -9,7 +9,8 @@ const router = express.Router();
 // Get analytics summary across connected platforms
 router.get('/summary', requireAuth, analyticsController.getAnalyticsSummary);
 router.get('/youtube', requireAuth, analyticsController.getAnalyticsSummary);
-router.get('/meta', requireAuth, analyticsController.getAnalyticsSummary);
+router.get('/meta/facebook', requireAuth, analyticsController.getAnalyticsSummary);
+router.get('/meta/instagram', requireAuth, analyticsController.getAnalyticsSummary);
 router.get('/linkedin', requireAuth, analyticsController.getAnalyticsSummary);
 
 export default router;

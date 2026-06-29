@@ -2,7 +2,7 @@ import mongoose from 'mongoose';
 
 const AnalyticsSnapshotSchema = new mongoose.Schema({
   incubationCenterId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  platform: { type: String, enum: ['linkedin', 'meta', 'youtube'], required: true },
+  platform: { type: String, enum: ['linkedin', 'meta', 'facebook', 'instagram', 'youtube'], required: true },
   snapshotDate: { type: Date, default: Date.now },
   
   // 1. CORE METRICS (The daily numbers)
