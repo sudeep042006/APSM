@@ -8,26 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const FB_BLUE = "#1877F2";
 const PIE_COLORS = ["#1877F2", "#10b981", "#8b5cf6", "#64748b"];
 
-// ── Empty State ─────────────────────────────────────────────────────
-// Supports two modes:
-// 1. Full: title + description + icon + optional actionLabel
-// 2. Simple: just a `message` string (no icon required)
-export function EmptyState({ title, description, icon: Icon, actionLabel, message }) {
-  // Simple mode — just a short message string
-  if (message && !title) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 px-4 text-center bg-[#161B22] rounded-xl border border-white/5">
-        <p className="text-sm text-slate-400">{message}</p>
-      </div>
-    );
-  }
+export function EmptyState({ title, description, icon: Icon, actionLabel }) {
   return (
     <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-[#161B22] rounded-xl border border-white/5">
-      {Icon && (
-        <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-6">
-          <Icon className="h-8 w-8 text-blue-500" />
-        </div>
-      )}
+      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-6">
+        <Icon className="h-8 w-8 text-blue-500" />
+      </div>
       <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
       <p className="text-sm text-slate-400 max-w-md mb-6">{description}</p>
       {actionLabel && (
@@ -41,36 +27,25 @@ export function EmptyState({ title, description, icon: Icon, actionLabel, messag
 
 // ── Scaffolded Facebook Child Components ────────────────────────────────
 
-// ── KPI Card ─────────────────────────────────────────────────────────
-// Accepts `label` OR `title` (metaApi.js returns `title`).
-// `change` is optional — if undefined, trend indicator is hidden.
-export function KpiCard({ label, title, value, change, changeLabel, icon: Icon, color }) {
-  const displayLabel = label || title;
-  // Treat undefined change as neutral (hide the trend arrow)
-  const hasChange = change !== undefined && change !== null;
-  const pos = hasChange ? change >= 0 : true;
+export function KpiCard({ label, value, change, changeLabel, icon: Icon, color }) {
+  const pos = change >= 0;
   return (
-    <Card className="bg-[#161B22] border border-white/5 rounded-xl shadow-lg text-white hover:border-white/10 transition-colors">
-      <CardContent className="p-5">
+    <Card className="bg-[#161B22] border-white/5 text-white hover:border-white/10 transition-colors">
+      <CardContent className="p-4">
         <div className="flex items-start justify-between mb-4">
-          {Icon && (
-            <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color || 'bg-slate-500/10 text-slate-400'}`}>
-              <Icon className="h-5 w-5" />
-            </div>
-          )}
-          {/* Label top-right */}
-          <p className="text-sm font-medium text-slate-400 text-right flex-1 ml-2">{displayLabel}</p>
+          <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${color}`}>
+            <Icon className="h-5 w-5" />
+          </div>
+          <p className="text-sm font-medium text-slate-400">{label}</p>
         </div>
         <div>
-          <p className="text-2xl font-bold">{typeof value === 'number' ? value.toLocaleString() : value}</p>
-          {hasChange && (
-            <div className="flex items-center gap-1 mt-1">
-              {pos ? <TrendingUp className="h-3 w-3 text-emerald-400" /> : <TrendingDown className="h-3 w-3 text-red-400" />}
-              <span className={`text-xs font-medium ${pos ? 'text-emerald-400' : 'text-red-400'}`}>
-                {pos ? '+' : ''}{change}% <span className="text-slate-500 font-normal">{changeLabel}</span>
-              </span>
-            </div>
-          )}
+          <p className="text-2xl font-bold">{value}</p>
+          <div className="flex items-center gap-1 mt-1">
+            {pos ? <TrendingUp className="h-3 w-3 text-emerald-400" /> : <TrendingDown className="h-3 w-3 text-red-400" />}
+            <span className={`text-xs font-medium ${pos ? "text-emerald-400" : "text-red-400"}`}>
+              {pos ? "+" : ""}{change}% <span className="text-slate-500 font-normal">{changeLabel}</span>
+            </span>
+          </div>
         </div>
       </CardContent>
     </Card>
