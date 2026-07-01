@@ -25,6 +25,64 @@ export function EmptyState({ title, description, icon: Icon, actionLabel }) {
   );
 }
 
+// ── Empty Data State ─────────────────────────────────────────────────────────
+// Shown when the user IS connected but the API has returned no analytics data.
+// Prevents "0s and N/As" from rendering across all chart panels.
+export function EmptyDataState({ platform }) {
+  const isFb = platform === "Facebook";
+  const accent = isFb ? "text-blue-400" : "text-pink-400";
+  const ring   = isFb ? "bg-blue-500/10" : "bg-pink-500/10";
+  return (
+    <div className="flex min-h-[50vh] items-center justify-center w-full">
+      <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+        {/* Pulsing icon ring */}
+        <div className={`flex h-16 w-16 items-center justify-center rounded-full ${ring} animate-pulse`}>
+          <Activity className={`h-7 w-7 ${accent}`} />
+        </div>
+        <h3 className="text-base font-semibold text-white">
+          Connection successful — no data yet
+        </h3>
+        <p className="text-sm text-slate-400 leading-relaxed">
+          Your {platform} account is connected, but there is no analytics data available for this account yet.
+          This can happen with newly created pages or accounts with very limited activity.
+          Try refreshing in a few minutes.
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export function ConnectPrompt({ onConnect, platform, icon: Icon }) {
+  const isFb = platform === "Facebook";
+  const bg = isFb ? "bg-blue-500/10" : "bg-pink-500/10";
+  const text = isFb ? "text-blue-500" : "text-pink-500";
+  const btn = isFb ? "bg-[#1877F2] hover:bg-[#1877F2]/90" : "bg-[#E1306C] hover:bg-[#E1306C]/90";
+  
+  return (
+    <div className="flex min-h-[60vh] items-center justify-center animate-fade-in w-full">
+      <Card className="w-full max-w-md bg-[#161B22]/60 border-white/10 shadow-2xl p-6 text-center backdrop-blur-md">
+        <CardHeader className="flex flex-col items-center gap-2 p-0">
+          <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${bg}`}>
+            <Icon className={`h-8 w-8 ${text}`} />
+          </div>
+          <CardTitle className="text-xl mt-4 text-white">Connect {platform}</CardTitle>
+          <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+            Connect your {platform} account to view reach, engagement, followers, and detailed visual performance graphs.
+          </p>
+        </CardHeader>
+        <CardContent className="mt-6 p-0">
+          <button
+            onClick={onConnect}
+            className={`w-full py-3 px-4 rounded-md font-medium transition-colors text-white ${btn}`}
+          >
+            Connect {platform}
+          </button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
+
 // ── Scaffolded Facebook Child Components ────────────────────────────────
 
 export function KpiCard({ label, value, change, changeLabel, icon: Icon, color }) {
@@ -55,7 +113,7 @@ export function KpiCard({ label, value, change, changeLabel, icon: Icon, color }
 export function DarkTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="bg-[#1e293b] border border-white/10 rounded-lg p-3 shadow-xl text-xs">
+    <div className="bg-[#161B22] border border-white/10 rounded-lg p-3 shadow-xl text-xs">
       <p className="font-semibold text-white mb-1">{label}</p>
       {payload.map((e, i) => (
         <p key={i} style={{ color: e.color }}>

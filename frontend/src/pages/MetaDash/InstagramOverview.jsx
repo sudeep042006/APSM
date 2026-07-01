@@ -6,12 +6,25 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const IG_PINK = "#E1306C";
-const PIE_COLORS = ["#E1306C", "#8b5cf6", "#10b981", "#64748b"];
+const PIE_COLORS = ["#E1306C", "#D81B60", "#C2185B", "#AD1457"];
 import { EmptyState, KpiCard, DarkTooltip, FacebookDataTable, InstagramDataTable, ProgressBar } from './MetaSharedComponents';
 
-
-export function InstagramOverview({ data }) {
+export function InstagramOverview({ data, dateRange }) {
   const d = data || {};
+
+  const filterByDate = (arr) => {
+    if (!dateRange || !arr) return arr;
+    const start = new Date(dateRange.start);
+    const end = new Date(dateRange.end);
+    return arr.filter(item => {
+      if (!item.date) return true;
+      const itemDate = new Date(item.date);
+      return itemDate >= start && itemDate <= end;
+    });
+  };
+
+  const filteredReach = filterByDate(d?.charts?.reachOverTime);
+  const filteredEngagements = filterByDate(d?.charts?.engagementsOverTime);
 
   const kpiIcons = [Users, Eye, Eye, Heart, Eye, Bookmark];
   const kpiColors = [
@@ -42,9 +55,9 @@ export function InstagramOverview({ data }) {
             <div className="text-xs text-slate-400 flex items-center gap-1 cursor-pointer border border-white/10 px-2 py-1 rounded">Last 7 days <ChevronDown className="h-3 w-3"/></div>
           </CardHeader>
           <CardContent>
-            <div className="h-[220px] w-full">
+            <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={d?.charts?.reachOverTime} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <AreaChart data={filteredReach} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="igReach" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="0%" stopColor={IG_PINK} stopOpacity={0.3} />
@@ -69,15 +82,15 @@ export function InstagramOverview({ data }) {
             <div className="text-xs text-slate-400 flex items-center gap-1 cursor-pointer border border-white/10 px-2 py-1 rounded">Last 7 days <ChevronDown className="h-3 w-3"/></div>
           </CardHeader>
           <CardContent>
-            <div className="h-[220px] w-full">
+            <div className="h-64 w-full">
               <ResponsiveContainer width="100%" height="100%">
                 {/* Uses engagementsOverTime which is correctly populated by metaApi.js */}
-                <BarChart data={d?.charts?.engagementsOverTime || []} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
+                <BarChart data={filteredEngagements} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
                   <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} dy={10} />
                   <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} />
                   <Tooltip content={<DarkTooltip />} cursor={{ fill: "#ffffff05" }} />
-                  <Bar dataKey="value" fill={IG_PINK} radius={[2, 2, 0, 0]} barSize={20} />
+                  <Bar dataKey="value" fill={IG_PINK} radius={[4, 4, 0, 0]} barSize={20} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
@@ -91,11 +104,11 @@ export function InstagramOverview({ data }) {
           </CardHeader>
           <CardContent className="pt-2 space-y-6">
             <div className="flex items-center">
-              <div className="h-[120px] w-1/2">
+              <div className="h-64 w-1/2">
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
-                    {/* Uses audience.ageGender from metaApi — replaces non-existent charts.gender */}
-                    <Pie data={d?.charts?.audience?.ageGender || []} cx="50%" cy="50%" innerRadius={35} outerRadius={50} paddingAngle={0} dataKey="value" stroke="#161B22" strokeWidth={3}>
+                    {/* Uses audience.ageGender from metaApi */}
+                    <Pie data={d?.charts?.audience?.ageGender || []} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={0} dataKey="value" stroke="none">
                       {(d?.charts?.audience?.ageGender || []).map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                     </Pie>
                     <Tooltip content={<DarkTooltip />} />

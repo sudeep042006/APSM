@@ -11,6 +11,8 @@ import { Button } from "@/components/ui/button";
 import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
 import DateRangePicker from "@/components/DateRangePicker";
 import linkedinApi from "@/services/linkedinApi";
+import DashboardHeader from "@/components/DashboardHeader";
+import ConnectCard from "@/components/ConnectCard";
 
 const formatNumber = (num) => {
   if (!num) return "0";
@@ -147,28 +149,20 @@ export default function LinkedInDash() {
   );
 
   const renderEmptyState = () => (
-    <div className="flex min-h-[50vh] items-center justify-center pt-4 animate-fade-in">
-      <Card className="w-full max-w-md bg-white/5 backdrop-blur-lg border-white/10 shadow-2xl p-6 text-center text-white">
-        <CardHeader className="flex flex-col items-center gap-2">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-blue-600/10">
-            <Linkedin className="h-8 w-8 text-blue-600" />
-          </div>
-          <CardTitle className="text-xl mt-4">Connect LinkedIn Profile</CardTitle>
-          <p className="text-sm text-gray-400 mt-2 leading-relaxed">
-            Connect your LinkedIn account to view followers, post impressions, engagement rates, and detailed demographic metrics.
-          </p>
-        </CardHeader>
-        <CardContent className="mt-6">
-          <Button onClick={handleConnect} className="w-full gap-2 bg-blue-600 hover:bg-blue-500 text-white" size="lg">
-            Connect LinkedIn Account
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
+    <ConnectCard
+      icon={<Linkedin className="h-8 w-8" />}
+      cardTitle="Connect LinkedIn Profile"
+      cardDescription="Connect your LinkedIn account to view followers, post impressions, engagement rates, and detailed demographic metrics."
+      onConnect={handleConnect}
+      buttonText="Connect LinkedIn Account"
+      brandBgClass="bg-[#0A66C2]/10"
+      brandTextClass="text-[#0A66C2]"
+      brandButtonClass="bg-[#0A66C2] hover:bg-[#0A66C2]/90"
+    />
   );
 
   return (
-    <div className="min-h-screen bg-[#0B1121] text-white p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8 relative">
+    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1121] text-slate-900 dark:text-white p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8 relative transition-colors duration-200">
       <ConfirmDisconnectModal 
         isOpen={showDisconnectModal} 
         onClose={() => setShowDisconnectModal(false)} 
@@ -178,16 +172,14 @@ export default function LinkedInDash() {
         }} 
       />
       {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-6 px-4 gap-4">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-blue-600/20">
-            <Linkedin className="h-5 w-5 text-blue-500" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-white">LinkedIn Analytics</h2>
-            <p className="text-sm text-blue-200/60">Profile insights and engagement</p>
-          </div>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-6 px-4 gap-4 border-b border-slate-200 dark:border-white/10 pb-4">
+        <DashboardHeader
+          title="LinkedIn Analytics"
+          subtitle="Profile insights and engagement"
+          icon={<Linkedin className="h-6 w-6" />}
+          brandBgClass="bg-[#0A66C2]/10"
+          brandTextClass="text-[#0A66C2]"
+        />
         {isConnected && (
           <div className="flex items-center gap-2 flex-wrap">
             <DateRangePicker 

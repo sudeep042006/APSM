@@ -6,7 +6,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const FB_BLUE = "#1877F2";
-const PIE_COLORS = ["#1877F2", "#10b981", "#8b5cf6", "#64748b"];
+const PIE_COLORS = ["#1877F2", "#3B82F6", "#60A5FA", "#93C5FD"];
 import { EmptyState, KpiCard, DarkTooltip, FacebookDataTable, InstagramDataTable, ProgressBar } from './MetaSharedComponents';
 
 
@@ -59,7 +59,7 @@ export function FacebookOverview({ data, dateRange }) {
                 <div className="text-xs text-slate-400 flex items-center gap-1 cursor-pointer">Last 7 days <ChevronDown className="h-3 w-3"/></div>
               </CardHeader>
               <CardContent>
-                <div className="h-[220px] w-full">
+                <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <AreaChart data={filteredReach} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                       <defs>
@@ -85,14 +85,14 @@ export function FacebookOverview({ data, dateRange }) {
                 <div className="text-xs text-slate-400 flex items-center gap-1 cursor-pointer">Last 7 days <ChevronDown className="h-3 w-3"/></div>
               </CardHeader>
               <CardContent>
-                <div className="h-[220px] w-full">
+                <div className="h-64 w-full">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={filteredEngagements} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#ffffff0a" vertical={false} />
                       <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} dy={10} />
                       <YAxis stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => v >= 1000 ? `${v/1000}K` : v} />
                       <Tooltip content={<DarkTooltip />} cursor={{ fill: "#ffffff05" }} />
-                      <Bar dataKey="value" name="Engagements" fill={FB_BLUE} radius={[2, 2, 0, 0]} barSize={16} />
+                      <Bar dataKey="value" name="Engagements" fill={FB_BLUE} radius={[4, 4, 0, 0]} barSize={16} />
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -217,10 +217,10 @@ export function FacebookOverview({ data, dateRange }) {
             </CardHeader>
             <CardContent>
               <div className="flex items-center">
-                <div className="h-[140px] w-1/2">
+                <div className="h-64 w-1/2">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={d?.charts?.reachBySource} cx="50%" cy="50%" innerRadius={35} outerRadius={55} paddingAngle={2} dataKey="value" stroke="none">
+                      <Pie data={d?.charts?.reachBySource} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={2} dataKey="value" stroke="none">
                         {(d?.charts?.reachBySource || []).map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
                       </Pie>
                       <Tooltip content={<DarkTooltip />} />

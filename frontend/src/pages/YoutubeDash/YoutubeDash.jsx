@@ -5,9 +5,12 @@
 // OAuth flow, data fetching, and distributes parsed data to children.
 
 import { useState, useEffect, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Youtube } from "@/components/icons/BrandIcons";
+import DashboardHeader from "@/components/DashboardHeader";
+import ConnectCard from "@/components/ConnectCard";
 import {
   LayoutDashboard,
   FileVideo,
@@ -149,6 +152,16 @@ export default function YoutubeDash() {
   
   const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
 
+  const location = useLocation();
+  const navigate = useNavigate();
+
+  // 1. Intercept and Sanitize OAuth Redirects
+  useEffect(() => {
+    if (location.search.includes("connected=") || location.search.includes("error=")) {
+      navigate(location.pathname, { replace: true });
+    }
+  }, [location, navigate]);
+
   // ── Check YouTube connection status on mount ──────────────────────
   useEffect(() => {
     const checkConnection = async () => {
@@ -199,13 +212,16 @@ export default function YoutubeDash() {
     setRevokeLoading(true);
     try {
       await revokeYouTube();
-      setIsConnected(false);
-      setUsername("");
-      setAnalyticsData(null);
     } catch (err) {
       console.error("Error revoking YouTube access:", err);
     } finally {
+      // 2. Bulletproof the handleDisconnect Function
+      localStorage.removeItem('youtubeToken');
+      setIsConnected(false);
+      setUsername("");
+      setAnalyticsData(null);
       setRevokeLoading(false);
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   };
 
@@ -213,7 +229,37 @@ export default function YoutubeDash() {
   if (connectionLoading) return <YTSpinner />;
 
   // ── Not connected state ───────────────────────────────────────────
-  if (!isConnected) return <ConnectPrompt onConnect={handleConnect} />;
+  // 3. Implement Blank Dashboard Protection (Empty State Fallback)
+  if (!isConnected || localStorage.getItem('youtubeToken') === 'false') {
+    return (
+      <div className="min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-[#0B1121] text-slate-900 dark:text-white p-6 space-y-8 flex flex-col transition-colors duration-200 -m-6">
+        {/* ── Dashboard Header ───────────────────────────────────────── */}
+        <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-4">
+          <DashboardHeader
+            title="YouTube Analytics"
+            subtitle="Track your channel growth and video performance."
+            icon={<Youtube className="h-6 w-6" />}
+            brandBgClass="bg-[#FF0000]/10"
+            brandTextClass="text-[#FF0000]"
+          />
+        </div>
+
+        {/* ── Connect Card ───────────────────────────────────────────── */}
+        <div className="flex-1 flex items-center justify-center">
+          <ConnectCard
+            icon={<Youtube className="h-8 w-8" />}
+            cardTitle="Connect YouTube Channel"
+            cardDescription="Connect your YouTube account to view sub counts, channel views, watch time, and detailed visual performance graphs."
+            onConnect={handleConnect}
+            buttonText="Connect YouTube Channel"
+            brandBgClass="bg-[#FF0000]/10"
+            brandTextClass="text-[#FF0000]"
+            brandButtonClass="bg-[#FF0000] hover:bg-[#FF0000]/90"
+          />
+        </div>
+      </div>
+    );
+  }
 
   // ── Render the active sub-page ────────────────────────────────────
   const renderActivePage = () => {
@@ -245,24 +291,24 @@ export default function YoutubeDash() {
   };
 
   return (
-    <div className="flex gap-0 -m-6 min-h-[calc(100vh-4rem)] bg-[#0B1121] text-slate-100">
+    <div className="flex gap-0 -m-6 min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-[#0B1121] text-slate-900 dark:text-slate-100 transition-colors duration-200">
       {/* ── YouTube Sub-Navigation Sidebar ────────────────────────────── */}
       <aside
-        className={`shrink-0 border-r border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 backdrop-blur-sm transition-all duration-300 ${
+        className={`shrink-0 border-r border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 backdrop-blur-sm transition-all duration-300 ${
           subNavCollapsed ? "w-14" : "w-52"
         }`}
       >
         <div className="sticky top-0 flex flex-col h-full">
           {/* ── Header with channel info ──────────────────────────────── */}
-          <div className={`border-b border-gray-200 dark:border-white/10 p-3 ${subNavCollapsed ? "text-center" : ""}`}>
+          <div className={`border-b border-slate-200 dark:border-white/10 p-3 ${subNavCollapsed ? "text-center" : ""}`}>
             <div className="flex items-center gap-2">
               <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
                 <Youtube className="h-4 w-4 text-red-500" />
               </div>
               {!subNavCollapsed && (
                 <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold truncate text-gray-900 dark:text-slate-100">YouTube</p>
-                  <p className="text-[10px] text-gray-500 dark:text-slate-400 truncate">
+                  <p className="text-xs font-semibold truncate text-slate-900 dark:text-slate-100">YouTube</p>
+                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
                     {username || "Connected"}
                   </p>
                 </div>
@@ -271,10 +317,10 @@ export default function YoutubeDash() {
           </div>
 
           {/* ── Collapse Toggle ───────────────────────────────────────── */}
-          <div className="p-2 border-b border-gray-200 dark:border-white/10">
+          <div className="p-2 border-b border-slate-200 dark:border-white/10">
             <button
               onClick={() => setSubNavCollapsed(!subNavCollapsed)}
-              className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-slate-100 transition-all duration-200 ${
+              className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-100 transition-all duration-200 ${
                 subNavCollapsed ? "justify-center" : ""
               }`}
               title={subNavCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
@@ -304,7 +350,7 @@ export default function YoutubeDash() {
                   } ${
                     isActive
                       ? "bg-red-500/10 text-red-500 shadow-sm"
-                      : "text-gray-500 dark:text-slate-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-gray-900 dark:hover:text-slate-100"
+                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-100"
                   }`}
                   title={subNavCollapsed ? item.label : undefined}
                   id={`yt-nav-${item.key}`}
@@ -329,21 +375,15 @@ export default function YoutubeDash() {
           }} 
         />
         {/* ── Page Header ──────────────────────────────────────────────── */}
-        <div className="sticky top-0 z-10 border-b border-white/10 bg-[#0B1121]/80 backdrop-blur-md px-6 py-3">
+        <div className="sticky top-0 z-10 border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-md px-6 py-3">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10">
-                <Youtube className="h-4.5 w-4.5 text-red-500" />
-              </div>
-              <div>
-                <h2 className="text-lg font-bold text-slate-100">
-                  {SUB_NAV_ITEMS.find((i) => i.key === activePage)?.label || "Overview"}
-                </h2>
-                <p className="text-xs text-slate-400">
-                  {username ? `Channel: ${username}` : "YouTube Analytics"}
-                </p>
-              </div>
-            </div>
+            <DashboardHeader
+              title={SUB_NAV_ITEMS.find((i) => i.key === activePage)?.label || "Overview"}
+              subtitle={username ? `Channel: ${username}` : "YouTube Analytics"}
+              icon={<Youtube className="h-5 w-5" />}
+              brandBgClass="bg-[#FF0000]/10"
+              brandTextClass="text-[#FF0000]"
+            />
             {/* Header Actions */}
             <div className="flex items-center gap-2">
               <DateRangePicker 
@@ -356,7 +396,7 @@ export default function YoutubeDash() {
                 size="sm"
                 onClick={() => loadAnalytics(true)}
                 disabled={analyticsLoading}
-                className="text-xs text-slate-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-slate-100 h-9 px-3"
+                className="text-xs text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-100 h-9 px-3"
                 id="yt-refresh-btn-new"
               >
                 <RefreshCw className={`h-3.5 w-3.5 mr-2 ${analyticsLoading ? "animate-spin" : ""}`} />
@@ -367,7 +407,7 @@ export default function YoutubeDash() {
                 size="sm"
                 onClick={() => setShowDisconnectModal(true)}
                 disabled={revokeLoading}
-                className="text-xs text-slate-400 hover:text-red-400 h-9"
+                className="text-xs text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 h-9"
                 id="revoke-youtube-btn"
               >
                 {revokeLoading ? "Revoking..." : "Disconnect"}
