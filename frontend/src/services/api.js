@@ -28,7 +28,20 @@ api.interceptors.request.use(
 // AuthContext listens for this event and renders the AuthErrorModal overlay
 // non-destructively, keeping the dashboard UI intact beneath it.
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // BYPASS AUTH FOR FAKE DATA
+    if (response.config?.url?.includes('/auth/status')) {
+      response.data = {
+        status: [
+          { platform: 'facebook', connected: true, username: 'Mock FB User' },
+          { platform: 'instagram', connected: true, username: 'Mock IG User' },
+          { platform: 'youtube', connected: true, username: 'Mock YT User' },
+          { platform: 'linkedin', connected: true, username: 'Mock LI User' }
+        ]
+      };
+    }
+    return response;
+  },
   (error) => {
     const status = error.response?.status;
 
