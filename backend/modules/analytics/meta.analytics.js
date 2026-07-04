@@ -58,33 +58,39 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
 
         console.log(`[DEBUG-FB] Page details:`, JSON.stringify(detailRes.data, null, 2));
 
-        const insightsRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/insights`, {
-          params: {
-            metric: 'page_impressions,page_post_engagements,page_views_total,page_daily_follows',
-            period: 'day',
-            access_token: pageToken
-          }
-        });
-
-        console.log(`[DEBUG-FB] Insights response received: ${insightsRes.data.data?.length || 0} metrics`);
-
         facebookData = {
           pageName: detailRes.data.name,
           pageId,
           fanCount: detailRes.data.fan_count || 0,
-          insights: insightsRes.data.data || []
+          insights: []
         };
-        hasRealData = true;
-
+        hasRealData = true; // We successfully retrieved the real Page metadata!
         followers += facebookData.fanCount;
-        const getVal = (metricName) => {
-          const met = facebookData.insights.find(m => m.name === metricName);
-          return met?.values?.reduce((acc, v) => acc + (v.value || 0), 0) || 0;
-        };
-        impressions += getVal('page_impressions');
-        totalEngagement += getVal('page_post_engagements');
-        profileViews += getVal('page_views_total');
-        reach += Math.round(getVal('page_impressions') * 0.75);
+
+        try {
+          const insightsRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/insights`, {
+            params: {
+              metric: 'page_impressions,page_post_engagements,page_views_total',
+              period: 'day',
+              access_token: pageToken
+            }
+          });
+
+          console.log(`[DEBUG-FB] Insights response received: ${insightsRes.data.data?.length || 0} metrics`);
+          facebookData.insights = insightsRes.data.data || [];
+
+          const getVal = (metricName) => {
+            const met = facebookData.insights.find(m => m.name === metricName);
+            return met?.values?.reduce((acc, v) => acc + (v.value || 0), 0) || 0;
+          };
+          impressions += getVal('page_impressions');
+          totalEngagement += getVal('page_post_engagements');
+          profileViews += getVal('page_views_total');
+          reach += Math.round(getVal('page_impressions') * 0.75);
+        } catch (insightsErr) {
+          console.warn(`⚠️ [meta.analytics] Failed to fetch Page Insights (metrics might be deprecated or empty):`, insightsErr.message);
+          // Non-blocking: keep metrics as 0
+        }
       } else {
         console.warn(`[DEBUG-FB] ❌ No pages returned! Full response data:`, JSON.stringify(pagesRes.data, null, 2));
       }
@@ -218,56 +224,67 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
             params: { fields: 'followers_count,media_count,username', access_token: pageToken }
           });
 
-          const insightsRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/insights`, {
-            params: {
-              metric: 'impressions,reach,profile_views',
-              period: 'day',
-              access_token: pageToken
-            }
-          });
-
-          const demoRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/insights`, {
-            params: {
-              metric: 'audience_country,audience_gender_age',
-              period: 'lifetime',
-              access_token: pageToken
-            }
-          });
-
           instagramData = {
             username: profileRes.data.username,
             followers: profileRes.data.followers_count || 0,
             mediaCount: profileRes.data.media_count || 0,
-            insights: insightsRes.data.data || [],
-            demographics: demoRes.data.data || []
+            insights: [],
+            demographics: []
           };
-          hasRealData = true;
-
+          hasRealData = true; // We successfully fetched the Instagram profile details!
           followers += instagramData.followers;
-          const getVal = (metricName) => {
-            const met = instagramData.insights.find(m => m.name === metricName);
-            return met?.values?.reduce((acc, v) => acc + (v.value || 0), 0) || 0;
-          };
-          impressions += getVal('impressions');
-          reach += getVal('reach');
-          profileViews += getVal('profile_views');
 
-          const countryMetric = instagramData.demographics.find(m => m.name === 'audience_country');
-          if (countryMetric?.values?.[0]?.value) {
-            const valObj = countryMetric.values[0].value;
-            topCountries = Object.entries(valObj).map(([name, count]) => ({
-              name,
-              count: parseInt(count) || 0
-            })).sort((a, b) => b.count - a.count).slice(0, 5);
+          // Fetch insights (non-blocking)
+          try {
+            const insightsRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/insights`, {
+              params: {
+                metric: 'impressions,reach', // profile_views is deprecated
+                period: 'day',
+                access_token: pageToken
+              }
+            });
+            instagramData.insights = insightsRes.data.data || [];
+
+            const getVal = (metricName) => {
+              const met = instagramData.insights.find(m => m.name === metricName);
+              return met?.values?.reduce((acc, v) => acc + (v.value || 0), 0) || 0;
+            };
+            impressions += getVal('impressions');
+            reach += getVal('reach');
+          } catch (insightsErr) {
+            console.warn(`⚠️ [meta.analytics] Failed to fetch Instagram insights (metrics might be deprecated or empty):`, insightsErr.message);
           }
 
-          const ageGenderMetric = instagramData.demographics.find(m => m.name === 'audience_gender_age');
-          if (ageGenderMetric?.values?.[0]?.value) {
-            const valObj = ageGenderMetric.values[0].value;
-            ageAndGender = Object.entries(valObj).map(([group, count]) => ({
-              group,
-              count: parseFloat(count) || 0
-            }));
+          // Fetch demographics (non-blocking)
+          try {
+            const demoRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/insights`, {
+              params: {
+                metric: 'audience_country,audience_gender_age',
+                period: 'lifetime',
+                access_token: pageToken
+              }
+            });
+            instagramData.demographics = demoRes.data.data || [];
+
+            const countryMetric = instagramData.demographics.find(m => m.name === 'audience_country');
+            if (countryMetric?.values?.[0]?.value) {
+              const valObj = countryMetric.values[0].value;
+              topCountries = Object.entries(valObj).map(([name, count]) => ({
+                name,
+                count: parseInt(count) || 0
+              })).sort((a, b) => b.count - a.count).slice(0, 5);
+            }
+
+            const ageGenderMetric = instagramData.demographics.find(m => m.name === 'audience_gender_age');
+            if (ageGenderMetric?.values?.[0]?.value) {
+              const valObj = ageGenderMetric.values[0].value;
+              ageAndGender = Object.entries(valObj).map(([group, count]) => ({
+                group,
+                count: parseFloat(count) || 0
+              }));
+            }
+          } catch (demoErr) {
+            console.warn(`⚠️ [meta.analytics] Failed to fetch Instagram demographics (metrics might be deprecated or empty):`, demoErr.message);
           }
         } else {
           console.warn(`[meta.analytics] No Instagram Business Account linked to FB Page ${page.id}`);

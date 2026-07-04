@@ -19,6 +19,7 @@ export default {
       'pages_show_list',
       'pages_read_engagement',
       'pages_manage_posts',
+      'business_management',
     ],
 
     authParams: {},
@@ -82,6 +83,7 @@ export default {
       'instagram_manage_insights',
       'pages_show_list',
       'pages_read_engagement',
+      'business_management',
     ],
 
     authParams: {},
