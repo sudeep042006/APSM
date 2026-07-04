@@ -10,6 +10,7 @@ import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
 import { EmptyDataState } from "./MetaSharedComponents";
 // ── Component Imports ──
 import ConnectCard from "@/components/ConnectCard";
+import DashboardHeader from "@/components/DashboardHeader";
 
 import { FacebookOverview }   from "./FacebookOverview";
 import { FacebookContent }    from "./FacebookContent";
@@ -38,6 +39,7 @@ export default function FacebookDash() {
 
   // isConnected is driven ONLY by /auth/status — never inferred from analytics shape.
   const [isConnected, setIsConnected] = useState(false);
+  const [username, setUsername] = useState("");
 
   // Ref set to true on disconnect — gates the analytics auto-fetch from
   // re-running and calling setIsConnected(true) after user has left.
@@ -70,13 +72,16 @@ export default function FacebookDash() {
         const fbStatus = statusArray.find(s => s.platform === "facebook");
         if (fbStatus?.connected && !fbStatus?.isExpired) {
           setIsConnected(true);
+          setUsername(fbStatus.username || "");
         } else {
           setIsConnected(false);
           setAnalyticsData(null);
+          setUsername("");
         }
       } catch (err) {
         console.error("Error checking Facebook auth status:", err);
         setIsConnected(false);
+        setUsername("");
       } finally {
         setIsLoading(false);
       }
@@ -85,13 +90,15 @@ export default function FacebookDash() {
   }, []);
 
   // ── Fetch analytics (only when confirmed connected) ───────────────
+  // Fetches analytics data from metaApi, passing the current dateRange.
+  // When dateRange changes, this callback is re-created and triggers the auto-fetch.
   const fetchFacebookData = useCallback(async (isRefresh = false) => {
     if (disconnectedRef.current) return;
     if (isRefresh) setIsRefreshing(true);
     else setIsLoading(true);
     setError(null);
     try {
-      const res = await metaApi.getMetaAnalytics(isRefresh);
+      const res = await metaApi.getMetaAnalytics(isRefresh, dateRange);
       if (!disconnectedRef.current) {
         setAnalyticsData(res?.facebook ?? {});
       }
@@ -102,14 +109,19 @@ export default function FacebookDash() {
       setIsLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [dateRange]);
 
-  // Auto-fetch after connection confirmed
+  // Auto-fetch after connection confirmed or when date range changes
   useEffect(() => {
     if (isConnected) fetchFacebookData();
   }, [isConnected, fetchFacebookData]);
 
-  const handleRefresh = () => fetchFacebookData(true);
+  // ── Refresh Control ────────────────────────────────────────────────
+  // Clears the state first (to trigger loading animations/skeletons) and refetches.
+  const handleRefresh = () => {
+    setAnalyticsData(null);
+    fetchFacebookData(true);
+  };
 
   // ── Initiate Facebook OAuth redirection ──
   // Redirects the browser to the backend OAuth initialization route for Facebook,
@@ -170,44 +182,20 @@ export default function FacebookDash() {
       />
 
       {/* ── Sticky Header ─────────────────────────────────────────── */}
-      {/* Row 1: Platform switcher tabs (left) + data controls (right) */}
+      {/* Row 1: Unified Page Header Component + Date & Data controls */}
       <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#0B1121]/90 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-6 flex flex-col gap-0">
 
         {/* Platform switcher + controls row */}
         <div className="flex items-center justify-between py-3">
 
-          {/* Left: Facebook / Instagram NavLink tabs */}
-          <div className="flex items-center gap-1">
-            {/* Facebook tab — always active on this route */}
-            <NavLink
-              to="/dashboard/meta/facebook"
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  isActive
-                    ? "bg-[#1877F2]/15 text-[#1877F2]"
-                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-slate-200"
-                }`
-              }
-            >
-              <Facebook className="h-5 w-5 flex-shrink-0" />
-              <span>Facebook Analytics</span>
-            </NavLink>
-
-            {/* Instagram tab — navigates to InstagramDash */}
-            <NavLink
-              to="/dashboard/meta/instagram"
-              className={({ isActive }) =>
-                `flex items-center gap-2.5 px-4 py-2 rounded-xl text-sm font-semibold transition-all duration-200 ${
-                  isActive
-                    ? "bg-[#E1306C]/15 text-[#E1306C]"
-                    : "text-slate-500 dark:text-slate-400 hover:bg-slate-200/50 dark:hover:bg-white/5 hover:text-slate-900 dark:hover:text-slate-200"
-                }`
-              }
-            >
-              <Instagram className="h-5 w-5 flex-shrink-0" />
-              <span>Instagram Analytics</span>
-            </NavLink>
-          </div>
+          {/* Left: Standard Header Component */}
+          <DashboardHeader
+            title="Facebook Analytics"
+            subtitle={username ? `Page: ${username}` : "Track page growth, post reach, and visual trends."}
+            icon={<Facebook className="h-5 w-5" />}
+            brandBgClass="bg-[#1877F2]/10"
+            brandTextClass="text-[#1877F2]"
+          />
 
           {/* Right: data controls — only rendered after successful OAuth */}
           {isConnected && (

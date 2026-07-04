@@ -10,15 +10,18 @@ import {
   LogOut,
   Menu,
 } from "lucide-react";
-import { Youtube, Linkedin } from "@/components/icons/BrandIcons";
+import { Youtube, Linkedin, Facebook, Instagram } from "@/components/icons/BrandIcons";
 import { Button } from "@/components/ui/button";
 import ApsmLogo from "@/assets/images/apsm-logo.svg";
 
-// Navigation link items
+// ── Navigation Link Items ───────────────────────────────────────────
+// Defines the left-hand menu navigation links. Unbundled Meta into
+// separate Facebook and Instagram entries.
 const navItems = [
   { label: "YouTube", path: "/dashboard/youtube", icon: Youtube },
   { label: "LinkedIn", path: "/dashboard/linkedin", icon: Linkedin },
-  { label: "Meta (FB + IG)", path: "/dashboard/meta", icon: Share2 },
+  { label: "Facebook", path: "/dashboard/facebook", icon: Facebook },
+  { label: "Instagram", path: "/dashboard/instagram", icon: Instagram },
   { label: "Cross-Posting", path: "/dashboard/crosspost", icon: Send },
 ];
 

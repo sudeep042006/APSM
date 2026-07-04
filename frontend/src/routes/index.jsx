@@ -35,10 +35,9 @@ const router = createBrowserRouter([
       { index: true, element: <Navigate to="/dashboard/youtube" replace /> },
       { path: "youtube", element: <YoutubeDash /> },
       { path: "linkedin", element: <LinkedInDash /> },
-      // ── Meta sub-routes (flat — each has its own internal sidebar) ──
-      { path: "meta", element: <Navigate to="/dashboard/meta/facebook" replace /> },
-      { path: "meta/facebook", element: <FacebookDash /> },
-      { path: "meta/instagram", element: <InstagramDash /> },
+      // ── Unbundled Facebook and Instagram dashboards ────────────────
+      { path: "facebook", element: <FacebookDash /> },
+      { path: "instagram", element: <InstagramDash /> },
       { path: "crosspost", element: <CrossPostingDash /> },
       { path: "crosspost/new", element: <NewPostPage /> },
     ],

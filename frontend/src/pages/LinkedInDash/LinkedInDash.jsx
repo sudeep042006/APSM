@@ -41,9 +41,15 @@ export default function LinkedInDash() {
   const [username, setUsername] = useState("");
   const [revokeLoading, setRevokeLoading] = useState(false);
 
-  const fetchData = async () => {
+  // ── Fetch LinkedIn Analytics ───────────────────────────────────────
+  // Fetches connection status and analytics data, passing the selected dateRange.
+  // Clears the existing analytics state if doing a fresh refresh to trigger skeleton states.
+  const fetchData = async (isRefresh = false) => {
     setLoading(true);
     setError(null);
+    if (isRefresh) {
+      setAnalyticsData(null);
+    }
     try {
       // 1. Fetch connection status
       const statusRes = await linkedinApi.getAuthStatus();
@@ -55,7 +61,7 @@ export default function LinkedInDash() {
 
       // 2. Fetch Analytics Snapshot if connected
       if (lnStatus?.connected) {
-        const analyticsRes = await linkedinApi.getLinkedInAnalytics();
+        const analyticsRes = await linkedinApi.getLinkedInAnalytics(dateRange);
         const dataArray = Array.isArray(analyticsRes?.data) ? analyticsRes.data : [];
         setAnalyticsData(dataArray[0] || null);
       } else {
@@ -69,9 +75,16 @@ export default function LinkedInDash() {
     }
   };
 
+  // Re-run fetch whenever the user updates the date range
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [dateRange]);
+
+  // ── Refresh Handler ────────────────────────────────────────────────
+  // Forces a clean refresh by clearing local states
+  const handleRefresh = () => {
+    fetchData(true);
+  };
 
   const handleConnect = () => {
     const token = localStorage.getItem("incubein_token");
@@ -190,7 +203,7 @@ export default function LinkedInDash() {
             <Button
               variant="outline"
               size="sm"
-              onClick={fetchData}
+              onClick={handleRefresh}
               disabled={loading}
               className="text-xs text-slate-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-slate-100 h-9 px-3"
             >
