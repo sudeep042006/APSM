@@ -11,6 +11,9 @@ import YoutubeDash from "@/pages/YoutubeDash/YoutubeDash";
 import LinkedInDash from "@/pages/LinkedInDash/LinkedInDash";
 import FacebookDash from "@/pages/MetaDash/FacebookDash";
 import InstagramDash from "@/pages/MetaDash/InstagramDash";
+import InstagramLayout from "@/pages/MetaDash/InstagramLayout";
+import MetricDetailView from "@/pages/MetaDash/MetricDetailView";
+import Placeholder from "@/components/Placeholder";
 import CrossPostingDash from "@/pages/CrossPostingDash/CrossPostingDash";
 import NewPostPage from "@/pages/CrossPostingDash/NewPostPage";
 import NotFound from "@/pages/NotFound/NotFound";
@@ -37,7 +40,25 @@ const router = createBrowserRouter([
       { path: "linkedin", element: <LinkedInDash /> },
       // ── Unbundled Facebook and Instagram dashboards ────────────────
       { path: "facebook", element: <FacebookDash /> },
-      { path: "instagram", element: <InstagramDash /> },
+      { 
+        path: "instagram",
+        element: <InstagramLayout />,
+        children: [
+          { index: true, element: <InstagramDash /> },
+          { path: "content", element: <Placeholder title="Content" /> },
+          { path: "audience", element: <Placeholder title="Audience" /> },
+          { path: "engagement", element: <Placeholder title="Engagement" /> },
+          { path: "stories", element: <Placeholder title="Stories" /> },
+          { path: "reels", element: <Placeholder title="Reels" /> },
+          { path: "growth", element: <Placeholder title="Growth" /> },
+          { path: "hashtags", element: <Placeholder title="Hashtags" /> },
+          { path: "insights", element: <Placeholder title="Insights" /> },
+          { path: "reports", element: <Placeholder title="Reports" /> },
+          { path: "settings", element: <Placeholder title="Settings" /> },
+          { path: "help", element: <Placeholder title="Help" /> },
+          { path: "metrics/:metricId", element: <MetricDetailView /> }
+        ]
+      },
       { path: "crosspost", element: <CrossPostingDash /> },
       { path: "crosspost/new", element: <NewPostPage /> },
     ],

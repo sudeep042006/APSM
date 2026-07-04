@@ -733,3 +733,101 @@ export const mockDatabase = {
     return makeLinkedInMock();
   },
 };
+
+export const instagramMockData = {
+  profile: { 
+    name: "Ritika Sharma", 
+    handle: "@ritika.sharma", 
+    category: "Lifestyle Creator • India",
+    totalFollowers: 12400, 
+    totalFollowing: 320,
+    profilePicture: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop",
+    bio: "Building a mindful life 🌿\nFounder @wellness.co\nBased in Mumbai 🇮🇳"
+  },
+  kpis: {
+    accountsReached: { current: 45200, previous: 38000 },
+    accountsEngaged: { current: 18400, previous: 15200 },
+    totalFollowers: { current: 12400, previous: 11900 },
+    contentInteractions: { current: 24500, previous: 21000 }
+  },
+  audience: {
+    topCities: [
+      { name: "Mumbai", value: 35 },
+      { name: "Delhi", value: 20 },
+      { name: "Bangalore", value: 15 },
+      { name: "Pune", value: 10 },
+      { name: "Dubai", value: 8 }
+    ],
+    topCountries: [
+      { name: "India", value: 75 },
+      { name: "UAE", value: 10 },
+      { name: "USA", value: 8 },
+      { name: "UK", value: 4 }
+    ],
+    ageRange: [
+      { age: "13-17", value: 5 },
+      { age: "18-24", value: 35 },
+      { age: "25-34", value: 45 },
+      { age: "35-44", value: 10 },
+      { age: "45-54", value: 5 }
+    ],
+    gender: [
+      { type: "Women", value: 68 },
+      { type: "Men", value: 32 }
+    ]
+  },
+  reachTrend: [
+    { date: "Oct 1", reach: 2400, impressions: 3100 },
+    { date: "Oct 2", reach: 2800, impressions: 3800 },
+    { date: "Oct 3", reach: 2600, impressions: 3500 },
+    { date: "Oct 4", reach: 4200, impressions: 5800 },
+    { date: "Oct 5", reach: 3800, impressions: 4900 },
+    { date: "Oct 6", reach: 4500, impressions: 6200 },
+    { date: "Oct 7", reach: 5100, impressions: 7100 }
+  ],
+  contentPerformance: [
+    {
+      id: "post_1",
+      type: "Reel",
+      thumbnail: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=100&h=100&fit=crop",
+      reach: 15400,
+      likes: 2100,
+      comments: 184,
+      shares: 342,
+      saves: 156
+    },
+    {
+      id: "post_2",
+      type: "Carousel",
+      thumbnail: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
+      reach: 12800,
+      likes: 1800,
+      comments: 145,
+      shares: 120,
+      saves: 450
+    },
+    {
+      id: "post_3",
+      type: "Image",
+      thumbnail: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&h=100&fit=crop",
+      reach: 9500,
+      likes: 1200,
+      comments: 98,
+      shares: 45,
+      saves: 89
+    }
+  ],
+  interactionsByType: [
+    { name: "Likes", value: 18400 },
+    { name: "Comments", value: 3400 },
+    { name: "Shares", value: 2100 },
+    { name: "Saves", value: 1800 }
+  ],
+  recentActivity: [
+    { id: 1, action: "New Follower", details: "@sarah.design started following you", time: "2h ago" },
+    { id: 2, action: "Comment", details: "@tech.bro left a comment on your reel", time: "3h ago" },
+    { id: 3, action: "Mention", details: "@wellness.co mentioned you in a story", time: "5h ago" },
+    { id: 4, action: "Milestone", details: "You reached 12,000 followers!", time: "1d ago" }
+  ]
+};
+
