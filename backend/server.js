@@ -1,6 +1,5 @@
 // server.js — entry point
-import dotenv from 'dotenv';
-dotenv.config();
+import 'dotenv/config';
 
 // ES modules
 import express from 'express';

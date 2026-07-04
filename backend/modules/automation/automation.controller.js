@@ -1,9 +1,11 @@
 import { Queue } from 'bullmq';
-import { connectRedis } from '../config/redis';
-import Automation from './automation.model';
+// ── Redis Connection ────────────────────────────────────────────────
+import connectRedis from '../../config/redis.js';
+// ── Models ──────────────────────────────────────────────────────────
+import Automation from './automation.model.js';
 
 const crossPostQueue = new Queue('CrossPostQueue', {
-    connection: connectRedis
+    connection: connectRedis()
 })
 
 const ScheduleCrossPost = async (req, res) => {
