@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
-import { instagramMockData } from '@/mocks/dashboardData';
+import igapi from '@/services/igapi';
 import { Users, Eye, Target, MousePointer2 } from 'lucide-react';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -27,7 +27,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div style={{
-        backgroundColor: 'rgba(22, 27, 34, 0.8)',
+        backgroundColor: 'rgba(22, 27, 34, 0.75)',
         backdropFilter: 'blur(12px)',
         borderColor: 'rgba(255,255,255,0.1)',
         borderWidth: '1px',
@@ -53,16 +53,35 @@ const CustomTooltip = ({ active, payload, label }) => {
 
 // ── Main Dashboard ───────────────────────────────────────────────────
 const InstagramDash = () => {
+  const { profile, isConnected, isLayoutLoading } = useOutletContext();
   const [data, setData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Simulate real network latency (800ms) to ensure Skeletons are verified
-    const timer = setTimeout(() => {
-      setData(instagramMockData);
-    }, 800);
+    let isMounted = true;
 
-    return () => clearTimeout(timer);
+    const fetchOverviewData = async () => {
+      try {
+        // Fetch only the overview data slice for this specific page
+        const overviewData = await igapi.getOverviewMetrics();
+        if (isMounted) {
+          setData(overviewData);
+        }
+      } catch (error) {
+        console.error("Failed to fetch overview metrics:", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchOverviewData();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   const kpis = [
@@ -70,34 +89,34 @@ const InstagramDash = () => {
       id: 'accounts-reached', 
       title: 'Accounts Reached', 
       icon: Target, 
-      current: data?.kpis.accountsReached.current, 
-      previous: data?.kpis.accountsReached.previous 
+      current: data?.kpis?.accountsReached?.current, 
+      previous: data?.kpis?.accountsReached?.previous 
     },
     { 
       id: 'accounts-engaged', 
       title: 'Accounts Engaged', 
       icon: Eye, 
-      current: data?.kpis.accountsEngaged.current, 
-      previous: data?.kpis.accountsEngaged.previous 
+      current: data?.kpis?.accountsEngaged?.current, 
+      previous: data?.kpis?.accountsEngaged?.previous 
     },
     { 
       id: 'total-followers', 
       title: 'Total Followers', 
       icon: Users, 
-      current: data?.kpis.totalFollowers.current, 
-      previous: data?.kpis.totalFollowers.previous 
+      current: data?.kpis?.totalFollowers?.current, 
+      previous: data?.kpis?.totalFollowers?.previous 
     },
     { 
       id: 'content-interactions', 
       title: 'Content Interactions', 
       icon: MousePointer2, 
-      current: data?.kpis.contentInteractions.current, 
-      previous: data?.kpis.contentInteractions.previous 
+      current: data?.kpis?.contentInteractions?.current, 
+      previous: data?.kpis?.contentInteractions?.previous 
     }
   ];
 
   return (
-    <div className="p-6 md:p-8 space-y-8 w-full max-w-7xl mx-auto">
+    <div className="p-4 md:p-8 space-y-8 w-full max-w-7xl mx-auto">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -108,19 +127,23 @@ const InstagramDash = () => {
         </div>
         
         {/* Profile Card Summary */}
-        {!data ? (
-          <Skeleton className="h-16 w-64 bg-gray-800/50 rounded-xl" />
-        ) : (
-          <div className="flex items-center gap-3 bg-[#161B22] p-3 rounded-xl border border-gray-800 shadow-sm">
+        {isLayoutLoading ? (
+          <Skeleton className="h-16 w-64 bg-[#161B22]/50 rounded-xl" />
+        ) : profile ? (
+          <div className="flex items-center gap-3 bg-[#161B22]/80 backdrop-blur-md p-3 rounded-xl border border-white/5 shadow-sm">
             <img 
-              src={data.profile.profilePicture} 
+              src={profile.profilePicture} 
               alt="Profile" 
               className="w-10 h-10 rounded-full border border-gray-700 object-cover"
             />
             <div>
-              <p className="text-sm font-medium text-white">{data.profile.handle}</p>
-              <p className="text-xs text-gray-400">{formatNumber(data.profile.totalFollowers)} followers</p>
+              <p className="text-sm font-medium text-white">{profile.handle}</p>
+              <p className="text-xs text-gray-400">{formatNumber(profile.totalFollowers)} followers</p>
             </div>
+          </div>
+        ) : (
+          <div className="text-sm text-gray-400 bg-[#161B22]/80 backdrop-blur-md p-3 rounded-xl border border-white/5">
+            Not Connected
           </div>
         )}
       </div>
@@ -128,9 +151,9 @@ const InstagramDash = () => {
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {kpis.map((kpi, idx) => {
-          if (!data) {
+          if (isLoading) {
             return (
-              <Card key={idx} className="bg-[#161B22] border-gray-800 shadow-sm">
+              <Card key={idx} className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm">
                 <CardHeader className="pb-2">
                   <Skeleton className="h-4 w-24 bg-gray-700/50" />
                 </CardHeader>
@@ -148,14 +171,14 @@ const InstagramDash = () => {
           return (
             <Card 
               key={kpi.id} 
-              className="bg-[#161B22] border-gray-800 hover:border-pink-500/50 transition-all cursor-pointer group shadow-sm hover:shadow-pink-500/10"
+              className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 hover:border-[#E1306C]/50 transition-all cursor-pointer group shadow-sm hover:shadow-pink-500/10"
               onClick={() => navigate(`/dashboard/instagram/metrics/${kpi.id}`)}
             >
               <CardHeader className="flex flex-row items-center justify-between pb-2">
                 <CardTitle className="text-sm font-medium text-gray-400 group-hover:text-gray-300 transition-colors">
                   {kpi.title}
                 </CardTitle>
-                <kpi.icon className="h-4 w-4 text-gray-500 group-hover:text-pink-500 transition-colors" />
+                <kpi.icon className="h-4 w-4 text-gray-500 group-hover:text-[#E1306C] transition-colors" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold text-white">
@@ -172,12 +195,12 @@ const InstagramDash = () => {
       
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-[#161B22] border-gray-800 shadow-sm col-span-1 lg:col-span-1 min-h-[350px]">
+        <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm col-span-1 lg:col-span-1 min-h-[350px]">
           <CardHeader>
             <CardTitle className="text-lg text-white font-semibold">Reach & Impressions Trend</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-            {!data ? (
+            {isLoading || !data ? (
               <Skeleton className="w-full h-full bg-gray-700/30 rounded-lg" />
             ) : (
               <ResponsiveContainer width="100%" height="100%">
@@ -204,12 +227,12 @@ const InstagramDash = () => {
           </CardContent>
         </Card>
         
-        <Card className="bg-[#161B22] border-gray-800 shadow-sm col-span-1 lg:col-span-1 min-h-[350px]">
+        <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm col-span-1 lg:col-span-1 min-h-[350px]">
           <CardHeader>
             <CardTitle className="text-lg text-white font-semibold">Audience Age Distribution</CardTitle>
           </CardHeader>
           <CardContent className="h-64">
-             {!data ? (
+             {isLoading || !data ? (
               <Skeleton className="w-full h-full bg-gray-700/30 rounded-lg" />
              ) : (
               <ResponsiveContainer width="100%" height="100%">

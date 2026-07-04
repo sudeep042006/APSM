@@ -10,9 +10,20 @@ import AuthPage from "@/pages/Auth/AuthPage";
 import YoutubeDash from "@/pages/YoutubeDash/YoutubeDash";
 import LinkedInDash from "@/pages/LinkedInDash/LinkedInDash";
 import FacebookDash from "@/pages/MetaDash/FacebookDash";
-import InstagramDash from "@/pages/MetaDash/InstagramDash";
-import InstagramLayout from "@/pages/MetaDash/InstagramLayout";
-import MetricDetailView from "@/pages/MetaDash/MetricDetailView";
+import InstagramDash from "@/pages/InstagramDash/InstagramDash";
+import InstagramLayout from "@/pages/InstagramDash/InstagramLayout";
+import MetricDetailView from "@/pages/InstagramDash/MetricDetailView";
+import InstagramContent from "@/pages/InstagramDash/InstagramContent";
+import InstagramAudience from "@/pages/InstagramDash/InstagramAudience";
+import InstagramEngagement from "@/pages/InstagramDash/InstagramEngagement";
+import InstagramStories from "@/pages/InstagramDash/InstagramStories";
+import InstagramReels from "@/pages/InstagramDash/InstagramReels";
+import InstagramGrowth from "@/pages/InstagramDash/InstagramGrowth";
+import InstagramHashtags from "@/pages/InstagramDash/InstagramHashtags";
+import InstagramInsights from "@/pages/InstagramDash/InstagramInsights";
+import InstagramReports from "@/pages/InstagramDash/InstagramReports";
+import InstagramSettings from "@/pages/InstagramDash/InstagramSettings";
+import InstagramHelp from "@/pages/InstagramDash/InstagramHelp";
 import Placeholder from "@/components/Placeholder";
 import CrossPostingDash from "@/pages/CrossPostingDash/CrossPostingDash";
 import NewPostPage from "@/pages/CrossPostingDash/NewPostPage";
@@ -45,17 +56,17 @@ const router = createBrowserRouter([
         element: <InstagramLayout />,
         children: [
           { index: true, element: <InstagramDash /> },
-          { path: "content", element: <Placeholder title="Content" /> },
-          { path: "audience", element: <Placeholder title="Audience" /> },
-          { path: "engagement", element: <Placeholder title="Engagement" /> },
-          { path: "stories", element: <Placeholder title="Stories" /> },
-          { path: "reels", element: <Placeholder title="Reels" /> },
-          { path: "growth", element: <Placeholder title="Growth" /> },
-          { path: "hashtags", element: <Placeholder title="Hashtags" /> },
-          { path: "insights", element: <Placeholder title="Insights" /> },
-          { path: "reports", element: <Placeholder title="Reports" /> },
-          { path: "settings", element: <Placeholder title="Settings" /> },
-          { path: "help", element: <Placeholder title="Help" /> },
+          { path: "content", element: <InstagramContent /> },
+          { path: "audience", element: <InstagramAudience /> },
+          { path: "engagement", element: <InstagramEngagement /> },
+          { path: "stories", element: <InstagramStories /> },
+          { path: "reels", element: <InstagramReels /> },
+          { path: "growth", element: <InstagramGrowth /> },
+          { path: "hashtags", element: <InstagramHashtags /> },
+          { path: "insights", element: <InstagramInsights /> },
+          { path: "reports", element: <InstagramReports /> },
+          { path: "settings", element: <InstagramSettings /> },
+          { path: "help", element: <InstagramHelp /> },
           { path: "metrics/:metricId", element: <MetricDetailView /> }
         ]
       },

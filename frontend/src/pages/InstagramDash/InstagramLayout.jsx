@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { 
   Home, Grid, Users, Activity, Clock, PlaySquare, 
   TrendingUp, Hash, BarChart, FileText, Settings, HelpCircle,
   Menu, X
 } from 'lucide-react';
+import igapi from '@/services/igapi';
 
 const navItems = [
   { path: "/dashboard/instagram", label: "Overview", icon: Home, end: true },
@@ -46,6 +47,34 @@ const SidebarLink = ({ to, icon: Icon, label, end, onClick }) => {
 
 const InstagramLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [profileData, setProfileData] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Fetch only top-level layout data (Connection State & Identity)
+  useEffect(() => {
+    let isMounted = true;
+    
+    const fetchLayoutData = async () => {
+      try {
+        const data = await igapi.getProfile();
+        if (isMounted) {
+          setProfileData(data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch Instagram profile", error);
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    fetchLayoutData();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   return (
     <div className="flex h-full w-full bg-[#0B1121] text-white overflow-hidden relative">
@@ -59,7 +88,8 @@ const InstagramLayout = () => {
 
       {/* INNER SIDEBAR */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 border-r border-white/10 flex flex-col bg-[#0B1121] 
+        fixed inset-y-0 left-0 z-50 w-64 border-r border-white/10 flex flex-col 
+        bg-[#0B1121]/90 backdrop-blur-xl lg:bg-[#0B1121] lg:backdrop-blur-none
         transition-transform duration-300 ease-in-out lg:static lg:translate-x-0
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>
@@ -86,7 +116,7 @@ const InstagramLayout = () => {
           ))}
         </div>
         
-        <div className="p-4 border-t border-white/5 space-y-1 mt-auto bg-[#0B1121]">
+        <div className="p-4 border-t border-white/5 space-y-1 mt-auto bg-transparent">
           {bottomItems.map((item) => (
             <SidebarLink 
               key={item.path} 
@@ -113,7 +143,12 @@ const InstagramLayout = () => {
         </div>
 
         <main className="flex-1 overflow-y-auto">
-          <Outlet />
+          {/* Outlet is wrapped in a container that passes the localized context */}
+          <Outlet context={{ 
+            profile: profileData?.profile, 
+            isConnected: profileData?.isConnected, 
+            isLayoutLoading: isLoading 
+          }} />
         </main>
       </div>
     </div>
