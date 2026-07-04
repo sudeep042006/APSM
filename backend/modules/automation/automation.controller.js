@@ -1,58 +1,84 @@
 import { Queue } from 'bullmq';
-import { connectRedis } from '../config/redis';
-import Automation from './automation.model';
+import Redis from 'ioredis';
+import { redisConnectionOptions } from '../../config/redis.js';
+import Automation from './automation.model.js';
+import cloudinary from '../../config/cloudinary.js';
+import streamifier from 'streamifier';
 
-const crossPostQueue = new Queue('CrossPostQueue', {
-    connection: connectRedis
-})
+// Use a dedicated connection for the Queue
+const queueConnection = process.env.REDIS_URL 
+    ? new Redis(process.env.REDIS_URL, redisConnectionOptions) 
+    : null;
 
-const ScheduleCrossPost = async (req, res) => {
+const crossPostQueue = new Queue('CrossPostQueue', { connection: queueConnection });
+
+const uploadToCloudinary = (fileBuffer) => {
+    return new Promise((resolve, reject) => {
+        const stream = cloudinary.uploader.upload_stream(
+            { resource_type: 'auto' }, 
+            (error, result) => {
+                if (error) return reject(error);
+                resolve(result);
+            }
+        );
+        streamifier.createReadStream(fileBuffer).pipe(stream);
+    });
+};
+
+export const createAutomationJob = async (req, res) => {
     try {
-        const { caption, platforms, mediaUrl, scheduledDate } = req.body;
-        
-        // calculate delay in ms
-        const scheduleTime = new Date(scheduledDate).getTime();
+        const userId = req.user.id;
+        const { caption, platforms, scheduledDate } = req.body;
+        let { mediaUrl } = req.body; // In case they send a URL directly instead of a file
+        let cloudinaryId = null;
+
+        if (req.file) {
+            // Upload to Cloudinary using streamifier
+            const uploadResult = await uploadToCloudinary(req.file.buffer);
+            mediaUrl = uploadResult.secure_url;
+            cloudinaryId = uploadResult.public_id;
+        }
+
+        // Calculate delay in milliseconds
+        const scheduleTime = scheduledDate ? new Date(scheduledDate).getTime() : Date.now();
         const now = Date.now();
         const delay = Math.max(scheduleTime - now, 0);
 
-        //save this to mongo;
+        // Save pending post to DB
         const newPost = await Automation.create({
-          caption,
-          platforms: JSON.parse(platforms),
-          mediaUrl,
-          scheduledDate,
-          status: 'SCHEDULED'
+            userId,
+            caption,
+            platforms: JSON.parse(platforms || '[]'),
+            mediaUrl,
+            cloudinaryId,
+            scheduledDate: scheduledDate || new Date(),
+            status: 'PENDING' // Job is about to be queued
         });
-        
-         // job to bullmq
-         const job = await crossPostQueue.add('publish-post' ,{
-              postId: newPost._id,
-              caption,
-              platforms: JSON.parse(platforms),
-              mediaUrl
-         }, {
-           delay: delay
-         });
 
-         newPost.jobId = job.id;
-         await newPost.save();
-         console.log("scheduled post saved");
+        // Add to Redis Queue with the delay timer
+        const job = await crossPostQueue.add('publish-post', {
+            postId: newPost._id,
+            userId,
+            caption,
+            platforms: JSON.parse(platforms || '[]'),
+            mediaUrl
+        }, {
+            delay: delay
+        });
 
-         res.status(200).json({
-          message: "post scheduled successfully",
-          jobId: job.id,
-          willPostIn: `${Math.round(delay / 60000)} minutes`
-         })
-    }
+        // Attach Job ID to DB record
+        newPost.jobId = job.id;
+        await newPost.save();
 
-    catch(error)
-    {
-        console.log(error);
-        res.status(500).json({
-            message: "failed to schedule post",
-            error: error.message
-        })
+        res.status(200).json({
+            message: 'Post successfully scheduled in the queue',
+            jobId: job.id,
+            mediaUrl,
+            willPostInMinutes: Math.round(delay / 60000)
+        });
+
+    } catch (error) {
+        console.error('Queue Scheduling Error:', error);
+        res.status(500).json({ error: 'Failed to schedule post: ' + error.message });
     }
 };
-
-export default ScheduleCrossPost;
