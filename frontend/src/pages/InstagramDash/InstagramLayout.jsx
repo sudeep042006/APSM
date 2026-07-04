@@ -77,7 +77,7 @@ const InstagramLayout = () => {
   }, []);
 
   return (
-    <div className="flex h-full w-full bg-[#0B1121] text-white overflow-hidden relative">
+    <div className="flex gap-0 -m-6 h-[calc(100vh-4rem)] bg-[#0B1121] text-white overflow-hidden relative">
       {/* Mobile Backdrop */}
       {isMobileMenuOpen && (
         <div 
