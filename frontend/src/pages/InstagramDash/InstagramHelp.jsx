@@ -14,7 +14,7 @@ const InstagramHelp = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-blue-500/10 rounded-lg">
@@ -46,7 +46,7 @@ const InstagramHelp = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm">
           <CardHeader>
             <div className="flex items-center gap-3">
               <div className="p-2 bg-[#E1306C]/10 rounded-lg">

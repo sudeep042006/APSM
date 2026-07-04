@@ -19,7 +19,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div style={{
-        backgroundColor: 'rgba(22, 27, 34, 0.75)',
+        backgroundColor: 'rgba(22, 27, 34, 0.85)',
         backdropFilter: 'blur(12px)',
         borderColor: 'rgba(255,255,255,0.1)',
         borderWidth: '1px',
@@ -85,7 +85,7 @@ const InstagramAudience = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Gender Donut */}
-        <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
           <CardHeader>
             <CardTitle className="text-lg text-white">Gender Split</CardTitle>
           </CardHeader>
@@ -118,7 +118,7 @@ const InstagramAudience = () => {
         </Card>
 
         {/* Age Distribution Bar */}
-        <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
           <CardHeader>
             <CardTitle className="text-lg text-white">Age Distribution</CardTitle>
           </CardHeader>
@@ -140,7 +140,7 @@ const InstagramAudience = () => {
         </Card>
 
         {/* Top Cities Horizontal Bar */}
-        <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 md:col-span-2 lg:col-span-1">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 md:col-span-2 lg:col-span-1">
           <CardHeader>
             <CardTitle className="text-lg text-white">Top Cities</CardTitle>
           </CardHeader>

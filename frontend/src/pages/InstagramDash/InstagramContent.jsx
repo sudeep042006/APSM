@@ -55,7 +55,7 @@ const InstagramContent = () => {
         </div>
         
         {/* Filters */}
-        <div className="flex bg-[#161B22]/80 backdrop-blur-md p-1 rounded-lg border border-white/5 overflow-x-auto custom-scrollbar">
+        <div className="flex bg-[#161B22]/90 backdrop-blur-md rounded-xl p-1 rounded-lg border border-white/5 overflow-x-auto custom-scrollbar">
           {filters.map((f) => (
             <button
               key={f}
@@ -73,7 +73,7 @@ const InstagramContent = () => {
       {isLoading || !data ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {[1, 2, 3].map((i) => (
-            <Card key={i} className="bg-[#161B22]/80 backdrop-blur-md border border-white/5">
+            <Card key={i} className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
               <CardContent className="p-0">
                 <Skeleton className="w-full h-48 bg-gray-700/50 rounded-t-xl" />
                 <div className="p-4 space-y-3">
@@ -85,13 +85,13 @@ const InstagramContent = () => {
           ))}
         </div>
       ) : data.posts.length === 0 ? (
-        <div className="p-12 text-center border border-white/5 rounded-xl bg-[#161B22]/80 backdrop-blur-md">
+        <div className="p-12 text-center border border-white/5 rounded-xl bg-[#161B22]/90 backdrop-blur-md rounded-xl">
           <p className="text-gray-400">Not enough data available yet.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {data.posts.map((post) => (
-            <Card key={post.id} className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 overflow-hidden hover:border-white/10 transition-colors">
+            <Card key={post.id} className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 overflow-hidden hover:border-white/10 transition-colors">
               <div className="relative h-48">
                 <img src={post.thumbnail} alt={post.type} className="w-full h-full object-cover" />
                 <span className="absolute top-2 right-2 bg-black/60 backdrop-blur-md text-xs text-white px-2 py-1 rounded-md font-medium border border-white/10">

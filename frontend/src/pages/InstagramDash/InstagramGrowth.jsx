@@ -19,7 +19,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div style={{
-        backgroundColor: 'rgba(22, 27, 34, 0.75)',
+        backgroundColor: 'rgba(22, 27, 34, 0.85)',
         backdropFilter: 'blur(12px)',
         borderColor: 'rgba(255,255,255,0.1)',
         borderWidth: '1px',
@@ -98,7 +98,7 @@ const InstagramGrowth = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">Followers Gained</CardTitle>
             <UserPlus className="w-4 h-4 text-emerald-500" />
@@ -112,7 +112,7 @@ const InstagramGrowth = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">Followers Lost</CardTitle>
             <UserMinus className="w-4 h-4 text-red-500" />
@@ -126,7 +126,7 @@ const InstagramGrowth = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium text-gray-400">Net Growth</CardTitle>
             <TrendingUp className="w-4 h-4 text-[#E1306C]" />
@@ -143,7 +143,7 @@ const InstagramGrowth = () => {
         </Card>
       </div>
 
-      <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm">
+      <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm">
         <CardHeader>
           <CardTitle className="text-lg text-white">Follower Acquisition Timeline</CardTitle>
         </CardHeader>

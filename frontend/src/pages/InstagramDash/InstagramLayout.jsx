@@ -89,7 +89,7 @@ const InstagramLayout = () => {
       {/* INNER SIDEBAR */}
       <aside className={`
         fixed inset-y-0 left-0 z-50 w-64 border-r border-white/10 flex flex-col 
-        bg-[#0B1121]/90 backdrop-blur-xl lg:bg-[#0B1121] lg:backdrop-blur-none
+        bg-[#0B1121]/95 backdrop-blur-xl lg:bg-[#0B1121] lg:backdrop-blur-none
         transition-transform duration-300 ease-in-out lg:static lg:translate-x-0
         ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
       `}>

@@ -79,7 +79,7 @@ const InstagramReels = () => {
         </div>
       </div>
 
-      <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5">
+      <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
         <CardContent className="p-6 flex items-center justify-between">
           <div>
             <p className="text-sm font-medium text-gray-400">Total Plays (Selected Period)</p>
@@ -104,7 +104,7 @@ const InstagramReels = () => {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {data.items.map((reel) => (
-              <Card key={reel.id} className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 overflow-hidden group hover:border-white/10 transition-all shadow-sm">
+              <Card key={reel.id} className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 overflow-hidden group hover:border-white/10 transition-all shadow-sm">
                 <div className="relative h-72 w-full">
                   <img src={reel.image} alt={reel.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                   <div className="absolute inset-0 bg-gradient-to-t from-[#0B1121] via-transparent to-transparent"></div>

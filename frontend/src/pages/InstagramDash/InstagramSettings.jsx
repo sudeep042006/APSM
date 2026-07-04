@@ -18,7 +18,7 @@ const InstagramSettings = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2 space-y-6">
-          <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm">
+          <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm">
             <CardHeader className="border-b border-white/5 pb-4">
               <div className="flex items-center gap-2">
                 <Settings2 className="w-5 h-5 text-gray-400" />
@@ -51,7 +51,7 @@ const InstagramSettings = () => {
             </CardContent>
           </Card>
 
-          <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm">
+          <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm">
             <CardHeader className="border-b border-white/5 pb-4">
               <div className="flex items-center gap-2">
                 <Bell className="w-5 h-5 text-gray-400" />
@@ -73,7 +73,7 @@ const InstagramSettings = () => {
         </div>
 
         <div className="space-y-6">
-          <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm">
+          <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm">
             <CardHeader className="border-b border-white/5 pb-4">
               <div className="flex items-center gap-2">
                 <Shield className="w-5 h-5 text-gray-400" />

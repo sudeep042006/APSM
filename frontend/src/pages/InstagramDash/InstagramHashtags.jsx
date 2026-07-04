@@ -59,7 +59,7 @@ const InstagramHashtags = () => {
         </div>
       </div>
 
-      <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5">
+      <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
         <CardHeader>
           <CardTitle className="text-lg text-white">Top Performing Hashtags</CardTitle>
         </CardHeader>

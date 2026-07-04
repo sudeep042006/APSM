@@ -20,7 +20,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div style={{
-        backgroundColor: 'rgba(22, 27, 34, 0.75)',
+        backgroundColor: 'rgba(22, 27, 34, 0.85)',
         backdropFilter: 'blur(12px)',
         borderColor: 'rgba(255,255,255,0.1)',
         borderWidth: '1px',
@@ -93,7 +93,7 @@ const MetricDetailView = () => {
         </Button>
       </div>
 
-      <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm rounded-xl">
+      <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm rounded-xl">
         <CardHeader className="border-b border-white/5 pb-4">
           <CardTitle className="text-2xl text-white font-semibold">
             {title} Details

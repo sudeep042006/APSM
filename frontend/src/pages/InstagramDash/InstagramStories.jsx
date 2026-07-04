@@ -81,7 +81,7 @@ const InstagramStories = () => {
       {isLoading || !data ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {[1, 2].map((i) => (
-            <Card key={i} className="bg-[#161B22]/80 backdrop-blur-md border border-white/5">
+            <Card key={i} className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
               <CardContent className="p-0 flex flex-col md:flex-row">
                 <Skeleton className="w-full md:w-48 h-64 bg-gray-700/50 rounded-l-xl" />
                 <div className="p-6 flex-1 space-y-4">
@@ -97,13 +97,13 @@ const InstagramStories = () => {
           ))}
         </div>
       ) : data.items.length === 0 ? (
-        <div className="p-12 text-center border border-white/5 rounded-xl bg-[#161B22]/80 backdrop-blur-md">
+        <div className="p-12 text-center border border-white/5 rounded-xl bg-[#161B22]/90 backdrop-blur-md rounded-xl">
           <p className="text-gray-400">No active stories found.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {data.items.map((story) => (
-            <Card key={story.id} className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 overflow-hidden hover:border-white/10 transition-colors shadow-sm">
+            <Card key={story.id} className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 overflow-hidden hover:border-white/10 transition-colors shadow-sm">
               <CardContent className="p-0 flex flex-col sm:flex-row h-full">
                 <div className="relative w-full sm:w-40 h-64 sm:h-auto flex-shrink-0">
                   <img src={story.image} alt="Story" className="w-full h-full object-cover" />

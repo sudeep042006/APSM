@@ -62,7 +62,7 @@ const InstagramInsights = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {isLoading || !data ? (
           [1, 2, 3, 4, 5].map((i) => (
-            <Card key={i} className="bg-[#161B22]/80 backdrop-blur-md border border-white/5">
+            <Card key={i} className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
               <CardHeader className="pb-2">
                 <Skeleton className="h-4 w-24 bg-gray-700/50" />
               </CardHeader>
@@ -75,7 +75,7 @@ const InstagramInsights = () => {
           data.actions.map((action) => {
             const Icon = action.icon;
             return (
-              <Card key={action.id} className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm hover:border-white/10 transition-colors">
+              <Card key={action.id} className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm hover:border-white/10 transition-colors">
                 <CardHeader className="flex flex-row items-center justify-between pb-2">
                   <CardTitle className="text-sm font-medium text-gray-400">{action.title}</CardTitle>
                   <Icon className={`w-4 h-4 ${action.color}`} />

@@ -34,7 +34,7 @@ const InstagramReports = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm">
           <CardHeader>
             <CardTitle className="text-xl text-white font-semibold">Custom Report</CardTitle>
             <p className="text-sm text-gray-400">Generate a comprehensive PDF or CSV report</p>

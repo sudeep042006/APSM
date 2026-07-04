@@ -27,7 +27,7 @@ const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
       <div style={{
-        backgroundColor: 'rgba(22, 27, 34, 0.75)',
+        backgroundColor: 'rgba(22, 27, 34, 0.85)',
         backdropFilter: 'blur(12px)',
         borderColor: 'rgba(255,255,255,0.1)',
         borderWidth: '1px',
@@ -130,7 +130,7 @@ const InstagramDash = () => {
         {isLayoutLoading ? (
           <Skeleton className="h-16 w-64 bg-[#161B22]/50 rounded-xl" />
         ) : profile ? (
-          <div className="flex items-center gap-3 bg-[#161B22]/80 backdrop-blur-md p-3 rounded-xl border border-white/5 shadow-sm">
+          <div className="flex items-center gap-3 bg-[#161B22]/90 backdrop-blur-md p-3 rounded-xl border border-white/5 shadow-sm">
             <img 
               src={profile.profilePicture} 
               alt="Profile" 
@@ -142,7 +142,7 @@ const InstagramDash = () => {
             </div>
           </div>
         ) : (
-          <div className="text-sm text-gray-400 bg-[#161B22]/80 backdrop-blur-md p-3 rounded-xl border border-white/5">
+          <div className="text-sm text-gray-400 bg-[#161B22]/90 backdrop-blur-md p-3 rounded-xl border border-white/5">
             Not Connected
           </div>
         )}
@@ -171,22 +171,24 @@ const InstagramDash = () => {
           return (
             <Card 
               key={kpi.id} 
-              className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 hover:border-[#E1306C]/50 transition-all cursor-pointer group shadow-sm hover:shadow-pink-500/10"
+              className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 hover:border-white/10 transition-all cursor-pointer group shadow-sm"
               onClick={() => navigate(`/dashboard/instagram/metrics/${kpi.id}`)}
             >
-              <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-gray-400 group-hover:text-gray-300 transition-colors">
-                  {kpi.title}
-                </CardTitle>
-                <kpi.icon className="h-4 w-4 text-gray-500 group-hover:text-[#E1306C] transition-colors" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-white">
+              <CardContent className="p-6">
+                <div className="flex items-center justify-between">
+                  <div className="text-xs uppercase tracking-wider text-gray-400 font-semibold">
+                    {kpi.title}
+                  </div>
+                  <div className="bg-[#E1306C]/10 text-[#E1306C] p-3 rounded-full group-hover:bg-[#E1306C]/20 transition-colors">
+                    <kpi.icon className="h-4 w-4" />
+                  </div>
+                </div>
+                <div className="text-3xl font-bold text-white mt-2">
                   {formatNumber(kpi.current)}
                 </div>
-                <p className={`text-xs mt-1 font-medium ${isPositive ? 'text-emerald-500' : 'text-red-500'}`}>
+                <div className={`text-sm flex items-center gap-1 mt-2 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
                   {isPositive ? '+' : ''}{trend}% <span className="text-gray-500 font-normal">vs last period</span>
-                </p>
+                </div>
               </CardContent>
             </Card>
           );
@@ -195,7 +197,7 @@ const InstagramDash = () => {
       
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="bg-[#161B22]/80 backdrop-blur-md border border-white/5 shadow-sm col-span-1 lg:col-span-1 min-h-[350px]">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 shadow-sm col-span-1 lg:col-span-1 min-h-[350px]">
           <CardHeader>
             <CardTitle className="text-lg text-white font-semibold">Reach & Impressions Trend</CardTitle>
           </CardHeader>
