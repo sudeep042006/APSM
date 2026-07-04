@@ -744,6 +744,10 @@ export const instagramMockData = {
     profilePicture: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&h=150&fit=crop",
     bio: "Building a mindful life 🌿\nFounder @wellness.co\nBased in Mumbai 🇮🇳"
   },
+  // ── Additional KPI data points ──────────────────────────────────────
+  profileViews: { current: 8420, previous: 7100 },
+  saves: { current: 4200, previous: 3800 },
+  totalPosts: 248,
   kpis: {
     accountsReached: { current: 45200, previous: 38000 },
     accountsEngaged: { current: 18400, previous: 15200 },
@@ -759,10 +763,11 @@ export const instagramMockData = {
       { name: "Dubai", value: 8 }
     ],
     topCountries: [
-      { name: "India", value: 75 },
-      { name: "UAE", value: 10 },
-      { name: "USA", value: 8 },
-      { name: "UK", value: 4 }
+      { name: "India", value: 68.3 },
+      { name: "United States", value: 11.2 },
+      { name: "UAE", value: 8.5 },
+      { name: "United Kingdom", value: 4.1 },
+      { name: "Canada", value: 3.7 }
     ],
     ageRange: [
       { age: "13-17", value: 5 },
@@ -785,10 +790,31 @@ export const instagramMockData = {
     { date: "Oct 6", reach: 4500, impressions: 6200 },
     { date: "Oct 7", reach: 5100, impressions: 7100 }
   ],
+  // ── Follower Growth (7-day daily breakdown) ─────────────────────────
+  followerGrowth: [
+    { date: "Oct 1", gained: 45, lost: 8 },
+    { date: "Oct 2", gained: 38, lost: 12 },
+    { date: "Oct 3", gained: 52, lost: 5 },
+    { date: "Oct 4", gained: 71, lost: 9 },
+    { date: "Oct 5", gained: 63, lost: 14 },
+    { date: "Oct 6", gained: 48, lost: 7 },
+    { date: "Oct 7", gained: 82, lost: 11 }
+  ],
+  // ── Engagement Rate Trend (7-day) ───────────────────────────────────
+  engagementTrend: [
+    { date: "Oct 1", rate: 3.2 },
+    { date: "Oct 2", rate: 2.8 },
+    { date: "Oct 3", rate: 3.5 },
+    { date: "Oct 4", rate: 4.1 },
+    { date: "Oct 5", rate: 3.8 },
+    { date: "Oct 6", rate: 4.5 },
+    { date: "Oct 7", rate: 4.2 }
+  ],
   contentPerformance: [
     {
       id: "post_1",
       type: "Reel",
+      caption: "Morning routine for productivity ✨",
       thumbnail: "https://images.unsplash.com/photo-1515378791036-0648a3ef77b2?w=100&h=100&fit=crop",
       reach: 15400,
       likes: 2100,
@@ -799,6 +825,7 @@ export const instagramMockData = {
     {
       id: "post_2",
       type: "Carousel",
+      caption: "10 mindful habits to start today",
       thumbnail: "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop",
       reach: 12800,
       likes: 1800,
@@ -809,12 +836,40 @@ export const instagramMockData = {
     {
       id: "post_3",
       type: "Image",
+      caption: "Golden hour in Mumbai 🌅",
       thumbnail: "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=100&h=100&fit=crop",
       reach: 9500,
       likes: 1200,
       comments: 98,
       shares: 45,
       saves: 89
+    }
+  ],
+  // ── Top Reels (for Row 4 table) ─────────────────────────────────────
+  topReels: [
+    {
+      id: "reel_1",
+      title: "Quick Tutorial: OAuth setup!",
+      thumbnail: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=80&h=80&fit=crop",
+      plays: 12500,
+      likes: 1240,
+      comments: 53
+    },
+    {
+      id: "reel_2",
+      title: "5 Tips for SaaS Dashboards",
+      thumbnail: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=80&h=80&fit=crop",
+      plays: 8400,
+      likes: 850,
+      comments: 42
+    },
+    {
+      id: "reel_3",
+      title: "Wellness morning routine 🧘",
+      thumbnail: "https://images.unsplash.com/photo-1506126613408-eca07ce68773?w=80&h=80&fit=crop",
+      plays: 6200,
+      likes: 620,
+      comments: 28
     }
   ],
   interactionsByType: [

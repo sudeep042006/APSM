@@ -1,12 +1,18 @@
+// ── Instagram Layout Shell ────────────────────────────────────────────
+// Renders a collapsible left sub-navigation sidebar and an <Outlet>
+// for child route views. Fetches only the global connection state and
+// user profile identity on mount, passing it down via Outlet context.
+
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
 import { 
   Home, Grid, Users, Activity, Clock, PlaySquare, 
   TrendingUp, Hash, BarChart, FileText, Settings, HelpCircle,
-  Menu, X
+  Menu, X, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import igapi from '@/services/igapi';
 
+// ── Navigation items (main) ──────────────────────────────────────────
 const navItems = [
   { path: "/dashboard/instagram", label: "Overview", icon: Home, end: true },
   { path: "/dashboard/instagram/content", label: "Content", icon: Grid },
@@ -20,37 +26,45 @@ const navItems = [
   { path: "/dashboard/instagram/reports", label: "Reports", icon: FileText },
 ];
 
+// ── Navigation items (bottom-pinned) ─────────────────────────────────
 const bottomItems = [
   { path: "/dashboard/instagram/settings", label: "Settings", icon: Settings },
   { path: "/dashboard/instagram/help", label: "Help", icon: HelpCircle },
 ];
 
-const SidebarLink = ({ to, icon: Icon, label, end, onClick }) => {
+// ── Sidebar Link Component ───────────────────────────────────────────
+// Renders a NavLink with active highlighting and collapse-aware layout.
+const SidebarLink = ({ to, icon: Icon, label, end, onClick, isCollapsed }) => {
   return (
     <NavLink
       to={to}
       end={end}
       onClick={onClick}
       className={({ isActive }) =>
-        `flex items-center gap-3 px-4 py-2.5 rounded-lg text-sm font-medium transition-all duration-200 ${
+        `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ${
+          isCollapsed ? 'justify-center' : ''
+        } ${
           isActive 
-            ? 'bg-[#E1306C]/10 text-[#E1306C]' 
+            ? 'bg-[#E1306C]/10 text-[#E1306C] shadow-sm' 
             : 'text-gray-400 hover:text-white hover:bg-white/5'
         }`
       }
+      title={isCollapsed ? label : undefined}
     >
-      <Icon className="w-5 h-5" />
-      {label}
+      <Icon className="w-4 h-4 shrink-0" />
+      {!isCollapsed && <span className="truncate">{label}</span>}
     </NavLink>
   );
 };
 
+// ── Main Layout Component ────────────────────────────────────────────
 const InstagramLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
   const [profileData, setProfileData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Fetch only top-level layout data (Connection State & Identity)
+  // ── Fetch only top-level layout data (Connection State & Identity) ──
   useEffect(() => {
     let isMounted = true;
     
@@ -78,7 +92,7 @@ const InstagramLayout = () => {
 
   return (
     <div className="flex gap-0 -m-6 h-[calc(100vh-4rem)] bg-[#0B1121] text-white overflow-hidden relative">
-      {/* Mobile Backdrop */}
+      {/* ── Mobile Backdrop ──────────────────────────────────────────── */}
       {isMobileMenuOpen && (
         <div 
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
@@ -86,14 +100,15 @@ const InstagramLayout = () => {
         />
       )}
 
-      {/* INNER SIDEBAR */}
+      {/* ── INNER SIDEBAR ────────────────────────────────────────────── */}
       <aside className={`
-        fixed inset-y-0 left-0 z-50 w-64 border-r border-white/10 flex flex-col 
+        fixed inset-y-0 left-0 z-50 border-r border-white/10 flex flex-col 
         bg-[#0B1121]/95 backdrop-blur-xl lg:bg-[#0B1121] lg:backdrop-blur-none
-        transition-transform duration-300 ease-in-out lg:static lg:translate-x-0
-        ${isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}
+        transition-all duration-300 ease-in-out lg:static lg:translate-x-0
+        ${isMobileMenuOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}
+        ${isCollapsed ? 'lg:w-[72px]' : 'lg:w-64'}
       `}>
-        {/* Mobile Close Button */}
+        {/* ── Mobile Close Button ──────────────────────────────────── */}
         <div className="lg:hidden flex justify-end p-4 border-b border-white/5">
           <button 
             onClick={() => setIsMobileMenuOpen(false)} 
@@ -103,7 +118,55 @@ const InstagramLayout = () => {
           </button>
         </div>
 
-        <div className="p-4 flex-1 overflow-y-auto space-y-1">
+        {/* ── Brand Header ─────────────────────────────────────────── */}
+        <div className={`border-b border-white/10 p-3 ${isCollapsed ? 'text-center' : ''}`}>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E1306C]/10">
+              <svg className="h-4 w-4 text-[#E1306C]" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+              </svg>
+            </div>
+            {!isCollapsed && (
+              <div className="min-w-0 flex-1 hidden lg:block">
+                <p className="text-xs font-semibold truncate text-white">Instagram</p>
+                <p className="text-[10px] text-gray-400 truncate">
+                  {profileData?.profile?.handle || "Connected"}
+                </p>
+              </div>
+            )}
+            {/* Always show text on mobile overlay */}
+            <div className="min-w-0 flex-1 lg:hidden">
+              <p className="text-xs font-semibold truncate text-white">Instagram</p>
+              <p className="text-[10px] text-gray-400 truncate">
+                {profileData?.profile?.handle || "Connected"}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Collapse Toggle (desktop only) ───────────────────────── */}
+        <div className="hidden lg:block p-2 border-b border-white/10">
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-gray-400 hover:bg-white/10 hover:text-white transition-all duration-200 ${
+              isCollapsed ? 'justify-center' : ''
+            }`}
+            title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            id="ig-collapse-btn"
+          >
+            {isCollapsed ? (
+              <ChevronRight className="h-4 w-4 shrink-0" />
+            ) : (
+              <>
+                <ChevronLeft className="h-4 w-4 shrink-0" />
+                <span>Collapse</span>
+              </>
+            )}
+          </button>
+        </div>
+
+        {/* ── Navigation Links ─────────────────────────────────────── */}
+        <nav className="flex-1 py-2 px-1.5 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => (
             <SidebarLink 
               key={item.path} 
@@ -112,11 +175,13 @@ const InstagramLayout = () => {
               label={item.label} 
               end={item.end} 
               onClick={() => setIsMobileMenuOpen(false)}
+              isCollapsed={isCollapsed}
             />
           ))}
-        </div>
+        </nav>
         
-        <div className="p-4 border-t border-white/5 space-y-1 mt-auto bg-transparent">
+        {/* ── Bottom Navigation (Settings/Help) ────────────────────── */}
+        <div className="py-2 px-1.5 border-t border-white/5 space-y-0.5 mt-auto">
           {bottomItems.map((item) => (
             <SidebarLink 
               key={item.path} 
@@ -124,14 +189,15 @@ const InstagramLayout = () => {
               icon={item.icon} 
               label={item.label} 
               onClick={() => setIsMobileMenuOpen(false)}
+              isCollapsed={isCollapsed}
             />
           ))}
         </div>
       </aside>
 
-      {/* MAIN CONTENT AREA */}
+      {/* ── MAIN CONTENT AREA ────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 h-full">
-        {/* Mobile Header Toggle */}
+        {/* ── Mobile Header Toggle ───────────────────────────────────── */}
         <div className="lg:hidden flex items-center p-4 border-b border-white/10 bg-[#0B1121]">
           <button 
             onClick={() => setIsMobileMenuOpen(true)}
@@ -142,8 +208,9 @@ const InstagramLayout = () => {
           <span className="ml-4 font-semibold text-white">Instagram Dashboard</span>
         </div>
 
+        {/* ── Scrollable Content Area ────────────────────────────────── */}
         <main className="flex-1 overflow-y-auto">
-          {/* Outlet is wrapped in a container that passes the localized context */}
+          {/* Outlet passes the localized context to child views */}
           <Outlet context={{ 
             profile: profileData?.profile, 
             isConnected: profileData?.isConnected, 

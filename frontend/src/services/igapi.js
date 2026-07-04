@@ -26,9 +26,20 @@ const igapi = {
     if (USE_MOCKS) {
       await delay(800);
       return {
+        // ── KPI data (passthrough from centralized mock) ──────────────
         kpis: instagramMockData.kpis,
+        profileViews: instagramMockData.profileViews,
+        saves: instagramMockData.saves,
+        totalPosts: instagramMockData.totalPosts,
+        // ── Chart data (passthrough) ──────────────────────────────────
         reachTrend: instagramMockData.reachTrend,
-        audience: instagramMockData.audience // For demographics preview
+        followerGrowth: instagramMockData.followerGrowth,
+        engagementTrend: instagramMockData.engagementTrend,
+        // ── Demographics (passthrough) ────────────────────────────────
+        audience: instagramMockData.audience,
+        // ── Table data (passthrough) ──────────────────────────────────
+        contentPerformance: instagramMockData.contentPerformance,
+        topReels: instagramMockData.topReels,
       };
     } else {
       const response = await api.get("/analytics/instagram/overview");
