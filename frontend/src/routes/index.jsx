@@ -41,6 +41,7 @@ import InstagramHelp from "@/pages/InstagramDash/InstagramHelp";
 import Placeholder from "@/components/Placeholder";
 import CrossPostingDash from "@/pages/CrossPostingDash/CrossPostingDash";
 import NewPostPage from "@/pages/CrossPostingDash/NewPostPage";
+import CrossPostLayout from "@/pages/CrossPostingDash/CrossPostLayout";
 import NotFound from "@/pages/NotFound/NotFound";
 import Settings from "@/pages/Settings";
 
@@ -110,8 +111,14 @@ const router = createBrowserRouter([
           { path: "metrics/:metricId", element: <MetricDetailView /> }
         ]
       },
-      { path: "crosspost", element: <CrossPostingDash /> },
-      { path: "crosspost/new", element: <NewPostPage /> },
+      {
+        path: "crosspost",
+        element: <CrossPostLayout />,
+        children: [
+          { index: true, element: <CrossPostingDash /> },
+          { path: "new", element: <NewPostPage /> },
+        ]
+      },
     ],
   },
 

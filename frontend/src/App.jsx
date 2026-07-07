@@ -4,6 +4,7 @@
 import { RouterProvider } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { ThemeProvider } from "@/context/ThemeContext";
+import { Toaster } from "@/components/ui/toaster";
 import router from "@/routes";
 import Loader from "@/components/Loader";
 
@@ -15,6 +16,8 @@ export default function App() {
       <AuthProvider>
         {/* ── Router Provider (client-side navigation) ────────────────── */}
         <RouterProvider router={router} fallbackElement={<Loader />} />
+        {/* ── Global Toast Notifications (Shadcn) ───────────────────────── */}
+        <Toaster />
       </AuthProvider>
     </ThemeProvider>
   );

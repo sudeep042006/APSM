@@ -8,7 +8,7 @@ import { Send, Plus, CheckCircle2, Link2, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Youtube, Linkedin, Facebook, Instagram } from "@/components/icons/BrandIcons";
 import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
-import api from "@/services/api";
+import { useCrossPost } from "./CrossPostContext";
 
 const SUPPORTED_PLATFORMS = [
   { id: "facebook", name: "Facebook", icon: Facebook, color: "text-blue-500", bg: "bg-blue-500/10", description: "Connect to cross-post to your pages and communities." },
@@ -19,63 +19,13 @@ const SUPPORTED_PLATFORMS = [
 
 export default function CrossPostingDash() {
   const navigate = useNavigate();
+  const { connectedPlatforms: connectedIds, isLoadingAuth: isLoading } = useCrossPost();
   
-  const [connectedPlatforms, setConnectedPlatforms] = useState([]);
-  const [availablePlatforms, setAvailablePlatforms] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [disconnectTarget, setDisconnectTarget] = useState(null);
 
-  useEffect(() => {
-    const fetchConnectionStatus = async () => {
-      setIsLoading(true);
-      try {
-        const response = await api.get('/auth/status'); // Use your existing configured axios instance
-        
-        // 1. SAFELY EXTRACT THE ARRAY
-        // Backends wrap arrays differently. We check the most common nested paths.
-        const rawPayload = response.data;
-        const statusArray = Array.isArray(rawPayload) 
-          ? rawPayload 
-          : (rawPayload?.data || rawPayload?.status || rawPayload?.connections || []);
-
-        // CRITICAL DEBUG: Check the browser console to see EXACTLY what the backend sent
-        console.log("Extracted Auth Status Array:", statusArray);
-
-        // 2. SORT THE PLATFORMS
-        const connected = [];
-        const available = [];
-
-        SUPPORTED_PLATFORMS.forEach(platform => {
-          // Use case-insensitive matching and explicit boolean checks
-          const isConnected = statusArray.some(
-            statusItem => 
-              String(statusItem.platform).toLowerCase() === String(platform.id).toLowerCase() && 
-              statusItem.connected === true
-          );
-
-          if (isConnected) {
-            connected.push(platform);
-          } else {
-            available.push(platform);
-          }
-        });
-
-        // 3. UPDATE STATE
-        setConnectedPlatforms(connected);
-        setAvailablePlatforms(available);
-
-      } catch (error) {
-        console.error("Cross-Posting Status Fetch Error:", error);
-        // Fallback: If network fails, show all as available
-        setConnectedPlatforms([]);
-        setAvailablePlatforms(SUPPORTED_PLATFORMS);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchConnectionStatus();
-  }, []);
+  // Derive full objects based on the string IDs from Context
+  const connectedPlatforms = SUPPORTED_PLATFORMS.filter(p => connectedIds.includes(p.id));
+  const availablePlatforms = SUPPORTED_PLATFORMS.filter(p => !connectedIds.includes(p.id));
 
   // ── Platform connect handler ──────────────────────────────────────
   // Sets the correct returnPath for the OAuth trampoline before redirecting.
@@ -115,7 +65,7 @@ export default function CrossPostingDash() {
             <p className="text-sm text-muted-foreground">Schedule and publish across platforms</p>
           </div>
         </div>
-        <Button className="gap-2" id="crosspost-new-btn" onClick={() => navigate("/dashboard/crosspost/new")}>
+        <Button className="gap-2 bg-white text-black hover:bg-slate-200" id="crosspost-new-btn" onClick={() => navigate("/dashboard/crosspost/new")}>
           <Plus className="h-4 w-4" /> New Post
         </Button>
       </div>
