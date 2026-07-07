@@ -5,7 +5,7 @@
 // OAuth flow, data fetching, and distributes parsed data to children.
 
 import { useState, useEffect, useCallback } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, NavLink } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Youtube } from "@/components/icons/BrandIcons";
@@ -24,6 +24,8 @@ import {
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
+  Settings,
+  HelpCircle,
 } from "lucide-react";
 import {
   fetchYouTubeStatus,
@@ -360,6 +362,42 @@ export default function YoutubeDash() {
                 </button>
               );
             })}
+
+            {/* ── Bottom Navigation (Settings/Help) ────────────────────── */}
+            <div className="pt-2 mt-2 border-t border-slate-200 dark:border-white/10 space-y-0.5">
+              <NavLink
+                to="/dashboard/youtube/settings"
+                className={({ isActive }) =>
+                  `flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-200 ${
+                    subNavCollapsed ? "justify-center" : ""
+                  } ${
+                    isActive
+                      ? "bg-red-500/10 text-red-500 shadow-sm"
+                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-100"
+                  }`
+                }
+                title={subNavCollapsed ? "Settings" : undefined}
+              >
+                <Settings className="h-4 w-4 shrink-0" />
+                {!subNavCollapsed && <span className="truncate">Settings</span>}
+              </NavLink>
+              <NavLink
+                to="/dashboard/youtube/help"
+                className={({ isActive }) =>
+                  `flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-200 ${
+                    subNavCollapsed ? "justify-center" : ""
+                  } ${
+                    isActive
+                      ? "bg-red-500/10 text-red-500 shadow-sm"
+                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-100"
+                  }`
+                }
+                title={subNavCollapsed ? "Help" : undefined}
+              >
+                <HelpCircle className="h-4 w-4 shrink-0" />
+                {!subNavCollapsed && <span className="truncate">Help</span>}
+              </NavLink>
+            </div>
           </nav>
         </div>
       </aside>

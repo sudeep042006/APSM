@@ -2,7 +2,7 @@ import api from "./api";
 import { instagramMockData } from "@/mocks/dashboardData";
 
 // ── Global Mock Toggle ───────────────────────────────────────────────
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 

@@ -1,95 +1,132 @@
-import { Activity, BarChart3, Bookmark, Calendar, ChevronDown, Eye, FileText, Heart, HelpCircle, History, MessageCircle, MoreVertical, Settings, Share2, Target, ThumbsUp, TrendingDown, TrendingUp, Users, Video } from 'lucide-react';
-import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area,
-  PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// ── Facebook Insights Page ────────────────────────────────────────────────────
+// Fetches data independently via fbapi.getInsightsData() on mount.
+// Shows 4 smart highlight cards and a recommendations table.
 
-const FB_BLUE = "#1877F2";
-const PIE_COLORS = ["#1877F2", "#10b981", "#8b5cf6", "#64748b"];
-import { EmptyState, KpiCard, DarkTooltip, FacebookDataTable, InstagramDataTable, ProgressBar } from './MetaSharedComponents';
+import { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
+import fbapi from "@/services/fbapi";
+import { Clock, Video, Users, Zap, TrendingDown, Lightbulb, ChevronRight } from "lucide-react";
 
-export function FacebookInsights({ data }) {
-  if (!data) return <EmptyState title="Historical Insights" description="Filter through historical data ranges to uncover long-term trends for your Facebook Page." icon={BarChart3} />;
+// ── Highlight card icon map ────────────────────────────────────────────────────
+const HIGHLIGHT_META = [
+  { key: "bestTimeToPost",       label: "Best Time to Post",        icon: Clock,  color: "bg-amber-500/10 text-amber-400"     },
+  { key: "topPerformingFormat",  label: "Top Format",               icon: Video,  color: "bg-[#1877F2]/10 text-[#1877F2]"    },
+  { key: "topAudienceSegment",   label: "Top Audience Segment",     icon: Users,  color: "bg-emerald-500/10 text-emerald-400" },
+  { key: "recommendedContentType",label:"Recommended Content Type", icon: Zap,    color: "bg-indigo-500/10 text-indigo-400"  },
+];
+
+// ── Recommendation type badge color map ───────────────────────────────────────
+const TYPE_COLORS = {
+  content:    "bg-blue-500/10 text-blue-400",
+  audience:   "bg-emerald-500/10 text-emerald-400",
+  engagement: "bg-amber-500/10 text-amber-400",
+  schedule:   "bg-indigo-500/10 text-indigo-400",
+  default:    "bg-gray-500/10 text-gray-400",
+};
+
+const FacebookInsights = () => {
+  const { isConnected } = useOutletContext();
+  const [data, setData]     = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError]   = useState(null);
+
+  // ── Fetch insights data independently on mount ────────────────────────────
+  useEffect(() => {
+    let mounted = true;
+    const fetch = async () => {
+      try {
+        const result = await fbapi.getInsightsData();
+        if (mounted) setData(result);
+      } catch (e) {
+        if (mounted) setError("Could not load insights data.");
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+    fetch();
+    return () => { mounted = false; };
+  }, []);
+
+  if (error) return (
+    <div className="p-6 flex items-center justify-center min-h-[50vh]">
+      <div className="text-center space-y-3">
+        <TrendingDown className="h-10 w-10 text-red-400 mx-auto" />
+        <p className="text-sm text-gray-400">{error}</p>
+        <Button onClick={() => window.location.reload()} className="bg-[#1877F2] hover:bg-[#1877F2]/90 text-white text-xs">Retry</Button>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="space-y-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6">
-        <Card className="bg-blue-500/10 border-blue-500/20 text-white hover:bg-blue-500/20 transition-colors cursor-default">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 bg-blue-500/20 rounded-md">
-                <Calendar className="h-5 w-5 text-blue-400" />
-              </div>
-              <CardTitle className="text-sm font-medium text-blue-400">Best Time to Post</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold text-slate-100">{data.bestTimeToPost}</p>
-            <p className="text-xs text-blue-400/80 mt-1">Based on peak audience activity</p>
-          </CardContent>
-        </Card>
+    <div className="p-4 md:p-6 space-y-6">
 
-        <Card className="bg-purple-500/10 border-purple-500/20 text-white hover:bg-purple-500/20 transition-colors cursor-default">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 bg-purple-500/20 rounded-md">
-                <Video className="h-5 w-5 text-purple-400" />
-              </div>
-              <CardTitle className="text-sm font-medium text-purple-400">Top Format</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold text-slate-100">{data.topPerformingFormat}</p>
-            <p className="text-xs text-purple-400/80 mt-1">Drives 45% more engagement</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-emerald-500/10 border-emerald-500/20 text-white hover:bg-emerald-500/20 transition-colors cursor-default">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 bg-emerald-500/20 rounded-md">
-                <Users className="h-5 w-5 text-emerald-400" />
-              </div>
-              <CardTitle className="text-sm font-medium text-emerald-400">Top Audience</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold text-slate-100">{data.topAudienceSegment}</p>
-            <p className="text-xs text-emerald-400/80 mt-1">Most active demographic</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-amber-500/10 border-amber-500/20 text-white hover:bg-amber-500/20 transition-colors cursor-default">
-          <CardHeader className="pb-2">
-            <div className="flex items-center gap-2 mb-2">
-              <div className="p-2 bg-amber-500/20 rounded-md">
-                <Target className="h-5 w-5 text-amber-400" />
-              </div>
-              <CardTitle className="text-sm font-medium text-amber-400">Recommendation</CardTitle>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-xl font-bold text-slate-100">{data.recommendedContentType}</p>
-            <p className="text-xs text-amber-400/80 mt-1">Suggested for next campaign</p>
-          </CardContent>
-        </Card>
+      {/* ── Smart Highlight Cards ──────────────────────────────────────────── */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {HIGHLIGHT_META.map((h, i) => (
+          <Card key={i} className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 p-5 hover:border-white/10 transition-all group">
+            <CardContent className="p-0">
+              {isLoading ? (
+                <><Skeleton className="h-10 w-10 rounded-full bg-gray-700/50 mb-3" /><Skeleton className="h-3 w-20 bg-gray-700/50 mb-2" /><Skeleton className="h-5 w-24 bg-gray-700/50" /></>
+              ) : (
+                <>
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${h.color} mb-3 group-hover:scale-110 transition-transform`}>
+                    <h.icon className="h-5 w-5" />
+                  </div>
+                  <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold">{h.label}</p>
+                  <p className="text-sm font-bold text-white mt-2">{data?.highlights?.[h.key] || "—"}</p>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        ))}
       </div>
 
-      <Card className="bg-[#161B22] border-white/5 text-white">
+      {/* ── Recommendations Table ──────────────────────────────────────────── */}
+      <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
         <CardHeader>
-          <CardTitle className="text-lg font-medium text-slate-200">Historical Insights</CardTitle>
-          <p className="text-sm text-slate-400">Deep dive into long-term account trends.</p>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center gap-4 p-12 justify-center flex-col border border-dashed border-white/10 rounded-lg">
-            <BarChart3 className="h-12 w-12 text-slate-500 mb-2" />
-            <p className="text-slate-300 font-medium">Insights Engine Syncing</p>
-            <p className="text-sm text-slate-500 text-center max-w-md">We are currently building your historical data index. Check back soon for deep historical analytics and year-over-year comparisons.</p>
+          <div className="flex items-center gap-2">
+            <Lightbulb className="h-4 w-4 text-amber-400" />
+            <CardTitle className="text-sm font-semibold text-white">AI-Powered Recommendations</CardTitle>
           </div>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {isLoading ? (
+            <div className="space-y-3">
+              {[1,2,3,4].map(i => <Skeleton key={i} className="h-16 w-full bg-gray-700/30 rounded-xl" />)}
+            </div>
+          ) : (!data?.recommendations?.length) ? (
+            <div className="text-center py-10">
+              <Lightbulb className="h-12 w-12 text-gray-600 mx-auto mb-3" />
+              <p className="text-sm text-gray-500">No recommendations yet. Keep posting to unlock insights!</p>
+            </div>
+          ) : (
+            data.recommendations.map((rec, i) => {
+              const colorClass = TYPE_COLORS[rec.type?.toLowerCase()] || TYPE_COLORS.default;
+              return (
+                <div
+                  key={i}
+                  className="flex items-start gap-4 rounded-xl bg-white/[0.02] border border-white/5 p-4 hover:border-white/10 hover:bg-white/[0.04] transition-all cursor-pointer group"
+                >
+                  {/* Type badge */}
+                  <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize flex-shrink-0 ${colorClass}`}>
+                    {rec.type}
+                  </span>
+                  {/* Recommendation text */}
+                  <p className="text-sm text-gray-300 leading-relaxed flex-1">{rec.recommendation}</p>
+                  {/* Arrow indicator */}
+                  <ChevronRight className="h-4 w-4 text-gray-600 group-hover:text-[#1877F2] group-hover:translate-x-0.5 transition-all mt-0.5 flex-shrink-0" />
+                </div>
+              );
+            })
+          )}
         </CardContent>
       </Card>
     </div>
   );
-}
+};
+
+export default FacebookInsights;

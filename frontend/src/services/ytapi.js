@@ -8,7 +8,7 @@ import { mockDatabase } from "@/mocks/dashboardData";
 
 // ── Global Mock Toggle ───────────────────────────────────────────────
 // Set USE_MOCKS to true to bypass backend APIs and use localized mock data.
-const USE_MOCKS = true;
+const USE_MOCKS = false;
 
 // ── Connection Status ───────────────────────────────────────────────
 // Check whether the user's YouTube account is connected via OAuth.

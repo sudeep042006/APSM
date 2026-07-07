@@ -9,7 +9,21 @@ import LandingPage from "@/pages/LandingPage/LandingPage";
 import AuthPage from "@/pages/Auth/AuthPage";
 import YoutubeDash from "@/pages/YoutubeDash/YoutubeDash";
 import LinkedInDash from "@/pages/LinkedInDash/LinkedInDash";
+import FacebookLayout from "@/pages/MetaDash/FacebookLayout";
 import FacebookDash from "@/pages/MetaDash/FacebookDash";
+import FacebookContent from "@/pages/MetaDash/FacebookContent";
+import FacebookAudience from "@/pages/MetaDash/FacebookAudience";
+import FacebookEngagement from "@/pages/MetaDash/FacebookEngagement";
+import FacebookPageLikes from "@/pages/MetaDash/FacebookPageLikes";
+import FacebookReachViews from "@/pages/MetaDash/FacebookReachViews";
+import FacebookVideos from "@/pages/MetaDash/FacebookVideos";
+import FacebookStories from "@/pages/MetaDash/FacebookStories";
+import FacebookGroups from "@/pages/MetaDash/FacebookGroups";
+import FacebookAds from "@/pages/MetaDash/FacebookAds";
+import FacebookReports from "@/pages/MetaDash/FacebookReports";
+import FacebookInsights from "@/pages/MetaDash/FacebookInsights";
+import FacebookSettings from "@/pages/MetaDash/FacebookSettings";
+import FacebookHelp from "@/pages/MetaDash/FacebookHelp";
 import InstagramDash from "@/pages/InstagramDash/InstagramDash";
 import InstagramLayout from "@/pages/InstagramDash/InstagramLayout";
 import MetricDetailView from "@/pages/InstagramDash/MetricDetailView";
@@ -48,9 +62,35 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <Navigate to="/dashboard/youtube" replace /> },
       { path: "youtube", element: <YoutubeDash /> },
+      { path: "youtube/settings", element: <Placeholder /> },
+      { path: "youtube/help", element: <Placeholder /> },
       { path: "linkedin", element: <LinkedInDash /> },
-      // ── Unbundled Facebook and Instagram dashboards ────────────────
-      { path: "facebook", element: <FacebookDash /> },
+      { path: "linkedin/settings", element: <Placeholder /> },
+      { path: "linkedin/help", element: <Placeholder /> },
+      // ── Facebook Dashboard — nested layout with child routes ──────
+      // Mirrors the Instagram routing architecture exactly:
+      // FacebookLayout = sidebar shell + Outlet
+      // FacebookDash   = Overview index child page only
+      {
+        path: "facebook",
+        element: <FacebookLayout />,
+        children: [
+          { index: true,                  element: <FacebookDash />      },
+          { path: "content",              element: <FacebookContent />   },
+          { path: "audience",             element: <FacebookAudience />  },
+          { path: "engagement",           element: <FacebookEngagement />},
+          { path: "page_likes",           element: <FacebookPageLikes /> },
+          { path: "reach_views",          element: <FacebookReachViews />},
+          { path: "videos",               element: <FacebookVideos />    },
+          { path: "stories",              element: <FacebookStories />   },
+          { path: "groups",               element: <FacebookGroups />    },
+          { path: "ads",                  element: <FacebookAds />       },
+          { path: "reports",              element: <FacebookReports />   },
+          { path: "insights",             element: <FacebookInsights />  },
+          { path: "settings",             element: <FacebookSettings />  },
+          { path: "help",                 element: <FacebookHelp />      },
+        ]
+      },
       { 
         path: "instagram",
         element: <InstagramLayout />,

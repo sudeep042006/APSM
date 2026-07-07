@@ -1,302 +1,607 @@
-import { useState, useEffect, useCallback, useRef } from "react";
-import { useLocation, useNavigate, NavLink } from "react-router-dom";
-import metaApi from "@/services/metaApi";
-import { Facebook, Instagram } from "@/components/icons/BrandIcons";
-import { RefreshCw } from "lucide-react";
+// ── Facebook Overview Dashboard (Index Child Page) ──────────────────────────
+// ARCHITECTURE NOTE: This file is the Overview *page* only.
+// It does NOT contain any layout logic (sidebar, routing, connect cards).
+// Layout, sidebar, and connection state are handled by FacebookLayout.jsx.
+//
+// Data fetching: calls fbapi.getOverviewMetrics() independently on mount.
+// Context: receives { profile, isConnected, isLayoutLoading } from Outlet.
+//
+// 4-Row Grid Layout:
+//   Row 1: Identity block + Date Range Picker + Refresh button
+//   Row 2: 6 KPI cards (Page Likes, Reach, Engagements, Reactions, Comments, Shares)
+//   Row 3: 3 charts (Reach Over Time, Engagements Over Time, Engagement Rate)
+//   Row 4: 2 tables (Top Posts, Top Videos) + Demographics stack
+
+import { useState, useEffect, useCallback } from "react";
+import { useOutletContext, Link } from "react-router-dom";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FB_NAV } from "./MetaInnerSidebar";
+import { Skeleton } from "@/components/ui/skeleton";
+import fbapi from "@/services/fbapi";
 import DateRangePicker from "@/components/DateRangePicker";
-import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
-import { EmptyDataState } from "./MetaSharedComponents";
-// ── Component Imports ──
-import ConnectCard from "@/components/ConnectCard";
-import DashboardHeader from "@/components/DashboardHeader";
+import {
+  Users, Eye, Heart, ThumbsUp, MessageCircle, Share2,
+  RefreshCw, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight,
+  MoreVertical, Video,
+} from "lucide-react";
+import {
+  ResponsiveContainer, AreaChart, Area, BarChart, Bar,
+  LineChart, Line, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip,
+} from "recharts";
 
-import { FacebookOverview }   from "./FacebookOverview";
-import { FacebookContent }    from "./FacebookContent";
-import { FacebookAudience }   from "./FacebookAudience";
-import { FacebookEngagement } from "./FacebookEngagement";
-import { FacebookPageLikes }  from "./FacebookPageLikes";
-import { FacebookReachViews } from "./FacebookReachViews";
-import { FacebookVideos }     from "./FacebookVideos";
-import { FacebookStories }    from "./FacebookStories";
-import { FacebookGroups }     from "./FacebookGroups";
-import { FacebookAds }        from "./FacebookAds";
-import { FacebookReports }    from "./FacebookReports";
-import { FacebookInsights }   from "./FacebookInsights";
-import { FacebookSettings }   from "./FacebookSettings";
-import { FacebookHelp }       from "./FacebookHelp";
+// ── Facebook brand constants ──────────────────────────────────────────────────
+const FB_BLUE    = "#1877F2";
+const PIE_COLORS = ["#1877F2", "#10b981", "#8b5cf6", "#f59e0b"];
 
-export default function FacebookDash() {
-  // ── Active sub-page tab state ─────────────────────────────────────
-  const [activeTab, setActiveTab] = useState("overview");
-  const [analyticsData, setAnalyticsData] = useState(null);
+// ── Tooltip glassmorphism style (strict spec) ─────────────────────────────────
+const TOOLTIP_STYLE = {
+  backgroundColor: "rgba(22, 27, 34, 0.85)",
+  backdropFilter:  "blur(12px)",
+  borderColor:     "rgba(255,255,255,0.1)",
+  color:           "#fff",
+  borderRadius:    "8px",
+  border:          "1px solid rgba(255,255,255,0.1)",
+};
+
+// ── Number formatter (compact notation) ──────────────────────────────────────
+const formatNumber = (n) => {
+  if (n === undefined || n === null) return "—";
+  return new Intl.NumberFormat("en-US", {
+    notation: "compact", compactDisplay: "short", maximumFractionDigits: 1,
+  }).format(n);
+};
+
+// ── Glassmorphism custom tooltip component ────────────────────────────────────
+const GlassTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={TOOLTIP_STYLE} className="px-3 py-2.5 text-xs shadow-2xl">
+      <p className="font-semibold text-white mb-1.5">{label}</p>
+      {payload.map((e, i) => (
+        <p key={i} className="flex items-center gap-2 mb-0.5">
+          <span className="w-2 h-2 rounded-full inline-block" style={{ background: e.color }} />
+          <span className="text-gray-400">{e.name}:</span>
+          <span className="font-bold text-white">{formatNumber(e.value)}</span>
+        </p>
+      ))}
+    </div>
+  );
+};
+
+// ── KPI Card component ────────────────────────────────────────────────────────
+// Spec: icon in bg-[#1877F2]/10 rounded-full, label text-xs uppercase tracking-wider
+// text-gray-400 font-semibold, value text-3xl font-bold text-white mt-2,
+// trend text-xs font-medium text-emerald-400 flex items-center gap-0.5 mt-1
+const KpiCard = ({ label, value, change, icon: Icon, isLoading }) => {
+  if (isLoading) {
+    return (
+      <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 p-5">
+        <div className="flex items-start justify-between mb-3">
+          <Skeleton className="h-10 w-10 rounded-full bg-gray-700/50" />
+        </div>
+        <Skeleton className="h-4 w-20 bg-gray-700/50 mb-2" />
+        <Skeleton className="h-8 w-24 bg-gray-700/50 mb-2" />
+        <Skeleton className="h-3 w-28 bg-gray-700/50" />
+      </Card>
+    );
+  }
+  const isPositive = (change ?? 0) >= 0;
+  return (
+    <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 p-5 hover:border-white/10 transition-all">
+      <CardContent className="p-0">
+        {/* Icon container — Facebook accent circular badge */}
+        <div className="flex items-start justify-between mb-3">
+          <div className="bg-[#1877F2]/10 text-[#1877F2] p-3 rounded-full">
+            <Icon className="h-4 w-4" />
+          </div>
+        </div>
+        {/* Label — strict typography spec */}
+        <p className="text-xs uppercase tracking-wider text-gray-400 font-semibold">{label}</p>
+        {/* Value — strict typography spec */}
+        <p className="text-3xl font-bold text-white mt-2">{formatNumber(value)}</p>
+        {/* Trend indicator — strict spec */}
+        <div className={`text-xs font-medium flex items-center gap-0.5 mt-1 ${isPositive ? "text-emerald-400" : "text-red-400"}`}>
+          {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+          {isPositive ? "+" : ""}{change}%
+          <span className="text-gray-500 font-normal ml-1">vs prev 7 days</span>
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+// ── Chart skeleton wrapper ────────────────────────────────────────────────────
+const ChartSkeleton = ({ height = "h-[260px]" }) => (
+  <Skeleton className={`w-full ${height} bg-gray-700/30 rounded-xl`} />
+);
+
+// ═════════════════════════════════════════════════════════════════════════════
+// MAIN OVERVIEW COMPONENT
+// ═════════════════════════════════════════════════════════════════════════════
+const FacebookDash = () => {
+  // ── Layout context from FacebookLayout (connection + profile identity) ─────
+  const { profile, isConnected, isLayoutLoading } = useOutletContext();
+
+  // ── Local state for page-specific data ────────────────────────────────────
+  const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
-  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
-  const [revokeLoading, setRevokeLoading] = useState(false);
 
-  // isConnected is driven ONLY by /auth/status — never inferred from analytics shape.
-  const [isConnected, setIsConnected] = useState(false);
-  const [username, setUsername] = useState("");
+  // ── Default date range: last 7 days ───────────────────────────────────────
+  const makeDefault = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 7);
+    return { start: d.toISOString().split("T")[0], end: new Date().toISOString().split("T")[0] };
+  };
+  const [dateRange, setDateRange] = useState(makeDefault);
 
-  // Ref set to true on disconnect — gates the analytics auto-fetch from
-  // re-running and calling setIsConnected(true) after user has left.
-  const disconnectedRef = useRef(false);
-
-  // Default to Last 7 Days
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  const defaultStart = d.toISOString().split('T')[0];
-  const defaultEnd   = new Date().toISOString().split('T')[0];
-  const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
-
-  const location = useLocation();
-  const navigate = useNavigate();
-
-  // ── Sanitize OAuth redirect URL ──────────────────────────────────
-  // Strip ?connected=... / ?error=... so they cannot re-trigger on back-nav.
-  useEffect(() => {
-    if (location.search.includes("connected=") || location.search.includes("error=")) {
-      navigate(location.pathname, { replace: true });
-    }
-  }, [location, navigate]);
-
-  // ── Check Facebook connection status via /auth/status ────────────
-  useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const res = await metaApi.getAuthStatus();
-        const statusArray = res?.status ?? [];
-        const fbStatus = statusArray.find(s => s.platform === "facebook");
-        if (fbStatus?.connected && !fbStatus?.isExpired) {
-          setIsConnected(true);
-          setUsername(fbStatus.username || "");
-        } else {
-          setIsConnected(false);
-          setAnalyticsData(null);
-          setUsername("");
-        }
-      } catch (err) {
-        console.error("Error checking Facebook auth status:", err);
-        setIsConnected(false);
-        setUsername("");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    checkAuthStatus();
-  }, []);
-
-  // ── Fetch analytics (only when confirmed connected) ───────────────
-  // Fetches analytics data from metaApi, passing the current dateRange.
-  // When dateRange changes, this callback is re-created and triggers the auto-fetch.
-  const fetchFacebookData = useCallback(async (isRefresh = false) => {
-    if (disconnectedRef.current) return;
+  // ── Fetch overview metrics independently (distributed pattern) ────────────
+  const fetchData = useCallback(async (isRefresh = false) => {
     if (isRefresh) setIsRefreshing(true);
     else setIsLoading(true);
     setError(null);
     try {
-      const res = await metaApi.getMetaAnalytics(isRefresh, dateRange);
-      if (!disconnectedRef.current) {
-        setAnalyticsData(res?.facebook ?? {});
-      }
+      const result = await fbapi.getOverviewMetrics(dateRange);
+      setData(result);
     } catch (err) {
-      console.error("Error fetching Facebook data:", err);
-      setError("Failed to load Facebook analytics.");
+      console.error("[FacebookDash] Failed to load overview metrics:", err);
+      setError("We couldn't load your Facebook analytics right now.");
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
     }
   }, [dateRange]);
 
-  // Auto-fetch after connection confirmed or when date range changes
+  // ── Auto-fetch on mount and when dateRange changes ─────────────────────────
   useEffect(() => {
-    if (isConnected) fetchFacebookData();
-  }, [isConnected, fetchFacebookData]);
+    fetchData();
+  }, [fetchData]);
 
-  // ── Refresh Control ────────────────────────────────────────────────
-  // Clears the state first (to trigger loading animations/skeletons) and refetches.
-  const handleRefresh = () => {
-    setAnalyticsData(null);
-    fetchFacebookData(true);
-  };
-
-  // ── Initiate Facebook OAuth redirection ──
-  // Redirects the browser to the backend OAuth initialization route for Facebook,
-  // passing the current JWT session token and saving the return path.
-  const handleFacebookConnect = () => {
-    const token = localStorage.getItem("incubein_token");
-    localStorage.setItem("returnPath", window.location.pathname);
-    window.location.href = `${import.meta.env.VITE_BASE_URL || "http://localhost:5000"}/auth/facebook?token=${token}`;
-  };
-
-  // ── Deep-clean disconnect ─────────────────────────────────────────
-  const handleRevoke = async () => {
-    setRevokeLoading(true);
-    disconnectedRef.current = true; // block any racing fetch
-    try {
-      await metaApi.revokeFacebook();
-    } catch (err) {
-      console.error("Facebook revoke error:", err);
-    } finally {
-      setIsConnected(false);
-      setAnalyticsData(null);
-      setRevokeLoading(false);
-      localStorage.removeItem('facebookToken');
-      window.history.replaceState({}, document.title, window.location.pathname);
-    }
-  };
-
-  // ── Loading spinner ───────────────────────────────────────────────
-  if (isLoading) {
+  // ── Error state ────────────────────────────────────────────────────────────
+  if (error) {
     return (
-      <div className="flex h-screen items-center justify-center bg-slate-50 dark:bg-[#0B1121]">
-        <div className="relative w-12 h-12">
-          <div className="absolute inset-0 border-4 border-blue-500/20 rounded-full" />
-          <div className="absolute inset-0 border-4 border-t-blue-500 rounded-full animate-spin" />
+      <div className="p-6 flex items-center justify-center min-h-[50vh]">
+        <div className="text-center space-y-4">
+          <div className="h-16 w-16 rounded-full bg-red-500/10 flex items-center justify-center mx-auto">
+            <TrendingDown className="h-8 w-8 text-red-400" />
+          </div>
+          <h3 className="text-lg font-semibold text-white">Something went wrong</h3>
+          <p className="text-sm text-gray-400 max-w-sm">{error}</p>
+          <Button
+            onClick={() => fetchData()}
+            className="bg-[#1877F2] hover:bg-[#1877F2]/90 text-white"
+            id="fb-overview-retry-btn"
+          >
+            Try Again
+          </Button>
         </div>
       </div>
     );
   }
 
-  // ── Data availability guard ───────────────────────────────────────
-  // Only render charts if at least one KPI is non-zero.
-  const hasData = isConnected && analyticsData && (
-    analyticsData.kpis?.some(k => (k.value ?? 0) > 0) ||
-    analyticsData.charts?.reachOverTime?.length > 0
-  );
-
-  // ── Render Page Layout ──
-  // Render switcher tabs unconditionally so user is never trapped in disconnected state.
+  // ── KPI definitions pulled from data ──────────────────────────────────────
+  const kpis = [
+    { label: "Page Likes",       value: data?.kpis?.pageLikes?.value,       change: data?.kpis?.pageLikes?.change,       icon: ThumbsUp       },
+    { label: "Post Reach",       value: data?.kpis?.postReach?.value,       change: data?.kpis?.postReach?.change,       icon: Eye            },
+    { label: "Post Engagements", value: data?.kpis?.postEngagements?.value, change: data?.kpis?.postEngagements?.change, icon: Heart          },
+    { label: "Reactions",        value: data?.kpis?.reactions?.value,       change: data?.kpis?.reactions?.change,       icon: TrendingUp     },
+    { label: "Comments",         value: data?.kpis?.comments?.value,        change: data?.kpis?.comments?.change,        icon: MessageCircle  },
+    { label: "Shares",           value: data?.kpis?.shares?.value,          change: data?.kpis?.shares?.change,          icon: Share2         },
+  ];
 
   return (
-    // Full-width container — no vertical inner sidebar
-    <div className="flex flex-col h-[calc(100vh-4rem)] w-full overflow-hidden bg-slate-50 dark:bg-[#0B1121] text-slate-900 dark:text-slate-100 transition-colors duration-200 -m-6">
+    <div className="p-4 md:p-6 space-y-6 w-full max-w-[1600px] mx-auto">
 
-      <ConfirmDisconnectModal
-        isOpen={showDisconnectModal}
-        onClose={() => setShowDisconnectModal(false)}
-        onConfirm={() => { setShowDisconnectModal(false); handleRevoke(); }}
-      />
+      {/* ═════════════════════════════════════════════════════════════════ */}
+      {/* ROW 1 — Identity Header + Date Picker + Refresh                 */}
+      {/* ═════════════════════════════════════════════════════════════════ */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
 
-      {/* ── Sticky Header ─────────────────────────────────────────── */}
-      {/* Row 1: Unified Page Header Component + Date & Data controls */}
-      <div className="sticky top-0 z-30 bg-white/95 dark:bg-[#0B1121]/90 backdrop-blur-md border-b border-slate-200 dark:border-white/10 px-6 flex flex-col gap-0">
-
-        {/* Platform switcher + controls row */}
-        <div className="flex items-center justify-between py-3">
-
-          {/* Left: Standard Header Component */}
-          <DashboardHeader
-            title="Facebook Analytics"
-            subtitle={username ? `Page: ${username}` : "Track page growth, post reach, and visual trends."}
-            icon={<Facebook className="h-5 w-5" />}
-            brandBgClass="bg-[#1877F2]/10"
-            brandTextClass="text-[#1877F2]"
-          />
-
-          {/* Right: data controls — only rendered after successful OAuth */}
-          {isConnected && (
-            <div className="flex items-center gap-2">
-              <DateRangePicker
-                startDate={dateRange.start}
-                endDate={dateRange.end}
-                onChange={setDateRange}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleRefresh}
-                disabled={isRefreshing}
-                className="text-xs text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-100 h-9 px-3"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
-                Refresh Data
-              </Button>
-              {/* Disconnect — fires the deep-clean revoke via confirmation modal */}
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDisconnectModal(true)}
-                disabled={revokeLoading}
-                className="text-xs text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 h-9"
-              >
-                {revokeLoading ? "Revoking..." : "Disconnect"}
-              </Button>
-            </div>
+        {/* ── Left: Profile Block ────────────────────────────────────── */}
+        <div className="flex items-center gap-4">
+          {isLayoutLoading ? (
+            <>
+              <Skeleton className="w-14 h-14 rounded-full bg-gray-700/50" />
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-36 bg-gray-700/50" />
+                <Skeleton className="h-3 w-24 bg-gray-700/50" />
+                <Skeleton className="h-3 w-32 bg-gray-700/50" />
+              </div>
+            </>
+          ) : profile ? (
+            <>
+              {/* Profile avatar */}
+              {profile.avatar ? (
+                <img
+                  src={profile.avatar}
+                  alt={profile.name}
+                  className="w-14 h-14 rounded-full border-2 border-[#1877F2]/30 object-cover flex-shrink-0"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-full bg-[#1877F2]/20 flex items-center justify-center flex-shrink-0">
+                  <span className="text-xl font-bold text-[#1877F2]">{profile.name?.[0] || "F"}</span>
+                </div>
+              )}
+              {/* Profile metadata */}
+              <div>
+                <h1 className="text-xl font-bold text-white">{profile.name}</h1>
+                <p className="text-sm text-gray-400">{profile.handle}</p>
+                <p className="text-xs text-gray-500">{profile.category}</p>
+              </div>
+              {/* Inline context stats (hidden on small screens) */}
+              <div className="hidden lg:flex items-center gap-5 ml-4 pl-4 border-l border-white/10">
+                {[
+                  { label: "Page Likes", value: profile.pageLikes },
+                  { label: "Followers",  value: profile.followers  },
+                  { label: "Reach",      value: profile.reach      },
+                  { label: "Posts",      value: profile.totalPosts },
+                ].map((s) => (
+                  <div key={s.label} className="text-center">
+                    <p className="text-sm font-semibold text-white">{formatNumber(s.value)}</p>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider">{s.label}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <p className="text-sm text-gray-400">Not connected</p>
           )}
         </div>
 
-        {/* Sub-navigation tab bar — only shown when connected */}
-        {isConnected && (
-          <div className="flex items-center gap-1 pb-0 overflow-x-auto no-scrollbar">
-            {FB_NAV.map((item) => {
-              const Icon = item.icon;
-              const isActive = activeTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 text-xs font-medium whitespace-nowrap transition-all duration-150 border-b-2 -mb-px ${
-                    isActive
-                      ? "border-[#1877F2] text-[#1877F2]"
-                      : "border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:border-slate-200 dark:hover:border-white/20"
-                  }`}
-                >
-                  <Icon className="h-3.5 w-3.5 flex-shrink-0" />
-                  {item.label}
-                </button>
-              );
-            })}
-          </div>
-        )}
+        {/* ── Right: Date Range Picker + Refresh ───────────────────── */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          <DateRangePicker
+            startDate={dateRange.start}
+            endDate={dateRange.end}
+            onChange={setDateRange}
+          />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => fetchData(true)}
+            disabled={isRefreshing}
+            className="text-xs text-gray-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-white h-9 px-3"
+            id="fb-overview-refresh-btn"
+          >
+            <RefreshCw className={`h-3.5 w-3.5 mr-2 ${isRefreshing ? "animate-spin" : ""}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
-      {/* ── Main Content Area ─────────────────────────────────────── */}
-      {/* Main container rendering the connection prompt or the active sub-tabs based on state */}
-      <div className={`flex-1 overflow-y-auto ${!isConnected ? "flex flex-col" : ""}`}>
-        <div className={`p-6 flex flex-col gap-6 ${!isConnected ? "flex-1 justify-center" : ""}`}>
-          {!isConnected ? (
-            /* ── Facebook Connection Card Empty State ── */
-            /* Centers the ConnectCard in the remaining height of the viewport */
-            <div className="flex-1 flex items-center justify-center">
-              <ConnectCard
-                icon={<Facebook className="h-8 w-8" />}
-                cardTitle="Connect Facebook Page"
-                cardDescription="Connect your Facebook account to view reach, engagement, followers, and detailed visual performance graphs."
-                onConnect={handleFacebookConnect}
-                buttonText="Connect Facebook"
-                brandBgClass="bg-[#1877F2]/10"
-                brandTextClass="text-[#1877F2]"
-                brandButtonClass="bg-[#1877F2] hover:bg-[#1877F2]/90"
-              />
+      {/* ═════════════════════════════════════════════════════════════════ */}
+      {/* ROW 2 — 6-Column KPI Grid                                       */}
+      {/* ═════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+        {kpis.map((kpi, i) => (
+          <KpiCard key={i} {...kpi} isLoading={isLoading} />
+        ))}
+      </div>
+
+      {/* ═════════════════════════════════════════════════════════════════ */}
+      {/* ROW 3 — Top Charts (3 columns)                                  */}
+      {/* ═════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* ── Col 1: Reach Over Time (AreaChart) ─────────────────────── */}
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-white">Reach Over Time</CardTitle>
+              <span className="text-[10px] text-gray-500 bg-white/5 px-2 py-1 rounded-md">Area</span>
             </div>
-          ) : !hasData ? (
-            // Connected but API returned no meaningful data
-            <EmptyDataState platform="Facebook" />
-          ) : (
-            // Connected and has data → render active sub-page
-            <>
-              {activeTab === "overview"    && <FacebookOverview   data={analyticsData}                                      dateRange={dateRange} />}
-              {activeTab === "content"     && <FacebookContent    data={analyticsData?.extended?.contentData?.posts}         dateRange={dateRange} />}
-              {activeTab === "audience"    && <FacebookAudience   data={analyticsData?.extended?.audienceDetails}            dateRange={dateRange} />}
-              {activeTab === "engagement"  && <FacebookEngagement data={analyticsData?.extended?.engagementDetails}          dateRange={dateRange} />}
-              {activeTab === "page_likes"  && <FacebookPageLikes  data={analyticsData?.extended?.growth}                     dateRange={dateRange} />}
-              {activeTab === "reach_views" && <FacebookReachViews data={analyticsData?.extended?.reachAndViews}              dateRange={dateRange} />}
-              {activeTab === "videos"      && <FacebookVideos     data={analyticsData?.extended?.contentData?.videos}        dateRange={dateRange} />}
-              {activeTab === "stories"     && <FacebookStories    data={analyticsData?.extended?.contentData?.stories}       dateRange={dateRange} />}
-              {activeTab === "groups"      && <FacebookGroups     data={analyticsData?.extended?.groups}                     dateRange={dateRange} />}
-              {activeTab === "ads"         && <FacebookAds        data={analyticsData?.extended?.ads}                        dateRange={dateRange} />}
-              {activeTab === "reports"     && <FacebookReports    data={analyticsData?.extended?.utilityData?.recentExports} dateRange={dateRange} />}
-              {activeTab === "insights"    && <FacebookInsights   data={analyticsData?.extended?.insights}                   dateRange={dateRange} />}
-              {activeTab === "settings"    && <FacebookSettings />}
-              {activeTab === "help"        && <FacebookHelp />}
-            </>
-          )}
+          </CardHeader>
+          <CardContent className="h-[260px]">
+            {isLoading || !data ? (
+              <ChartSkeleton />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data.charts?.reachOverTime} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="fbReachGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor={FB_BLUE} stopOpacity={0.35} />
+                      <stop offset="95%" stopColor={FB_BLUE} stopOpacity={0}    />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="date" stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
+                  <Tooltip content={<GlassTooltip />} cursor={{ stroke: "rgba(255,255,255,0.08)" }} />
+                  <Area type="monotone" dataKey="value" name="Reach" stroke={FB_BLUE} strokeWidth={2} fillOpacity={1} fill="url(#fbReachGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Col 2: Engagements Over Time (BarChart) ────────────────── */}
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-white">Engagements Over Time</CardTitle>
+              <span className="text-[10px] text-gray-500 bg-white/5 px-2 py-1 rounded-md">Bar</span>
+            </div>
+          </CardHeader>
+          <CardContent className="h-[260px]">
+            {isLoading || !data ? (
+              <ChartSkeleton />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data.charts?.engagementsOverTime} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="date" stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} tickFormatter={formatNumber} />
+                  <Tooltip content={<GlassTooltip />} cursor={{ fill: "rgba(255,255,255,0.04)" }} />
+                  <Bar dataKey="value" name="Engagements" fill={FB_BLUE} radius={[4, 4, 0, 0]} maxBarSize={20} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Col 3: Engagement Rate (KPI stack + mini LineChart) ─────── */}
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-white">Engagement Rate</CardTitle>
+            {/* Stacked KPI value above mini chart */}
+            {!isLoading && data && (
+              <div className="mt-2">
+                <p className="text-3xl font-bold text-white">{data.charts?.engagementRate?.rate}</p>
+                <div className="flex items-center gap-1 mt-1 text-emerald-400 text-xs font-medium">
+                  <TrendingUp className="h-3 w-3" />
+                  +{data.charts?.engagementRate?.change}%
+                  <span className="text-gray-500 font-normal ml-1">vs previous period</span>
+                </div>
+              </div>
+            )}
+            {isLoading && (
+              <div className="mt-2 space-y-2">
+                <Skeleton className="h-8 w-20 bg-gray-700/50" />
+                <Skeleton className="h-3 w-32 bg-gray-700/50" />
+              </div>
+            )}
+          </CardHeader>
+          <CardContent className="h-[140px]">
+            {isLoading || !data ? (
+              <ChartSkeleton height="h-full" />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={data.charts?.engagementRate?.data} margin={{ top: 5, right: 10, left: -25, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="date" stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} tickFormatter={(v) => `${v}%`} />
+                  <Tooltip content={<GlassTooltip />} cursor={{ stroke: "rgba(255,255,255,0.08)" }} />
+                  <Line type="monotone" dataKey="rate" name="Rate" stroke={FB_BLUE} strokeWidth={2} dot={{ r: 3, fill: FB_BLUE, strokeWidth: 0 }} activeDot={{ r: 5 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* ═════════════════════════════════════════════════════════════════ */}
+      {/* ROW 4 — Tables & Demographics (3 columns)                       */}
+      {/* ═════════════════════════════════════════════════════════════════ */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+        {/* ── Col 1: Top Posts Table ─────────────────────────────────── */}
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-white">Top Posts</CardTitle>
+              <Link to="/dashboard/facebook/content" className="text-[10px] text-[#1877F2] hover:underline">View all →</Link>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoading || !data ? (
+              <div className="space-y-3 p-4">
+                {[1, 2, 3].map((i) => <Skeleton key={i} className="h-14 w-full bg-gray-700/30 rounded-lg" />)}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-white/5">
+                      <th className="px-4 py-2.5 text-left text-gray-500 font-medium uppercase tracking-wider">Post</th>
+                      <th className="px-3 py-2.5 text-right text-gray-500 font-medium uppercase tracking-wider">Reach</th>
+                      <th className="px-3 py-2.5 text-right text-gray-500 font-medium uppercase tracking-wider">Eng.</th>
+                      <th className="px-3 py-2.5 text-right text-gray-500 font-medium uppercase tracking-wider">Likes</th>
+                      <th className="px-3 py-2.5 text-right text-gray-500 font-medium uppercase tracking-wider">Cmts</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {(data.tables?.topPosts || []).map((post, i) => (
+                      <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <img src={post.image} alt="" className="h-9 w-9 rounded object-cover flex-shrink-0" />
+                            <p className="text-[11px] text-gray-200 truncate max-w-[120px]">{post.title}</p>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-right text-gray-300">{formatNumber(post.reach)}</td>
+                        <td className="px-3 py-3 text-right text-[#1877F2] font-medium">{post.rate}</td>
+                        <td className="px-3 py-3 text-right text-gray-300">{formatNumber(post.likes)}</td>
+                        <td className="px-3 py-3 text-right text-gray-300">{post.comments}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {(!data.tables?.topPosts?.length) && (
+                  <p className="text-center text-gray-500 text-xs py-6">No posts in this date range</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Col 2: Top Videos Table ───────────────────────────────── */}
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-sm font-semibold text-white">Top Videos</CardTitle>
+              <Link to="/dashboard/facebook/videos" className="text-[10px] text-[#1877F2] hover:underline">View all →</Link>
+            </div>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isLoading || !data ? (
+              <div className="space-y-3 p-4">
+                {[1, 2].map((i) => <Skeleton key={i} className="h-14 w-full bg-gray-700/30 rounded-lg" />)}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-white/5">
+                      <th className="px-4 py-2.5 text-left text-gray-500 font-medium uppercase tracking-wider">Video</th>
+                      <th className="px-3 py-2.5 text-right text-gray-500 font-medium uppercase tracking-wider">Views</th>
+                      <th className="px-3 py-2.5 text-right text-gray-500 font-medium uppercase tracking-wider">Eng.</th>
+                      <th className="px-3 py-2.5 text-right text-gray-500 font-medium uppercase tracking-wider">Watch Time</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-white/[0.04]">
+                    {(data.tables?.topVideos || []).map((vid, i) => (
+                      <tr key={i} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center gap-2.5">
+                            <div className="relative h-9 w-14 rounded overflow-hidden flex-shrink-0">
+                              <img src={vid.image} alt="" className="h-full w-full object-cover" />
+                              <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                                <Video className="h-3 w-3 text-white" />
+                              </div>
+                            </div>
+                            <p className="text-[11px] text-gray-200 truncate max-w-[100px]">{vid.title}</p>
+                          </div>
+                        </td>
+                        <td className="px-3 py-3 text-right text-gray-300">{formatNumber(vid.plays)}</td>
+                        <td className="px-3 py-3 text-right text-[#1877F2] font-medium">{vid.rate}</td>
+                        <td className="px-3 py-3 text-right text-gray-300">{vid.watchTime}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {(!data.tables?.topVideos?.length) && (
+                  <p className="text-center text-gray-500 text-xs py-6">No videos in this date range</p>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Col 3: Stacked Cards — Reach by Source + Audience Summary ─ */}
+        <div className="space-y-4">
+
+          {/* Reach by Source Donut */}
+          <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-white">Reach by Source</CardTitle>
+            </CardHeader>
+            <CardContent>
+              {isLoading || !data ? (
+                <div className="flex items-center gap-4">
+                  <Skeleton className="h-24 w-24 rounded-full bg-gray-700/30" />
+                  <div className="space-y-2 flex-1">
+                    {[1,2,3].map(i => <Skeleton key={i} className="h-3 w-full bg-gray-700/30" />)}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-4">
+                  <div className="h-24 w-24 flex-shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie data={data.reachBySource} cx="50%" cy="50%" innerRadius={28} outerRadius={42} paddingAngle={3} dataKey="value" stroke="none">
+                          {(data.reachBySource || []).map((_, i) => (
+                            <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<GlassTooltip />} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </div>
+                  <div className="flex-1 space-y-2">
+                    {(data.reachBySource || []).map((s, i) => (
+                      <div key={i} className="flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                          <span className="text-gray-400">{s.name}</span>
+                        </div>
+                        <span className="text-gray-200 font-medium">{s.value}%</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Audience Summary */}
+          <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold text-white">Audience Summary</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {isLoading || !data ? (
+                <div className="space-y-2">
+                  {[1,2,3,4].map(i => <Skeleton key={i} className="h-3 w-full bg-gray-700/30" />)}
+                </div>
+              ) : (
+                <>
+                  {/* Top Countries progress bars */}
+                  <div>
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-2">Top Countries</p>
+                    <div className="space-y-2">
+                      {(data.audience?.topCountries || []).map((c, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span className="text-[11px] text-gray-300 w-20 truncate">{c.country}</span>
+                          <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                            <div
+                              className="h-full rounded-full transition-all duration-700"
+                              style={{ width: `${c.value}%`, background: FB_BLUE }}
+                            />
+                          </div>
+                          <span className="text-[11px] text-gray-400 w-8 text-right">{c.value}%</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  {/* Age & Gender donut */}
+                  <div className="border-t border-white/5 pt-3">
+                    <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold mb-2">Age & Gender</p>
+                    <div className="flex items-center gap-3">
+                      <div className="h-16 w-16 flex-shrink-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <PieChart>
+                            <Pie data={data.audience?.ageGender} cx="50%" cy="50%" innerRadius={18} outerRadius={28} dataKey="value" stroke="none">
+                              {(data.audience?.ageGender || []).map((_, i) => (
+                                <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip content={<GlassTooltip />} />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+                      <div className="space-y-1.5 flex-1">
+                        {(data.audience?.ageGender || []).map((ag, i) => (
+                          <div key={i} className="flex items-center justify-between text-[11px]">
+                            <div className="flex items-center gap-1.5">
+                              <span className="h-1.5 w-1.5 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                              <span className="text-gray-400 truncate">{ag.group}</span>
+                            </div>
+                            <span className="text-gray-200 font-medium">{formatNumber(ag.value)}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
   );
-}
+};
+
+export default FacebookDash;

@@ -1,18 +1,13 @@
-import { Activity, BarChart3, Bookmark, Calendar, ChevronDown, Eye, FileText, Heart, HelpCircle, History, MessageCircle, MoreVertical, Settings, Share2, Target, ThumbsUp, TrendingDown, TrendingUp, Users, Video } from 'lucide-react';
-import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area,
-  PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-} from "recharts";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+// ── Facebook Help Page ─────────────────────────────────────────────────────
+// Static UI — no data fetching required.
+// Receives layout context from FacebookLayout via useOutletContext (unused here).
 
-const FB_BLUE = "#1877F2";
-const PIE_COLORS = ["#1877F2", "#10b981", "#8b5cf6", "#64748b"];
-import { EmptyState, KpiCard, DarkTooltip, FacebookDataTable, InstagramDataTable, ProgressBar } from './MetaSharedComponents';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 
 export function FacebookHelp() {
   return (
-    <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
       <Card className="bg-[#161B22] border-white/5 text-white">
         <CardHeader>
           <CardTitle className="text-lg font-medium text-slate-200">Help & Support</CardTitle>
@@ -60,3 +55,6 @@ export function FacebookHelp() {
     </div>
   );
 }
+
+// ── Default export for use in routes/index.jsx ────────────────────────────────
+export default FacebookHelp;
