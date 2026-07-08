@@ -140,8 +140,8 @@ function EmptyOverview() {
   return (
     <div className="flex min-h-[40vh] items-center justify-center animate-fade-in">
       <div className="text-center max-w-md">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-red-500/10">
-          <BarChart3 className="h-8 w-8 text-red-400" />
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-[#FF0000]/10">
+          <BarChart3 className="h-8 w-8 text-[#FF0000]" />
         </div>
         <h3 className="text-lg font-semibold">Not enough data available yet</h3>
         <p className="mt-2 text-sm text-slate-400 leading-relaxed">
@@ -150,6 +150,31 @@ function EmptyOverview() {
         </p>
       </div>
     </div>
+  );
+}
+
+// ── Reusable KPI Card ───────────────────────────────────────────────
+function KpiCard({ title, value, icon: Icon, trend }) {
+  const isPositive = trend === true; // YouTube uses boolean active state
+  return (
+    <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 p-4 hover:bg-white/[0.02] transition-colors group">
+      <div className="flex justify-between items-center mb-3">
+        <span className="text-gray-400 text-xs font-semibold uppercase tracking-wider">{title}</span>
+        <Icon className="w-4 h-4 text-gray-500 group-hover:text-[#FF0000] group-hover:bg-[#FF0000]/20 rounded transition-all duration-300" />
+      </div>
+      <div className="text-2xl font-bold text-white mb-2">{value}</div>
+      <div className="flex items-center gap-2">
+        {trend !== undefined && (
+          <div className={`flex items-center text-xs font-medium ${isPositive ? "text-emerald-400" : "text-slate-500"}`}>
+            {isPositive ? (
+              <><TrendingUp className="w-3 h-3 mr-1 text-emerald-400" /> Active</>
+            ) : (
+              <><TrendingDown className="w-3 h-3 mr-1 text-slate-500" /> No data</>
+            )}
+          </div>
+        )}
+      </div>
+    </Card>
   );
 }
 
@@ -243,7 +268,7 @@ export default function YoutubeOverview({ data, loading }) {
     <div className="space-y-6 animate-fade-in">
       {/* ── Channel Info Card ─────────────────────────────────────────── */}
       {channel && (
-        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none overflow-hidden">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 overflow-hidden">
           <CardContent className="p-6">
             <div className="flex items-center gap-4">
               {/* Channel thumbnail */}
@@ -251,21 +276,21 @@ export default function YoutubeOverview({ data, loading }) {
                 <img
                   src={channel.thumbnail}
                   alt={channel.title}
-                  className="h-14 w-14 rounded-full ring-2 ring-red-500/30 object-cover"
+                  className="h-14 w-14 rounded-full ring-2 ring-[#FF0000]/30 object-cover"
                 />
               ) : (
-                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-red-500/10">
-                  <Youtube className="h-7 w-7 text-red-400" />
+                <div className="flex h-14 w-14 items-center justify-center rounded-full bg-[#FF0000]/10">
+                  <Youtube className="h-7 w-7 text-[#FF0000]" />
                 </div>
               )}
               {/* Channel details */}
               <div className="flex-1 min-w-0">
-                <h3 className="text-lg font-bold truncate">{channel.title}</h3>
+                <h3 className="text-lg font-bold truncate text-white">{channel.title}</h3>
                 {channel.customUrl && (
-                  <p className="text-sm text-slate-400">{channel.customUrl}</p>
+                  <p className="text-sm text-gray-400">{channel.customUrl}</p>
                 )}
                 {channel.description && (
-                  <p className="mt-1 text-xs text-slate-400 line-clamp-2 max-w-xl">
+                  <p className="mt-1 text-xs text-gray-400 line-clamp-2 max-w-xl">
                     {channel.description}
                   </p>
                 )}
@@ -278,67 +303,32 @@ export default function YoutubeOverview({ data, loading }) {
       {/* ── Primary KPI Cards ─────────────────────────────────────────── */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {kpiCards.map((kpi) => (
-          <Card
+          <KpiCard
             key={kpi.title}
-            className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none hover:shadow-lg hover:shadow-black/5 transition-all duration-300 group"
-          >
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    {kpi.title}
-                  </p>
-                  <p className="mt-1.5 text-2xl font-bold tracking-tight">{kpi.value}</p>
-                </div>
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpi.bg} group-hover:scale-110 transition-transform duration-300`}>
-                  <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
-                </div>
-              </div>
-              {/* Growth indicator */}
-              <div className="mt-3 flex items-center gap-1">
-                {kpi.trend ? (
-                  <>
-                    <TrendingUp className="h-3.5 w-3.5 text-emerald-400" />
-                    <span className="text-xs font-medium text-emerald-400">Active</span>
-                  </>
-                ) : (
-                  <>
-                    <TrendingDown className="h-3.5 w-3.5 text-slate-400" />
-                    <span className="text-xs font-medium text-slate-400">No data</span>
-                  </>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+            title={kpi.title}
+            value={kpi.value}
+            icon={kpi.icon}
+            trend={kpi.trend}
+          />
         ))}
       </div>
 
       {/* ── Secondary KPI Cards ───────────────────────────────────────── */}
       <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
         {secondaryKPIs.map((kpi) => (
-          <Card
+          <KpiCard
             key={kpi.title}
-            className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none hover:shadow-lg hover:shadow-black/5 transition-all duration-300"
-          >
-            <CardContent className="p-4">
-              <div className="flex items-center gap-3">
-                <div className={`flex h-8 w-8 items-center justify-center rounded-lg ${kpi.bg}`}>
-                  <kpi.icon className={`h-4 w-4 ${kpi.color}`} />
-                </div>
-                <div>
-                  <p className="text-xs text-slate-400">{kpi.title}</p>
-                  <p className="text-lg font-bold">{kpi.value}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            title={kpi.title}
+            value={kpi.value}
+            icon={kpi.icon}
+          />
         ))}
       </div>
 
       {/* ── Charts Row: Daily Views + Subscriber Growth ───────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Daily Views Area Chart */}
-        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Eye className="h-4 w-4 text-blue-400" />
@@ -360,13 +350,11 @@ export default function YoutubeOverview({ data, loading }) {
                     dataKey="date"
                     stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
-                    tickLine={false}
                     interval="preserveStartEnd"
                   />
                   <YAxis
                     stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
-                    tickLine={false}
                     tickFormatter={formatCompactNumber}
                   />
                   <Tooltip content={<CustomTooltip />} />
@@ -389,7 +377,7 @@ export default function YoutubeOverview({ data, loading }) {
         </Card>
 
         {/* Subscriber Growth Bar Chart */}
-        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Users className="h-4 w-4 text-emerald-400" />
@@ -405,13 +393,11 @@ export default function YoutubeOverview({ data, loading }) {
                     dataKey="date"
                     stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
-                    tickLine={false}
                     interval="preserveStartEnd"
                   />
                   <YAxis
                     stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
-                    tickLine={false}
                   />
                   <Tooltip content={<CustomTooltip />} />
                   <Bar dataKey="gained" name="Gained" fill={COLORS.emerald} radius={[3, 3, 0, 0]} />
@@ -495,7 +481,7 @@ export default function YoutubeOverview({ data, loading }) {
       {/* ── Traffic Sources + Device Breakdown ────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Top Countries Bar Chart */}
-        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Globe className="h-4 w-4 text-cyan-400" />
@@ -533,7 +519,7 @@ export default function YoutubeOverview({ data, loading }) {
         </Card>
 
         {/* Device Breakdown Donut Chart */}
-        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-semibold flex items-center gap-2">
               <Smartphone className="h-4 w-4 text-violet-400" />
@@ -580,7 +566,7 @@ export default function YoutubeOverview({ data, loading }) {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Age Distribution */}
           {ageData.length > 0 && (
-            <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
+            <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Users className="h-4 w-4 text-amber-400" />
@@ -603,7 +589,7 @@ export default function YoutubeOverview({ data, loading }) {
 
           {/* Gender Distribution */}
           {genderData.length > 0 && (
-            <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
+            <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold flex items-center gap-2">
                   <Users className="h-4 w-4 text-pink-400" />

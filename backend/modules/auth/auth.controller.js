@@ -155,7 +155,7 @@ const initiateOAuth = (req, res) => {
 const oauthCallback = async (req, res) => {
   const { platform }         = req.params;
   const { code, state, error } = req.query;
-  const frontendUrl          = process.env.FRONTEND_URL;
+  const frontendUrl          = process.env.FRONTEND_URL || 'http://localhost:5173';
   const config               = platforms[platform];
 
   if (!config) {

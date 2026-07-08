@@ -1,6 +1,7 @@
 import { AnalyticsSnapshot } from './analytics.model.js';
 import { fetchAndSaveYouTubeAnalytics } from './youtube.analytics.js';
 import { fetchAndSaveFacebookAnalytics, fetchAndSaveInstagramAnalytics } from './meta.analytics.js';
+import { fetchAndSaveLinkedInAnalytics } from './linkedin.analytics.js';
 
 const getAnalyticsSummary = async (req, res, next) => {
   try {
@@ -198,6 +199,7 @@ const getAnalyticsSummary = async (req, res, next) => {
           if (p === 'youtube')   await fetchAndSaveYouTubeAnalytics(userId);
           if (p === 'facebook')  await fetchAndSaveFacebookAnalytics(userId);
           if (p === 'instagram') await fetchAndSaveInstagramAnalytics(userId);
+          if (p === 'linkedin')  await fetchAndSaveLinkedInAnalytics(userId);
         } catch (err) {
           console.error(`❌ Initial fetch failed for ${p}:`, err.message);
         }

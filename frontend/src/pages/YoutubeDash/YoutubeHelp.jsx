@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Search, RefreshCw, BarChart2, Users, Mail, ChevronDown } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 
-// A simple custom accordion item
+// A simple custom accordion item since Shadcn <Accordion /> was requested but not installed
 const AccordionItem = ({ question, answer, isOpen, onClick }) => (
   <div className="border-b border-white/10 last:border-0">
     <button
@@ -26,7 +26,7 @@ const AccordionItem = ({ question, answer, isOpen, onClick }) => (
   </div>
 );
 
-export default function InstagramHelp() {
+export default function YoutubeHelp() {
   const [openAccordionIndex, setOpenAccordionIndex] = useState(null);
 
   const toggleAccordion = (index) => {
@@ -35,21 +35,21 @@ export default function InstagramHelp() {
 
   const faqs = [
     {
-      question: "How often does the dashboard refresh Instagram Insights?",
-      answer: "Data is synced via the Instagram Graph API every 4 hours. You can also manually trigger a refresh from the Settings page."
+      question: "How often does the dashboard refresh YouTube data?",
+      answer: "Data is synced via the YouTube Data API v3 every 4 hours. You can also manually trigger a refresh from the Settings page or the dashboard header."
     },
     {
-      question: "Why aren't my Stories showing up in the dashboard?",
-      answer: "Instagram Stories are only available via the API while they are active (within 24 hours of posting). Archived stories cannot be fetched."
+      question: "Why don't my dashboard numbers match YouTube Studio exactly?",
+      answer: "YouTube Studio provides real-time estimates. Our API pulls validated data which may have a 24-48 hour delay as finalized by YouTube."
     },
     {
-      question: "Why do follower demographics seem delayed?",
-      answer: "Instagram updates audience demographics in batches, usually every 24-48 hours. This is an API limitation, not a dashboard bug."
+      question: "How do I export my reports?",
+      answer: "Currently, you can use the 'Export' button located in the top right of the main analytics charts to download a CSV or PDF version of your current view."
     }
   ];
 
   return (
-    <div className="h-full overflow-y-auto w-full p-4 md:p-6">
+    <div className="h-full overflow-y-auto w-full">
       <div className="max-w-4xl mx-auto flex flex-col gap-10 pb-12">
         
         {/* Section A: Search Header */}
@@ -60,7 +60,7 @@ export default function InstagramHelp() {
             <input
               type="text"
               placeholder="Search documentation, tutorials, and troubleshooting..."
-              className="w-full bg-[#161B22] border border-white/10 text-white rounded-full py-4 pl-12 pr-6 focus:outline-none focus:ring-2 focus:ring-[#E1306C] transition-shadow"
+              className="w-full bg-[#161B22] border border-white/10 text-white rounded-full py-4 pl-12 pr-6 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
             />
           </div>
         </div>
@@ -70,27 +70,27 @@ export default function InstagramHelp() {
           <h2 className="text-xl font-semibold text-white mb-6">Quick Topics</h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <button className="flex flex-col items-center text-center p-6 bg-[#161B22]/90 backdrop-blur-sm border border-white/5 rounded-xl hover:-translate-y-1 hover:border-white/10 transition-all group cursor-pointer text-left h-full">
-              <div className="h-12 w-12 rounded-full bg-[#E1306C]/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                <RefreshCw className="h-6 w-6 text-[#E1306C]" />
+              <div className="h-12 w-12 rounded-full bg-blue-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
+                <RefreshCw className="h-6 w-6 text-blue-400" />
               </div>
               <h3 className="text-white font-medium mb-2">Data Syncing</h3>
-              <p className="text-sm text-gray-400">Troubleshooting missing data.</p>
+              <p className="text-sm text-gray-400">Why is my revenue data delayed?</p>
             </button>
             
             <button className="flex flex-col items-center text-center p-6 bg-[#161B22]/90 backdrop-blur-sm border border-white/5 rounded-xl hover:-translate-y-1 hover:border-white/10 transition-all group cursor-pointer text-left h-full">
               <div className="h-12 w-12 rounded-full bg-purple-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <BarChart2 className="h-6 w-6 text-purple-400" />
               </div>
-              <h3 className="text-white font-medium mb-2">Reels vs Posts</h3>
-              <p className="text-sm text-gray-400">Understanding format metrics.</p>
+              <h3 className="text-white font-medium mb-2">Understanding Metrics</h3>
+              <p className="text-sm text-gray-400">How is Average View Duration calculated?</p>
             </button>
             
             <button className="flex flex-col items-center text-center p-6 bg-[#161B22]/90 backdrop-blur-sm border border-white/5 rounded-xl hover:-translate-y-1 hover:border-white/10 transition-all group cursor-pointer text-left h-full">
               <div className="h-12 w-12 rounded-full bg-emerald-500/10 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
                 <Users className="h-6 w-6 text-emerald-400" />
               </div>
-              <h3 className="text-white font-medium mb-2">Account Issues</h3>
-              <p className="text-sm text-gray-400">Creator vs Business profiles.</p>
+              <h3 className="text-white font-medium mb-2">Account Management</h3>
+              <p className="text-sm text-gray-400">Connecting multiple channels.</p>
             </button>
           </div>
         </div>
@@ -112,7 +112,7 @@ export default function InstagramHelp() {
         </div>
 
         {/* Section D: Contact Support */}
-        <div className="bg-gradient-to-r from-[#E1306C]/10 to-purple-500/10 border border-white/10 rounded-xl p-8 text-center flex flex-col items-center">
+        <div className="bg-gradient-to-r from-blue-500/10 to-purple-500/10 border border-white/10 rounded-xl p-8 text-center flex flex-col items-center">
           <h2 className="text-xl font-semibold text-white mb-2">Still need help?</h2>
           <p className="text-gray-400 mb-6 max-w-md">
             Our engineering team is standing by. We generally respond within 24 hours.

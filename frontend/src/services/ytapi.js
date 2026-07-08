@@ -4,7 +4,6 @@
 // All YouTube API integrations MUST go through this file.
 
 import api from "@/services/api";
-import { mockDatabase } from "@/mocks/dashboardData";
 
 // ── Global Mock Toggle ───────────────────────────────────────────────
 // Set USE_MOCKS to true to bypass backend APIs and use localized mock data.
@@ -21,6 +20,20 @@ export const fetchYouTubeStatus = async () => {
     expiresAt: status?.expiresAt ?? null,
     isExpired: status?.isExpired ?? false,
   };
+};
+
+let snapshotCache = null;
+let cacheTime = null;
+
+const getCachedSnapshot = async (force = false) => {
+  if (!force && snapshotCache && cacheTime && (Date.now() - cacheTime < 5000)) {
+    return snapshotCache;
+  }
+  const url = force ? "/analytics/youtube?forceRefresh=true" : "/analytics/youtube";
+  const response = await api.get(url);
+  snapshotCache = response.data?.data || null;
+  cacheTime = Date.now();
+  return snapshotCache;
 };
 
 // ── Fetch Full YouTube Analytics Snapshot ────────────────────────────
@@ -78,10 +91,16 @@ export const fetchYouTubeAnalytics = async (force = false, options = null) => {
         resolve(filteredYT);
       }, 800);
     });
+  } else {
+    try {
+      const snapshot = await getCachedSnapshot(force);
+      if (!snapshot) return null;
+      return snapshot;
+    } catch (err) {
+      console.error("Failed to fetch YouTube analytics:", err);
+      throw err;
+    }
   }
-  const url = force ? "/analytics/youtube?forceRefresh=true" : "/analytics/youtube";
-  const res = await api.get(url);
-  return res.data?.data ?? null;
 };
 
 // ── Connect YouTube (OAuth redirect) ────────────────────────────────

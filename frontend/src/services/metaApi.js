@@ -150,7 +150,7 @@ const metaApi = {
       ],
       charts: {
         reachOverTime: formatChartData(ig.insights, 'reach'),
-        engagementsOverTime: formatChartData(ig.insights, 'impressions'),
+        engagementsOverTime: formatChartData(ig.insights, 'engagement'),
         engagementRate: { rate: "N/A", change: 0, data: [] },
         reachBySource: [{ name: "Followers", value: 50 }, { name: "Non-Followers", value: 50 }],
         audience: {

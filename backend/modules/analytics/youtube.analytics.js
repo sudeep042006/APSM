@@ -215,6 +215,7 @@ export const fetchAndSaveYouTubeAnalytics = async (userId) => {
         incubationCenterId: userId,
         platform: 'youtube',
         snapshotDate: new Date(),
+        dataIntegrity: 'complete',
         metrics: {
           followers: parseInt(stats.subscriberCount) || 0,
           impressions: totalViews30Days,
@@ -253,6 +254,7 @@ export const fetchAndSaveYouTubeAnalytics = async (userId) => {
         incubationCenterId: userId,
         platform: 'youtube',
         snapshotDate: new Date(),
+        dataIntegrity: 'partial',
         metrics: {
           followers: Math.floor(Math.random() * 5000) + 1000,
           impressions: Math.floor(Math.random() * 15000) + 5000,

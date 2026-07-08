@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { Mail, Lock, LogIn, AlertTriangle, CheckCircle } from 'lucide-react';
 
 const Login = () => {
-  const { login, user } = useAuth();
+  const { login, user, loading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   
@@ -16,10 +16,10 @@ const Login = () => {
 
   // If already logged in, redirect to dashboard
   useEffect(() => {
-    if (user) {
+    if (user && !loading) {
       navigate('/', { replace: true });
     }
-  }, [user, navigate]);
+  }, [user, loading, navigate]);
 
   // Display status notifications if redirected
   useEffect(() => {
@@ -42,15 +42,27 @@ const Login = () => {
     }
 
     setIsSubmitting(true);
-    const result = await login(email, password);
-    setIsSubmitting(false);
-
-    if (result.success) {
+    
+    try {
+      await login(email, password);
       navigate('/');
-    } else {
-      setError(result.error);
+    } catch (err) {
+      const errorMessage = err.response?.data?.error || err.message || "Authentication failed.";
+      setError(errorMessage);
+    } finally {
+      setIsSubmitting(false);
     }
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center relative overflow-hidden">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-indigo-600/10 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="w-10 h-10 border-4 border-purple-500/20 border-t-purple-500 rounded-full animate-spin z-10"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center px-4 relative overflow-hidden">

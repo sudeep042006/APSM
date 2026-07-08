@@ -5,7 +5,7 @@
 // OAuth flow, data fetching, and distributes parsed data to children.
 
 import { useState, useEffect, useCallback } from "react";
-import { useLocation, useNavigate, NavLink } from "react-router-dom";
+import { useLocation, useNavigate, NavLink, Outlet } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Youtube } from "@/components/icons/BrandIcons";
@@ -26,6 +26,8 @@ import {
   AlertTriangle,
   Settings,
   HelpCircle,
+  Menu,
+  X,
 } from "lucide-react";
 import {
   fetchYouTubeStatus,
@@ -36,15 +38,6 @@ import {
 
 import DateRangePicker from "@/components/DateRangePicker";
 
-// ── Sub-page imports ────────────────────────────────────────────────
-import YoutubeOverview from "./YoutubeOverview";
-import YoutubeContent from "./YoutubeContent";
-import YoutubeAudience from "./YoutubeAudience";
-import YoutubeEngagement from "./YoutubeEngagement";
-import YoutubePlaylists from "./YoutubePlaylists";
-import YoutubeRevenue from "./YoutubeRevenue";
-import YoutubeRealtime from "./YoutubeRealtime";
-import YoutubeReports from "./YoutubeReports";
 import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
 
 // ── Sub-navigation items ────────────────────────────────────────────
@@ -58,6 +51,35 @@ const SUB_NAV_ITEMS = [
   { key: "realtime", label: "Realtime", icon: Radio },
   { key: "reports", label: "Reports", icon: Download },
 ];
+
+const YT_NAV_BOTTOM = [
+  { path: "/dashboard/youtube/settings", label: "Settings", icon: Settings },
+  { path: "/dashboard/youtube/help",     label: "Help",     icon: HelpCircle },
+];
+
+// ── Reusable Sidebar Link ─────────────────────────────────────────────────────
+const SidebarLink = ({ to, icon: Icon, label, end, onClick, isCollapsed }) => {
+  return (
+    <NavLink
+      to={to}
+      end={end}
+      onClick={onClick}
+      className={({ isActive }) =>
+        `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ${
+          isCollapsed ? 'justify-center' : ''
+        } ${
+          isActive 
+            ? 'bg-[#FF0000]/10 text-[#FF0000] shadow-sm' 
+            : 'text-gray-400 hover:text-white hover:bg-white/5'
+        }`
+      }
+      title={isCollapsed ? label : undefined}
+    >
+      <Icon className="w-4 h-4 shrink-0" />
+      {!isCollapsed && <span className="truncate">{label}</span>}
+    </NavLink>
+  );
+};
 
 // ── Loading Spinner ─────────────────────────────────────────────────
 // Branded loading spinner shown during initial connection check.
@@ -130,8 +152,8 @@ function ErrorState({ onRetry }) {
   );
 }
 
-// ── Main YouTube Dashboard Component ────────────────────────────────
-export default function YoutubeDash() {
+// ── Main YouTube Layout Component ────────────────────────────────
+export default function YoutubeLayout() {
   // ── State management ──────────────────────────────────────────────
   const [connectionLoading, setConnectionLoading] = useState(true);
   const [isConnected, setIsConnected] = useState(false);
@@ -142,8 +164,8 @@ export default function YoutubeDash() {
   const [analyticsLoading, setAnalyticsLoading] = useState(false);
   const [analyticsError, setAnalyticsError] = useState(false);
 
-  const [activePage, setActivePage] = useState("overview");
   const [subNavCollapsed, setSubNavCollapsed] = useState(false);
+  const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
   // Default to Last 7 Days
@@ -231,174 +253,118 @@ export default function YoutubeDash() {
   if (connectionLoading) return <YTSpinner />;
 
   // ── Not connected state ───────────────────────────────────────────
-  // 3. Implement Blank Dashboard Protection (Empty State Fallback)
-  if (!isConnected || localStorage.getItem('youtubeToken') === 'false') {
-    return (
-      <div className="min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-[#0B1121] text-slate-900 dark:text-white p-6 space-y-8 flex flex-col transition-colors duration-200 -m-6">
-        {/* ── Dashboard Header ───────────────────────────────────────── */}
-        <div className="flex items-center justify-between border-b border-slate-200 dark:border-white/10 pb-4">
-          <DashboardHeader
-            title="YouTube Analytics"
-            subtitle="Track your channel growth and video performance."
-            icon={<Youtube className="h-6 w-6" />}
-            brandBgClass="bg-[#FF0000]/10"
-            brandTextClass="text-[#FF0000]"
-          />
-        </div>
+  // ── Connection checks and empty state are now handled in the main content area.
 
-        {/* ── Connect Card ───────────────────────────────────────────── */}
-        <div className="flex-1 flex items-center justify-center">
-          <ConnectCard
-            icon={<Youtube className="h-8 w-8" />}
-            cardTitle="Connect YouTube Channel"
-            cardDescription="Connect your YouTube account to view sub counts, channel views, watch time, and detailed visual performance graphs."
-            onConnect={handleConnect}
-            buttonText="Connect YouTube Channel"
-            brandBgClass="bg-[#FF0000]/10"
-            brandTextClass="text-[#FF0000]"
-            brandButtonClass="bg-[#FF0000] hover:bg-[#FF0000]/90"
-          />
-        </div>
-      </div>
-    );
-  }
 
-  // ── Render the active sub-page ────────────────────────────────────
-  const renderActivePage = () => {
-    // Error state (applies to all pages except empty-state pages)
-    if (analyticsError && ["overview", "content", "audience", "engagement"].includes(activePage)) {
-      return <ErrorState onRetry={loadAnalytics} />;
-    }
-
-    switch (activePage) {
-      case "overview":
-        return <YoutubeOverview data={analyticsData} loading={analyticsLoading} />;
-      case "content":
-        return <YoutubeContent data={analyticsData} loading={analyticsLoading} />;
-      case "audience":
-        return <YoutubeAudience data={analyticsData} loading={analyticsLoading} />;
-      case "engagement":
-        return <YoutubeEngagement data={analyticsData} loading={analyticsLoading} />;
-      case "playlists":
-        return <YoutubePlaylists loading={analyticsLoading} />;
-      case "revenue":
-        return <YoutubeRevenue loading={analyticsLoading} />;
-      case "realtime":
-        return <YoutubeRealtime loading={analyticsLoading} />;
-      case "reports":
-        return <YoutubeReports loading={analyticsLoading} />;
-      default:
-        return <YoutubeOverview data={analyticsData} loading={analyticsLoading} />;
-    }
-  };
+  const closeMobile = () => setIsMobileOpen(false);
 
   return (
-    <div className="flex gap-0 -m-6 min-h-[calc(100vh-4rem)] bg-slate-50 dark:bg-[#0B1121] text-slate-900 dark:text-slate-100 transition-colors duration-200">
+    <div className="flex gap-0 -m-6 h-[calc(100vh-4rem)] bg-[#0B1121] text-white overflow-hidden relative transition-colors duration-200">
+      
+      {/* ── Mobile Backdrop ───────────────────────────────────────────────── */}
+      {isMobileOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={closeMobile}
+        />
+      )}
+
       {/* ── YouTube Sub-Navigation Sidebar ────────────────────────────── */}
       <aside
-        className={`shrink-0 border-r border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 backdrop-blur-sm transition-all duration-300 ${
-          subNavCollapsed ? "w-14" : "w-52"
-        }`}
+        className={`
+          fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/10
+          bg-[#0B1121]/95 backdrop-blur-xl lg:bg-[#0B1121] lg:backdrop-blur-none
+          transition-all duration-300 ease-in-out
+          lg:static lg:translate-x-0
+          ${isMobileOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"}
+          ${subNavCollapsed ? "lg:w-[72px]" : "lg:w-64"}
+        `}
       >
-        <div className="sticky top-0 flex flex-col h-full">
-          {/* ── Header with channel info ──────────────────────────────── */}
-          <div className={`border-b border-slate-200 dark:border-white/10 p-3 ${subNavCollapsed ? "text-center" : ""}`}>
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
-                <Youtube className="h-4 w-4 text-red-500" />
+        {/* ── Mobile Close Button ──────────────────────────────────── */}
+        <div className="lg:hidden flex justify-end p-4 border-b border-white/5">
+          <button 
+            onClick={closeMobile} 
+            className="text-gray-400 hover:text-[#FF0000] transition-colors"
+          >
+            <X className="w-6 h-6" />
+          </button>
+        </div>
+
+        {/* ── Brand Header ─────────────────────────────────────────────── */}
+        <div className={`border-b border-white/10 p-3 ${subNavCollapsed ? 'text-center' : ''}`}>
+          <div className="flex items-center gap-2">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FF0000]/10">
+              <Youtube className="h-4 w-4 text-[#FF0000]" />
+            </div>
+            {!subNavCollapsed && (
+              <div className="min-w-0 flex-1 hidden lg:block">
+                <p className="text-xs font-semibold truncate text-white">YouTube</p>
+                <p className="text-[10px] text-gray-400 truncate">
+                  {connectionLoading ? "Loading..." : username || "Connected"}
+                </p>
               </div>
-              {!subNavCollapsed && (
-                <div className="min-w-0 flex-1">
-                  <p className="text-xs font-semibold truncate text-slate-900 dark:text-slate-100">YouTube</p>
-                  <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-                    {username || "Connected"}
-                  </p>
-                </div>
-              )}
+            )}
+            {/* Always show text on mobile overlay */}
+            <div className="min-w-0 flex-1 lg:hidden">
+              <p className="text-xs font-semibold truncate text-white">YouTube</p>
+              <p className="text-[10px] text-gray-400 truncate">
+                {connectionLoading ? "Loading..." : username || "Connected"}
+              </p>
             </div>
           </div>
+        </div>
 
-          {/* ── Collapse Toggle ───────────────────────────────────────── */}
-          <div className="p-2 border-b border-slate-200 dark:border-white/10">
-            <button
-              onClick={() => setSubNavCollapsed(!subNavCollapsed)}
-              className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-100 transition-all duration-200 ${
-                subNavCollapsed ? "justify-center" : ""
-              }`}
-              title={subNavCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-              id="yt-collapse-btn"
-            >
-              {subNavCollapsed ? (
-                <ChevronRight className="h-4 w-4 shrink-0" />
-              ) : (
-                <>
-                  <ChevronLeft className="h-4 w-4 shrink-0" />
-                  <span>Collapse</span>
-                </>
-              )}
-            </button>
-          </div>
+        {/* ── Desktop Collapse Toggle ───────────────────────────────────── */}
+        <div className="hidden lg:block p-2 border-b border-white/10">
+          <button
+            onClick={() => setSubNavCollapsed(!subNavCollapsed)}
+            className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-gray-400 hover:bg-white/10 hover:text-white transition-all duration-200 ${
+              subNavCollapsed ? 'justify-center' : ''
+            }`}
+            title={subNavCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+            id="yt-collapse-btn"
+          >
+            {subNavCollapsed ? (
+              <ChevronRight className="h-4 w-4 shrink-0" />
+            ) : (
+              <>
+                <ChevronLeft className="h-4 w-4 shrink-0" />
+                <span>Collapse</span>
+              </>
+            )}
+          </button>
+        </div>
 
-          {/* ── Navigation Links ──────────────────────────────────────── */}
-          <nav className="flex-1 py-2 px-1.5 space-y-0.5 overflow-y-auto">
-            {SUB_NAV_ITEMS.map((item) => {
-              const isActive = activePage === item.key;
-              return (
-                <button
-                  key={item.key}
-                  onClick={() => setActivePage(item.key)}
-                  className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-200 ${
-                    subNavCollapsed ? "justify-center" : ""
-                  } ${
-                    isActive
-                      ? "bg-red-500/10 text-red-500 shadow-sm"
-                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-100"
-                  }`}
-                  title={subNavCollapsed ? item.label : undefined}
-                  id={`yt-nav-${item.key}`}
-                >
-                  <item.icon className={`h-4 w-4 shrink-0 ${isActive ? "text-red-400" : ""}`} />
-                  {!subNavCollapsed && <span className="truncate">{item.label}</span>}
-                </button>
-              );
-            })}
-
-            {/* ── Bottom Navigation (Settings/Help) ────────────────────── */}
-            <div className="pt-2 mt-2 border-t border-slate-200 dark:border-white/10 space-y-0.5">
-              <NavLink
-                to="/dashboard/youtube/settings"
-                className={({ isActive }) =>
-                  `flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-200 ${
-                    subNavCollapsed ? "justify-center" : ""
-                  } ${
-                    isActive
-                      ? "bg-red-500/10 text-red-500 shadow-sm"
-                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-100"
-                  }`
-                }
-                title={subNavCollapsed ? "Settings" : undefined}
-              >
-                <Settings className="h-4 w-4 shrink-0" />
-                {!subNavCollapsed && <span className="truncate">Settings</span>}
-              </NavLink>
-              <NavLink
-                to="/dashboard/youtube/help"
-                className={({ isActive }) =>
-                  `flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium transition-all duration-200 ${
-                    subNavCollapsed ? "justify-center" : ""
-                  } ${
-                    isActive
-                      ? "bg-red-500/10 text-red-500 shadow-sm"
-                      : "text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-100"
-                  }`
-                }
-                title={subNavCollapsed ? "Help" : undefined}
-              >
-                <HelpCircle className="h-4 w-4 shrink-0" />
-                {!subNavCollapsed && <span className="truncate">Help</span>}
-              </NavLink>
-            </div>
-          </nav>
+        {/* ── Navigation Links ──────────────────────────────────────── */}
+        <nav className="flex-1 py-2 px-1.5 space-y-0.5 overflow-y-auto">
+          {SUB_NAV_ITEMS.map((item) => {
+            const toPath = item.key === "overview" ? "/dashboard/youtube" : `/dashboard/youtube/${item.key}`;
+            return (
+              <SidebarLink
+                key={item.key}
+                to={toPath}
+                icon={item.icon}
+                label={item.label}
+                end={item.key === "overview"}
+                onClick={closeMobile}
+                isCollapsed={subNavCollapsed}
+              />
+            );
+          })}
+        </nav>
+        
+        {/* ── Bottom-pinned Settings & Help (NO profile block) ──────────── */}
+        <div className="py-2 px-1.5 border-t border-white/5 space-y-0.5 mt-auto">
+          {YT_NAV_BOTTOM.map((item) => (
+            <SidebarLink
+              key={item.path}
+              to={item.path}
+              icon={item.icon}
+              label={item.label}
+              onClick={closeMobile}
+              isCollapsed={subNavCollapsed}
+            />
+          ))}
         </div>
       </aside>
 
@@ -412,11 +378,22 @@ export default function YoutubeDash() {
             handleRevoke();
           }} 
         />
+        {/* ── Mobile Header Toggle ───────────────────────────────────── */}
+        <div className="lg:hidden flex items-center p-4 border-b border-white/10 bg-[#0B1121]">
+          <button 
+            onClick={() => setIsMobileOpen(true)}
+            className="text-gray-400 hover:text-[#FF0000] transition-colors"
+          >
+            <Menu className="w-6 h-6" />
+          </button>
+          <span className="ml-4 font-semibold text-white">YouTube Dashboard</span>
+        </div>
+
         {/* ── Page Header ──────────────────────────────────────────────── */}
-        <div className="sticky top-0 z-10 border-b border-slate-200 dark:border-white/10 bg-white/80 dark:bg-[#0B1121]/80 backdrop-blur-md px-6 py-3">
+        <div className="sticky top-0 z-10 border-b border-white/10 bg-[#0B1121]/80 backdrop-blur-md px-6 py-3">
           <div className="flex items-center justify-between">
             <DashboardHeader
-              title={SUB_NAV_ITEMS.find((i) => i.key === activePage)?.label || "Overview"}
+              title="YouTube Analytics"
               subtitle={username ? `Channel: ${username}` : "YouTube Analytics"}
               icon={<Youtube className="h-5 w-5" />}
               brandBgClass="bg-[#FF0000]/10"
@@ -434,21 +411,11 @@ export default function YoutubeDash() {
                 size="sm"
                 onClick={() => loadAnalytics(true)}
                 disabled={analyticsLoading}
-                className="text-xs text-slate-500 dark:text-slate-400 border-slate-200 dark:border-white/10 bg-white dark:bg-white/5 hover:bg-slate-100 dark:hover:bg-white/10 hover:text-slate-900 dark:hover:text-slate-100 h-9 px-3"
+                className="text-xs text-gray-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-white h-9 px-3"
                 id="yt-refresh-btn-new"
               >
                 <RefreshCw className={`h-3.5 w-3.5 mr-2 ${analyticsLoading ? "animate-spin" : ""}`} />
                 Refresh Data
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowDisconnectModal(true)}
-                disabled={revokeLoading}
-                className="text-xs text-slate-500 dark:text-slate-400 hover:text-red-500 dark:hover:text-red-400 h-9"
-                id="revoke-youtube-btn"
-              >
-                {revokeLoading ? "Revoking..." : "Disconnect"}
               </Button>
             </div>
           </div>
@@ -456,7 +423,24 @@ export default function YoutubeDash() {
 
         {/* ── Active Page Content ──────────────────────────────────────── */}
         <div className="p-6">
-          {renderActivePage()}
+          {!isConnected || localStorage.getItem('youtubeToken') === 'false' ? (
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] animate-fade-in">
+              <ConnectCard
+                icon={<Youtube className="h-8 w-8" />}
+                cardTitle="Connect YouTube Channel"
+                cardDescription="Connect your YouTube account to view sub counts, channel views, watch time, and detailed visual performance graphs."
+                onConnect={handleConnect}
+                buttonText="Connect YouTube Channel"
+                brandBgClass="bg-[#FF0000]/10"
+                brandTextClass="text-[#FF0000]"
+                brandButtonClass="bg-[#FF0000] hover:bg-[#FF0000]/90"
+              />
+            </div>
+          ) : analyticsError ? (
+            <ErrorState onRetry={loadAnalytics} />
+          ) : (
+            <Outlet context={{ data: analyticsData, loading: analyticsLoading, isConnected, username, handleRevoke, handleConnect }} />
+          )}
         </div>
       </div>
     </div>

@@ -10,8 +10,8 @@ export default {
       return `${BASE_URL}/auth/facebook/callback`;
     },
 
-    authUrl:  'https://www.facebook.com/v18.0/dialog/oauth',
-    tokenUrl: 'https://graph.facebook.com/v18.0/oauth/access_token',
+    authUrl:  'https://www.facebook.com/v20.0/dialog/oauth',
+    tokenUrl: 'https://graph.facebook.com/v20.0/oauth/access_token',
 
     scopes: [
       'email',
@@ -37,7 +37,7 @@ export default {
     // Meta gives a short-lived token (1h) — must exchange for long-lived (60 days)
     async normalizeTokens(tokenData) {
       const res = await axios.get(
-        'https://graph.facebook.com/v18.0/oauth/access_token',
+        'https://graph.facebook.com/v20.0/oauth/access_token',
         {
           params: {
             grant_type:        'fb_exchange_token',
@@ -74,8 +74,8 @@ export default {
       return `${BASE_URL}/auth/instagram/callback`;
     },
 
-    authUrl:  'https://www.facebook.com/v18.0/dialog/oauth',
-    tokenUrl: 'https://graph.facebook.com/v18.0/oauth/access_token',
+    authUrl:  'https://www.facebook.com/v20.0/dialog/oauth',
+    tokenUrl: 'https://graph.facebook.com/v20.0/oauth/access_token',
 
     scopes: [
       'instagram_basic',
@@ -104,7 +104,7 @@ export default {
 
       // Step 2 — get the Instagram Business Account linked to that page
       const igRes = await axios.get(
-        `https://graph.facebook.com/v18.0/${page.id}`,
+        `https://graph.facebook.com/v20.0/${page.id}`,
         { params: { fields: 'instagram_business_account', access_token: accessToken } }
       );
       const igAccount = igRes.data.instagram_business_account;
@@ -116,7 +116,7 @@ export default {
 
       // Step 3 — get the Instagram username
       const profileRes = await axios.get(
-        `https://graph.facebook.com/v18.0/${igAccount.id}`,
+        `https://graph.facebook.com/v20.0/${igAccount.id}`,
         { params: { fields: 'id,username', access_token: accessToken } }
       );
       return {
@@ -128,7 +128,7 @@ export default {
     // Same as Facebook — short-lived → long-lived exchange
     async normalizeTokens(tokenData) {
       const res = await axios.get(
-        'https://graph.facebook.com/v18.0/oauth/access_token',
+        'https://graph.facebook.com/v20.0/oauth/access_token',
         {
           params: {
             grant_type:        'fb_exchange_token',

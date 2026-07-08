@@ -1,18 +1,10 @@
-// ── LinkedIn Dashboard Page ─────────────────────────────────────────
-// LinkedIn analytics with metric cards, charts, and skeleton placeholders.
-
-import { useState, useEffect } from "react";
+// ── LinkedIn Overview Component ─────────────────────────────────────────
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { ResponsiveContainer, AreaChart, Area, LineChart, Line, BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from "recharts";
 import { Users, Search, Eye, MousePointerClick, AlertCircle, Loader2, TrendingUp, Filter, RefreshCw } from "lucide-react";
-import { Linkedin } from "@/components/icons/BrandIcons";
-import { Button } from "@/components/ui/button";
-import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
-import DateRangePicker from "@/components/DateRangePicker";
-import linkedinApi from "@/services/linkedinApi";
-import DashboardHeader from "@/components/DashboardHeader";
-import ConnectCard from "@/components/ConnectCard";
+import { useOutletContext } from "react-router-dom";
 
 const formatNumber = (num) => {
   if (!num) return "0";
@@ -23,88 +15,9 @@ const formatNumber = (num) => {
 
 const COLORS = ["#2563eb", "#0ea5e9", "#10b981", "#f59e0b", "#8b5cf6", "#ec4899"];
 
-export default function LinkedInDash() {
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [analyticsData, setAnalyticsData] = useState(null);
-  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
-
-  // Default to Last 7 Days
-  const d = new Date();
-  d.setDate(d.getDate() - 7);
-  const defaultStart = d.toISOString().split('T')[0];
-  const defaultEnd = new Date().toISOString().split('T')[0];
+export default function LinkedInOverview() {
+  const { analyticsData } = useOutletContext();
   
-  const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
-
-  const [isConnected, setIsConnected] = useState(false);
-  const [username, setUsername] = useState("");
-  const [revokeLoading, setRevokeLoading] = useState(false);
-
-  // ── Fetch LinkedIn Analytics ───────────────────────────────────────
-  // Fetches connection status and analytics data, passing the selected dateRange.
-  // Clears the existing analytics state if doing a fresh refresh to trigger skeleton states.
-  const fetchData = async (isRefresh = false) => {
-    setLoading(true);
-    setError(null);
-    if (isRefresh) {
-      setAnalyticsData(null);
-    }
-    try {
-      // 1. Fetch connection status
-      const statusRes = await linkedinApi.getAuthStatus();
-      const statusArray = Array.isArray(statusRes) ? statusRes : (statusRes?.data || statusRes?.status || statusRes?.connections || []);
-      const lnStatus = statusArray.find((p) => String(p.platform).toLowerCase() === "linkedin");
-
-      setIsConnected(!!lnStatus?.connected);
-      setUsername(lnStatus?.username || "");
-
-      // 2. Fetch Analytics Snapshot if connected
-      if (lnStatus?.connected) {
-        const analyticsRes = await linkedinApi.getLinkedInAnalytics(dateRange);
-        const dataArray = Array.isArray(analyticsRes?.data) ? analyticsRes.data : [];
-        setAnalyticsData(dataArray[0] || null);
-      } else {
-        setAnalyticsData(null);
-      }
-    } catch (err) {
-      console.error("Error fetching LinkedIn data:", err);
-      setError("Failed to load LinkedIn analytics. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  // Re-run fetch whenever the user updates the date range
-  useEffect(() => {
-    fetchData();
-  }, [dateRange]);
-
-  // ── Refresh Handler ────────────────────────────────────────────────
-  // Forces a clean refresh by clearing local states
-  const handleRefresh = () => {
-    fetchData(true);
-  };
-
-  const handleConnect = () => {
-    const token = localStorage.getItem("incubein_token");
-    window.location.href = `http://localhost:5000/auth/linkedin?token=${token}`;
-  };
-
-  const handleRevoke = async () => {
-    setRevokeLoading(true);
-    try {
-      await linkedinApi.revokeLinkedIn();
-      setIsConnected(false);
-      setUsername("");
-      fetchData(); // Refresh to clear
-    } catch (err) {
-      console.error("Error revoking LinkedIn access:", err);
-    } finally {
-      setRevokeLoading(false);
-    }
-  };
-
   // Safe Data Extraction
   const metrics = analyticsData?.metrics || {};
   const rawData = analyticsData?.rawPlatformData || {};
@@ -128,97 +41,16 @@ export default function LinkedInDash() {
     return null;
   };
 
-  // Helper to render flat line chart if empty
   const getChartData = (dataArray, defaultData) => {
     if (!dataArray || dataArray.length === 0) return defaultData;
     return dataArray;
   };
 
-  // Default Flat Lines for Empty States
   const defaultLineChart = [{ day: "Mon", value: 0 }, { day: "Tue", value: 0 }, { day: "Wed", value: 0 }];
   const defaultPieChart = [{ name: "No Data", value: 1 }];
 
-  // ── Render States ──────────────────────────────────────────────────
-  const renderLoading = () => (
-    <div className="flex min-h-[60vh] flex-col items-center justify-center space-y-4">
-      <Loader2 className="h-10 w-10 animate-spin text-blue-500" />
-      <p className="text-muted-foreground animate-pulse">Fetching LinkedIn Analytics...</p>
-    </div>
-  );
-
-  const renderError = () => (
-    <div className="flex min-h-[60vh] items-center justify-center">
-      <Card className="w-full max-w-md bg-white/5 backdrop-blur-lg border-red-500/30">
-        <CardContent className="flex flex-col items-center text-center p-8">
-          <AlertCircle className="h-12 w-12 text-red-500 mb-4" />
-          <h3 className="text-lg font-bold text-white mb-2">Data Load Failed</h3>
-          <p className="text-sm text-gray-400 mb-6">{error}</p>
-          <Button onClick={fetchData} variant="outline" className="border-white/10 text-white hover:bg-white/10">
-            Try Again
-          </Button>
-        </CardContent>
-      </Card>
-    </div>
-  );
-
-  const renderEmptyState = () => (
-    <ConnectCard
-      icon={<Linkedin className="h-8 w-8" />}
-      cardTitle="Connect LinkedIn Profile"
-      cardDescription="Connect your LinkedIn account to view followers, post impressions, engagement rates, and detailed demographic metrics."
-      onConnect={handleConnect}
-      buttonText="Connect LinkedIn Account"
-      brandBgClass="bg-[#0A66C2]/10"
-      brandTextClass="text-[#0A66C2]"
-      brandButtonClass="bg-[#0A66C2] hover:bg-[#0A66C2]/90"
-    />
-  );
-
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-[#0B1121] text-slate-900 dark:text-white p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8 relative transition-colors duration-200">
-      <ConfirmDisconnectModal 
-        isOpen={showDisconnectModal} 
-        onClose={() => setShowDisconnectModal(false)} 
-        onConfirm={() => {
-          setShowDisconnectModal(false);
-          handleRevoke();
-        }} 
-      />
-      {/* ── Header ─────────────────────────────────────────────────────── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between pt-6 px-4 gap-4 border-b border-slate-200 dark:border-white/10 pb-4">
-        <DashboardHeader
-          title="LinkedIn Analytics"
-          subtitle="Profile insights and engagement"
-          icon={<Linkedin className="h-6 w-6" />}
-          brandBgClass="bg-[#0A66C2]/10"
-          brandTextClass="text-[#0A66C2]"
-        />
-        {isConnected && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <DateRangePicker 
-              startDate={dateRange.start} 
-              endDate={dateRange.end} 
-              onChange={setDateRange} 
-            />
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleRefresh}
-              disabled={loading}
-              className="text-xs text-slate-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-slate-100 h-9 px-3"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? "animate-spin" : ""}`} />
-              Refresh Data
-            </Button>
-            <Button variant="ghost" size="sm" onClick={() => setShowDisconnectModal(true)} disabled={revokeLoading} className="text-xs border-red-500/30 text-red-400 hover:bg-red-500/10 h-9">
-              {revokeLoading ? "Revoking..." : "Revoke Access"}
-            </Button>
-          </div>
-        )}
-      </div>
-
-      <div className="px-4 pb-6">
-        {loading ? renderLoading() : error ? renderError() : !isConnected ? renderEmptyState() : (
+    <div className="animate-fade-in p-4 md:p-6">
           <Tabs defaultValue="overview" className="w-full">
             <TabsList className="bg-white/5 border border-white/10 mb-6 flex-wrap h-auto">
               <TabsTrigger value="overview" className="data-[state=active]:bg-blue-600 data-[state=active]:text-white text-gray-400">Overview</TabsTrigger>
@@ -452,8 +284,6 @@ export default function LinkedInDash() {
               </div>
             </TabsContent>
           </Tabs>
-        )}
-      </div>
     </div>
   );
 }

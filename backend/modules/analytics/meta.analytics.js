@@ -20,7 +20,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
     if (fbToken) {
       // DEBUG: Check what permissions the token actually has
       try {
-        const permRes = await axios.get('https://graph.facebook.com/v18.0/me/permissions', {
+        const permRes = await axios.get('https://graph.facebook.com/v20.0/me/permissions', {
           params: { access_token: fbToken }
         });
         console.log(`[DEBUG-FB] Token permissions:`, JSON.stringify(permRes.data, null, 2));
@@ -30,7 +30,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
 
       // DEBUG: Check who this token belongs to
       try {
-        const meRes = await axios.get('https://graph.facebook.com/v18.0/me', {
+        const meRes = await axios.get('https://graph.facebook.com/v20.0/me', {
           params: { fields: 'id,name', access_token: fbToken }
         });
         console.log(`[DEBUG-FB] Token belongs to:`, JSON.stringify(meRes.data, null, 2));
@@ -39,7 +39,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
       }
 
       console.log(`[meta.analytics] Fetching Facebook Pages for user ${userId}...`);
-      const pagesRes = await axios.get('https://graph.facebook.com/v18.0/me/accounts', {
+      const pagesRes = await axios.get('https://graph.facebook.com/v20.0/me/accounts', {
         params: { access_token: fbToken }
       });
 
@@ -52,7 +52,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
         console.log(`[meta.analytics] Fetching FB Page stats for page ${page.name} (${pageId})...`);
         console.log(`[DEBUG-FB] Page token received: ${pageToken ? 'YES' : 'NO'}`);
 
-        const detailRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}`, {
+        const detailRes = await axios.get(`https://graph.facebook.com/v20.0/${pageId}`, {
           params: { fields: 'fan_count,name', access_token: pageToken }
         });
 
@@ -68,7 +68,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
         followers += facebookData.fanCount;
 
         try {
-          const insightsRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/insights`, {
+          const insightsRes = await axios.get(`https://graph.facebook.com/v20.0/${pageId}/insights`, {
             params: {
               metric: 'page_impressions,page_post_engagements,page_views_total',
               period: 'day',
@@ -120,6 +120,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
         incubationCenterId: userId,
         platform: 'facebook',
         snapshotDate: new Date(),
+        dataIntegrity: 'complete',
         metrics: {
           followers,
           impressions,
@@ -150,6 +151,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
         incubationCenterId: userId,
         platform: 'facebook',
         snapshotDate: new Date(),
+        dataIntegrity: 'partial',
         metrics: {
           followers: Math.floor(Math.random() * 2000) + 1000,
           impressions: Math.floor(Math.random() * 15000) + 4000,
@@ -203,7 +205,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
 
     if (fbToken) {
       console.log(`[meta.analytics] Fetching FB Page linked to Instagram for user ${userId}...`);
-      const pagesRes = await axios.get('https://graph.facebook.com/v18.0/me/accounts', {
+      const pagesRes = await axios.get('https://graph.facebook.com/v20.0/me/accounts', {
         params: { access_token: fbToken }
       });
 
@@ -212,7 +214,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
         // Use the page-level access token (not the user token) for IG business account
         const pageToken = page.access_token;
         console.log(`[meta.analytics] Fetching IG Business Account linked to FB Page ${page.id}...`);
-        const igAccountRes = await axios.get(`https://graph.facebook.com/v18.0/${page.id}`, {
+        const igAccountRes = await axios.get(`https://graph.facebook.com/v20.0/${page.id}`, {
           params: { fields: 'instagram_business_account', access_token: pageToken }
         });
 
@@ -220,7 +222,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
         if (igAccountId) {
           console.log(`[meta.analytics] Fetching IG insights for Business Account ${igAccountId}...`);
 
-          const profileRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}`, {
+          const profileRes = await axios.get(`https://graph.facebook.com/v20.0/${igAccountId}`, {
             params: { fields: 'followers_count,media_count,username', access_token: pageToken }
           });
 
@@ -236,7 +238,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
 
           // Fetch insights (non-blocking)
           try {
-            const insightsRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/insights`, {
+            const insightsRes = await axios.get(`https://graph.facebook.com/v20.0/${igAccountId}/insights`, {
               params: {
                 metric: 'impressions,reach', // profile_views is deprecated
                 period: 'day',
@@ -257,7 +259,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
 
           // Fetch demographics (non-blocking)
           try {
-            const demoRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/insights`, {
+            const demoRes = await axios.get(`https://graph.facebook.com/v20.0/${igAccountId}/insights`, {
               params: {
                 metric: 'audience_country,audience_gender_age',
                 period: 'lifetime',
@@ -315,6 +317,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
         incubationCenterId: userId,
         platform: 'instagram',
         snapshotDate: new Date(),
+        dataIntegrity: 'complete',
         metrics: {
           followers,
           impressions,
@@ -345,6 +348,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
         incubationCenterId: userId,
         platform: 'instagram',
         snapshotDate: new Date(),
+        dataIntegrity: 'partial',
         metrics: {
           followers: Math.floor(Math.random() * 2000) + 500,
           impressions: Math.floor(Math.random() * 15000) + 4000,

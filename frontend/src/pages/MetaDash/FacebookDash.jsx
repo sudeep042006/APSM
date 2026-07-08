@@ -76,35 +76,33 @@ const GlassTooltip = ({ active, payload, label }) => {
 const KpiCard = ({ label, value, change, icon: Icon, isLoading }) => {
   if (isLoading) {
     return (
-      <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 p-5">
-        <div className="flex items-start justify-between mb-3">
-          <Skeleton className="h-10 w-10 rounded-full bg-gray-700/50" />
+      <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 p-4">
+        <div className="flex items-center gap-2 mb-2">
+          <Skeleton className="h-7 w-7 rounded-full bg-gray-700/50" />
+          <Skeleton className="h-3 w-20 bg-gray-700/50" />
         </div>
-        <Skeleton className="h-4 w-20 bg-gray-700/50 mb-2" />
-        <Skeleton className="h-8 w-24 bg-gray-700/50 mb-2" />
-        <Skeleton className="h-3 w-28 bg-gray-700/50" />
+        <Skeleton className="h-7 w-24 bg-gray-700/50 mt-1" />
+        <Skeleton className="h-3 w-32 bg-gray-700/50 mt-2" />
       </Card>
     );
   }
   const isPositive = (change ?? 0) >= 0;
   return (
-    <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 p-5 hover:border-white/10 transition-all">
+    <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 p-4 hover:border-white/10 transition-all group">
       <CardContent className="p-0">
-        {/* Icon container — Facebook accent circular badge */}
-        <div className="flex items-start justify-between mb-3">
-          <div className="bg-[#1877F2]/10 text-[#1877F2] p-3 rounded-full">
-            <Icon className="h-4 w-4" />
+        <div className="flex items-center gap-2 mb-2">
+          <div className="bg-[#1877F2]/10 text-[#1877F2] p-2 rounded-full group-hover:bg-[#1877F2]/20 transition-colors">
+            <Icon className="h-3.5 w-3.5" />
           </div>
+          <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">{label}</span>
         </div>
-        {/* Label — strict typography spec */}
-        <p className="text-xs uppercase tracking-wider text-gray-400 font-semibold">{label}</p>
-        {/* Value — strict typography spec */}
-        <p className="text-3xl font-bold text-white mt-2">{formatNumber(value)}</p>
-        {/* Trend indicator — strict spec */}
+        <div className="text-2xl font-bold text-white mt-1">
+          {formatNumber(value)}
+        </div>
         <div className={`text-xs font-medium flex items-center gap-0.5 mt-1 ${isPositive ? "text-emerald-400" : "text-red-400"}`}>
           {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
           {isPositive ? "+" : ""}{change}%
-          <span className="text-gray-500 font-normal ml-1">vs prev 7 days</span>
+          <span className="text-gray-500 font-normal ml-1">vs previous 7 days</span>
         </div>
       </CardContent>
     </Card>

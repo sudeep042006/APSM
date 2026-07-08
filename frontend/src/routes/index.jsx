@@ -7,8 +7,21 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 // ── Page Imports ────────────────────────────────────────────────────
 import LandingPage from "@/pages/LandingPage/LandingPage";
 import AuthPage from "@/pages/Auth/AuthPage";
-import YoutubeDash from "@/pages/YoutubeDash/YoutubeDash";
-import LinkedInDash from "@/pages/LinkedInDash/LinkedInDash";
+import YoutubeLayout from "@/pages/YoutubeDash/YoutubeLayout";
+import YoutubeOverview from "@/pages/YoutubeDash/YoutubeOverview";
+import YoutubeContent from "@/pages/YoutubeDash/YoutubeContent";
+import YoutubeAudience from "@/pages/YoutubeDash/YoutubeAudience";
+import YoutubeEngagement from "@/pages/YoutubeDash/YoutubeEngagement";
+import YoutubePlaylists from "@/pages/YoutubeDash/YoutubePlaylists";
+import YoutubeRevenue from "@/pages/YoutubeDash/YoutubeRevenue";
+import YoutubeRealtime from "@/pages/YoutubeDash/YoutubeRealtime";
+import YoutubeReports from "@/pages/YoutubeDash/YoutubeReports";
+import YoutubeSettings from "@/pages/YoutubeDash/YoutubeSettings";
+import YoutubeHelp from "@/pages/YoutubeDash/YoutubeHelp";
+import LinkedInLayout from "@/pages/LinkedInDash/LinkedInLayout";
+import LinkedInOverview from "@/pages/LinkedInDash/LinkedInOverview";
+import LinkedInSettings from "@/pages/LinkedInDash/LinkedInSettings";
+import LinkedInHelp from "@/pages/LinkedInDash/LinkedInHelp";
 import FacebookLayout from "@/pages/MetaDash/FacebookLayout";
 import FacebookDash from "@/pages/MetaDash/FacebookDash";
 import FacebookContent from "@/pages/MetaDash/FacebookContent";
@@ -49,6 +62,15 @@ import Settings from "@/pages/Settings";
 import DashboardLayout from "@/components/DashboardLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
 
+import { useOutletContext } from "react-router-dom";
+
+// ── Context Wrapper for Legacy Props ────────────────────────────────
+// Passes useOutletContext values as props to components that still expect them.
+const YoutubeContextWrapper = ({ Component }) => {
+  const context = useOutletContext();
+  return <Component {...context} />;
+};
+
 // ── Router Definition ───────────────────────────────────────────────
 const router = createBrowserRouter([
   // ── Public Routes ─────────────────────────────────────────────────
@@ -62,12 +84,31 @@ const router = createBrowserRouter([
     element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
     children: [
       { index: true, element: <Navigate to="/dashboard/youtube" replace /> },
-      { path: "youtube", element: <YoutubeDash /> },
-      { path: "youtube/settings", element: <Placeholder /> },
-      { path: "youtube/help", element: <Placeholder /> },
-      { path: "linkedin", element: <LinkedInDash /> },
-      { path: "linkedin/settings", element: <Placeholder /> },
-      { path: "linkedin/help", element: <Placeholder /> },
+      { 
+        path: "youtube", 
+        element: <YoutubeLayout />,
+        children: [
+          { index: true, element: <YoutubeContextWrapper Component={YoutubeOverview} /> },
+          { path: "content", element: <YoutubeContextWrapper Component={YoutubeContent} /> },
+          { path: "audience", element: <YoutubeContextWrapper Component={YoutubeAudience} /> },
+          { path: "engagement", element: <YoutubeContextWrapper Component={YoutubeEngagement} /> },
+          { path: "playlists", element: <YoutubeContextWrapper Component={YoutubePlaylists} /> },
+          { path: "revenue", element: <YoutubeContextWrapper Component={YoutubeRevenue} /> },
+          { path: "realtime", element: <YoutubeContextWrapper Component={YoutubeRealtime} /> },
+          { path: "reports", element: <YoutubeContextWrapper Component={YoutubeReports} /> },
+          { path: "settings", element: <YoutubeSettings /> },
+          { path: "help", element: <YoutubeHelp /> },
+        ]
+      },
+      {
+        path: "linkedin",
+        element: <LinkedInLayout />,
+        children: [
+          { index: true, element: <LinkedInOverview /> },
+          { path: "settings", element: <LinkedInSettings /> },
+          { path: "help", element: <LinkedInHelp /> },
+        ]
+      },
       // ── Facebook Dashboard — nested layout with child routes ──────
       // Mirrors the Instagram routing architecture exactly:
       // FacebookLayout = sidebar shell + Outlet
