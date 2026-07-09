@@ -11,6 +11,7 @@
 import { useState, useEffect } from "react";
 import { Outlet, NavLink, useNavigate } from "react-router-dom";
 import fbapi from "@/services/fbapi";
+import ConnectCard from "@/components/ConnectCard";
 import {
   BarChart3, Users, Heart, FileText,
   ThumbsUp, Eye, Video, History, Target, Settings, HelpCircle,
@@ -95,6 +96,14 @@ const FacebookLayout = () => {
     return () => { mounted = false; };
   }, []);
 
+  // ── Connection handler ──────────────────────────────────────────────────────
+  const handleConnect = () => {
+    const token = localStorage.getItem("incubein_token");
+    const baseUrl = import.meta.env.VITE_BASE_URL || "http://localhost:5000";
+    localStorage.setItem("returnPath", window.location.pathname);
+    window.location.href = `${baseUrl}/auth/facebook?token=${token}`;
+  };
+
   // ── Close mobile overlay when route changes ───────────────────────────────
   const closeMobile = () => setIsMobileOpen(false);
 
@@ -148,7 +157,7 @@ const FacebookLayout = () => {
               <div className="min-w-0 flex-1 hidden lg:block">
                 <p className="text-xs font-semibold truncate text-white">Facebook</p>
                 <p className="text-[10px] text-gray-400 truncate">
-                  {isLayoutLoading ? "Loading..." : profile?.name || "Connected"}
+                  {isLayoutLoading ? "Loading..." : profile?.name || (isConnected ? "Connected" : "Not Connected")}
                 </p>
               </div>
             )}
@@ -156,7 +165,7 @@ const FacebookLayout = () => {
             <div className="min-w-0 flex-1 lg:hidden">
               <p className="text-xs font-semibold truncate text-white">Facebook</p>
               <p className="text-[10px] text-gray-400 truncate">
-                {isLayoutLoading ? "Loading..." : profile?.name || "Connected"}
+                {isLayoutLoading ? "Loading..." : profile?.name || (isConnected ? "Connected" : "Not Connected")}
               </p>
             </div>
           </div>
@@ -232,13 +241,32 @@ const FacebookLayout = () => {
         {/* ── Scrollable Outlet Area ────────────────────────────────────── */}
         {/* Passes layout context to all child pages via Outlet context */}
         <main className="flex-1 overflow-y-auto">
-          <Outlet
-            context={{
-              profile,
-              isConnected,
-              isLayoutLoading,
-            }}
-          />
+          {!isConnected && !isLayoutLoading ? (
+            <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] p-6 animate-fade-in">
+              <ConnectCard
+                icon={
+                  <svg className="h-8 w-8 text-[#1877F2]" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+                  </svg>
+                }
+                cardTitle="Connect Facebook Page"
+                cardDescription="Connect your Facebook account to view Page likes, post reach, engagements, and detailed visual performance metrics."
+                onConnect={handleConnect}
+                buttonText="Connect Facebook Page"
+                brandBgClass="bg-[#1877F2]/10"
+                brandTextClass="text-[#1877F2]"
+                brandButtonClass="bg-[#1877F2] hover:bg-[#1877F2]/90"
+              />
+            </div>
+          ) : (
+            <Outlet
+              context={{
+                profile,
+                isConnected,
+                isLayoutLoading,
+              }}
+            />
+          )}
         </main>
       </div>
     </div>
