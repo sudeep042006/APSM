@@ -134,7 +134,7 @@ export default function MetaInnerSidebar({
           // Icon-only switcher for slim/collapsed state
           <div className="flex flex-col items-center gap-2">
             <button
-              onClick={() => navigate('/dashboard/meta/facebook')}
+              onClick={() => navigate('/dashboard/facebook')}
               className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all ${
                 isFacebook ? "bg-[#1877F2] text-white shadow-sm" : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
@@ -143,7 +143,7 @@ export default function MetaInnerSidebar({
               <Facebook className="h-5 w-5" />
             </button>
             <button
-              onClick={() => navigate('/dashboard/meta/instagram')}
+              onClick={() => navigate('/dashboard/instagram')}
               className={`flex items-center justify-center w-10 h-10 rounded-xl transition-all ${
                 isInstagram ? "bg-[#E1306C] text-white shadow-sm" : "text-slate-400 hover:text-white hover:bg-white/5"
               }`}
@@ -156,7 +156,7 @@ export default function MetaInnerSidebar({
           // Full-width pill switcher for expanded state
           <div className="bg-white/5 p-1 rounded-lg flex gap-1">
             <button
-              onClick={() => navigate('/dashboard/meta/facebook')}
+              onClick={() => navigate('/dashboard/facebook')}
               className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-md text-sm font-medium transition-all ${
                 isFacebook
                   ? "bg-[#1877F2] text-white shadow-sm"
@@ -166,7 +166,7 @@ export default function MetaInnerSidebar({
               <Facebook className="h-4 w-4" /> Facebook
             </button>
             <button
-              onClick={() => navigate('/dashboard/meta/instagram')}
+              onClick={() => navigate('/dashboard/instagram')}
               className={`flex-1 flex items-center justify-center gap-2 py-1.5 rounded-md text-sm font-medium transition-all ${
                 isInstagram
                   ? "bg-[#E1306C] text-white shadow-sm"

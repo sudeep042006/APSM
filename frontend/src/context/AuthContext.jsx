@@ -37,9 +37,15 @@ export function AuthProvider({ children }) {
     const savedUser = localStorage.getItem("incubein_user");
 
     const verifySession = async () => {
-      if (token && savedUser) {
+      if (token) {
         try {
-          setUser(JSON.parse(savedUser));
+          if (savedUser && savedUser !== "undefined") {
+            try {
+              setUser(JSON.parse(savedUser));
+            } catch (jsonErr) {
+              console.warn("Corrupted user cache in localStorage:", jsonErr);
+            }
+          }
           const res = await api.get("/auth/me");
           const latestUser = res.data.user;
           localStorage.setItem("incubein_user", JSON.stringify(latestUser));

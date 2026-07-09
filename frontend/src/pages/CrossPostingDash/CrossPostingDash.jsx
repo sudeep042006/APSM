@@ -35,8 +35,8 @@ export default function CrossPostingDash() {
 
     // Map each platform to its correct return destination
     const returnPaths = {
-      facebook: "/dashboard/meta/facebook",
-      instagram: "/dashboard/meta/instagram",
+      facebook: "/dashboard/facebook",
+      instagram: "/dashboard/instagram",
       youtube: "/dashboard/youtube",
       linkedin: "/dashboard/linkedin",
     };

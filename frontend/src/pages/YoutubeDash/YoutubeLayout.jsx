@@ -232,7 +232,7 @@ export default function YoutubeLayout() {
   };
 
   // ── Handle YouTube revoke ─────────────────────────────────────────
-  const handleRevoke = async () => {
+  const executeRevoke = async () => {
     setRevokeLoading(true);
     try {
       await revokeYouTube();
@@ -247,6 +247,10 @@ export default function YoutubeLayout() {
       setRevokeLoading(false);
       window.history.replaceState({}, document.title, window.location.pathname);
     }
+  };
+
+  const handleRevoke = () => {
+    setShowDisconnectModal(true);
   };
 
   // ── Loading state (checking connection) ───────────────────────────
@@ -375,7 +379,7 @@ export default function YoutubeLayout() {
           onClose={() => setShowDisconnectModal(false)} 
           onConfirm={() => {
             setShowDisconnectModal(false);
-            handleRevoke();
+            executeRevoke();
           }} 
         />
         {/* ── Mobile Header Toggle ───────────────────────────────────── */}
