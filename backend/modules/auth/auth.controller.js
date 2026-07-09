@@ -183,12 +183,19 @@ const oauthCallback = async (req, res) => {
 
   try {
     // Exchange authorization code for tokens
-    const tokenRes = await axios.post(config.tokenUrl, {
+    // Standard OAuth 2.0 requires application/x-www-form-urlencoded
+    const tokenParams = new URLSearchParams({
       grant_type:    'authorization_code',
       code,
       redirect_uri:  config.redirectUri,
       client_id:     config.clientId,
       client_secret: config.clientSecret,
+    });
+
+    const tokenRes = await axios.post(config.tokenUrl, tokenParams.toString(), {
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded'
+      }
     });
 
     // Normalize tokens (handles Meta short→long-lived exchange internally)
