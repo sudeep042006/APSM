@@ -22,21 +22,21 @@ import LinkedInLayout from "@/pages/LinkedInDash/LinkedInLayout";
 import LinkedInOverview from "@/pages/LinkedInDash/LinkedInOverview";
 import LinkedInSettings from "@/pages/LinkedInDash/LinkedInSettings";
 import LinkedInHelp from "@/pages/LinkedInDash/LinkedInHelp";
-import FacebookLayout from "@/pages/MetaDash/FacebookLayout";
-import FacebookDash from "@/pages/MetaDash/FacebookDash";
-import FacebookContent from "@/pages/MetaDash/FacebookContent";
-import FacebookAudience from "@/pages/MetaDash/FacebookAudience";
-import FacebookEngagement from "@/pages/MetaDash/FacebookEngagement";
-import FacebookPageLikes from "@/pages/MetaDash/FacebookPageLikes";
-import FacebookReachViews from "@/pages/MetaDash/FacebookReachViews";
-import FacebookVideos from "@/pages/MetaDash/FacebookVideos";
-import FacebookStories from "@/pages/MetaDash/FacebookStories";
-import FacebookGroups from "@/pages/MetaDash/FacebookGroups";
-import FacebookAds from "@/pages/MetaDash/FacebookAds";
-import FacebookReports from "@/pages/MetaDash/FacebookReports";
-import FacebookInsights from "@/pages/MetaDash/FacebookInsights";
-import FacebookSettings from "@/pages/MetaDash/FacebookSettings";
-import FacebookHelp from "@/pages/MetaDash/FacebookHelp";
+import FacebookLayout from "@/pages/FacebookDash/FacebookLayout";
+import FacebookDash from "@/pages/FacebookDash/FacebookDash";
+import FacebookContent from "@/pages/FacebookDash/FacebookContent";
+import FacebookAudience from "@/pages/FacebookDash/FacebookAudience";
+import FacebookEngagement from "@/pages/FacebookDash/FacebookEngagement";
+import FacebookPageLikes from "@/pages/FacebookDash/FacebookPageLikes";
+import FacebookReachViews from "@/pages/FacebookDash/FacebookReachViews";
+import FacebookVideos from "@/pages/FacebookDash/FacebookVideos";
+import FacebookStories from "@/pages/FacebookDash/FacebookStories";
+import FacebookGroups from "@/pages/FacebookDash/FacebookGroups";
+import FacebookAds from "@/pages/FacebookDash/FacebookAds";
+import FacebookReports from "@/pages/FacebookDash/FacebookReports";
+import FacebookInsights from "@/pages/FacebookDash/FacebookInsights";
+import FacebookSettings from "@/pages/FacebookDash/FacebookSettings";
+import FacebookHelp from "@/pages/FacebookDash/FacebookHelp";
 import InstagramDash from "@/pages/InstagramDash/InstagramDash";
 import InstagramLayout from "@/pages/InstagramDash/InstagramLayout";
 import MetricDetailView from "@/pages/InstagramDash/MetricDetailView";
@@ -76,6 +76,7 @@ const router = createBrowserRouter([
   // ── Public Routes ─────────────────────────────────────────────────
   { path: "/", element: <LandingPage /> },
   { path: "/login", element: <AuthPage /> },
+  { path: "/signup", element: <AuthPage /> },
   { path: "/settings", element: <ProtectedRoute><Settings /></ProtectedRoute> },
 
   // ── Dashboard Routes (wrapped in layout shell) ────────────────────
@@ -84,8 +85,8 @@ const router = createBrowserRouter([
     element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
     children: [
       { index: true, element: <Navigate to="/dashboard/youtube" replace /> },
-      { 
-        path: "youtube", 
+      {
+        path: "youtube",
         element: <YoutubeLayout />,
         children: [
           { index: true, element: <YoutubeContextWrapper Component={YoutubeOverview} /> },
@@ -117,23 +118,23 @@ const router = createBrowserRouter([
         path: "facebook",
         element: <FacebookLayout />,
         children: [
-          { index: true,                  element: <FacebookDash />      },
-          { path: "content",              element: <FacebookContent />   },
-          { path: "audience",             element: <FacebookAudience />  },
-          { path: "engagement",           element: <FacebookEngagement />},
-          { path: "page_likes",           element: <FacebookPageLikes /> },
-          { path: "reach_views",          element: <FacebookReachViews />},
-          { path: "videos",               element: <FacebookVideos />    },
-          { path: "stories",              element: <FacebookStories />   },
-          { path: "groups",               element: <FacebookGroups />    },
-          { path: "ads",                  element: <FacebookAds />       },
-          { path: "reports",              element: <FacebookReports />   },
-          { path: "insights",             element: <FacebookInsights />  },
-          { path: "settings",             element: <FacebookSettings />  },
-          { path: "help",                 element: <FacebookHelp />      },
+          { index: true, element: <FacebookDash /> },
+          { path: "content", element: <FacebookContent /> },
+          { path: "audience", element: <FacebookAudience /> },
+          { path: "engagement", element: <FacebookEngagement /> },
+          { path: "page_likes", element: <FacebookPageLikes /> },
+          { path: "reach_views", element: <FacebookReachViews /> },
+          { path: "videos", element: <FacebookVideos /> },
+          { path: "stories", element: <FacebookStories /> },
+          { path: "groups", element: <FacebookGroups /> },
+          { path: "ads", element: <FacebookAds /> },
+          { path: "reports", element: <FacebookReports /> },
+          { path: "insights", element: <FacebookInsights /> },
+          { path: "settings", element: <FacebookSettings /> },
+          { path: "help", element: <FacebookHelp /> },
         ]
       },
-      { 
+      {
         path: "instagram",
         element: <InstagramLayout />,
         children: [

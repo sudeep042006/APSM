@@ -36,7 +36,7 @@ export default function AuthErrorModal({ onDismiss }) {
   // their individual social platform accounts via the existing OAuth flow.
   const handleReconnect = () => {
     if (onDismiss) onDismiss();
-    navigate("/dashboard/settings");
+    navigate("/settings");
   };
 
   return (

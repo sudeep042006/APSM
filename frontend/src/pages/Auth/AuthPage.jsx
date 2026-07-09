@@ -2,8 +2,8 @@
 // Unified authentication screen with toggle between Login and Register
 // modes. Includes social OAuth button placeholders.
 
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,14 +19,27 @@ import ApsmLogo from "@/assets/images/apsm-logo.svg";
 
 export default function AuthPage() {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
+  const location = useLocation();
+  const { login, register, user, loading: authLoading } = useAuth();
 
   // ── State management ──────────────────────────────────────────────
-  const [isLogin, setIsLogin] = useState(true);
+  const [isLogin, setIsLogin] = useState(location.pathname !== "/signup");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [form, setForm] = useState({ name: "", email: "", password: "" });
+
+  // ── Sync login/signup mode with path changes ─────────────────────
+  useEffect(() => {
+    setIsLogin(location.pathname !== "/signup");
+  }, [location.pathname]);
+
+  // ── Redirect authenticated users away from auth pages ───────────
+  useEffect(() => {
+    if (user && !authLoading) {
+      navigate("/dashboard/youtube", { replace: true });
+    }
+  }, [user, authLoading, navigate]);
 
   // ── Form input handler ────────────────────────────────────────────
   const handleChange = (e) => {
@@ -48,11 +61,24 @@ export default function AuthPage() {
       }
       navigate("/dashboard/youtube");
     } catch (err) {
-      setError(err.response?.data?.message || "Something went wrong.");
+      setError(err.response?.data?.error || err.response?.data?.message || "Something went wrong.");
     } finally {
       setLoading(false);
     }
   };
+
+  // ── Session verification state ────────────────────────────────────
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-[#0b0f19] flex items-center justify-center flex-col">
+        <div className="relative w-16 h-16">
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-purple-500/20 rounded-full"></div>
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-t-purple-500 rounded-full animate-spin"></div>
+        </div>
+        <p className="mt-4 text-slate-400 font-medium animate-pulse">Verifying Session...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -134,7 +160,7 @@ export default function AuthPage() {
                   onChange={handleChange}
                   placeholder="••••••••"
                   required
-                  minLength={6}
+                  minLength={8}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 pr-10 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 />
                 <button
@@ -192,8 +218,10 @@ export default function AuthPage() {
             <button
               type="button"
               onClick={() => {
-                setIsLogin(!isLogin);
+                const nextMode = !isLogin;
+                setIsLogin(nextMode);
                 setError("");
+                navigate(nextMode ? "/login" : "/signup");
               }}
               className="font-medium text-primary underline-offset-4 hover:underline"
               id="auth-toggle-mode"
