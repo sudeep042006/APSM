@@ -1,5 +1,6 @@
 // server.js — entry point
-import 'dotenv/config';
+import dotenv from 'dotenv';
+dotenv.config();
 
 // ES modules
 import express from 'express';
@@ -16,9 +17,8 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
-// ── CORS: allow requests from the Vite dev frontend (port 5173) ──────────
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
 }));
 app.use(express.json());
