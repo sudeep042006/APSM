@@ -1,4 +1,3 @@
-// ── Imports ──────────────────────────────────────────────────────────
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import { redisConnectionOptions } from '../../config/redis.js';
@@ -6,7 +5,6 @@ import Automation from './automation.model.js';
 import cloudinary from '../../config/cloudinary.js';
 import streamifier from 'streamifier';
 
-// ── Queue Connection & Configuration ──────────────────────────────────
 // Use a dedicated connection for the Queue
 const queueConnection = process.env.REDIS_URL 
     ? new Redis(process.env.REDIS_URL, redisConnectionOptions) 
