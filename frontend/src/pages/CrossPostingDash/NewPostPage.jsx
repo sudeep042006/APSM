@@ -39,15 +39,17 @@ export default function NewPostPage() {
   // ── Form State (react-hook-form) ──────────────────────────────────
   const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm({
     defaultValues: {
-      caption: "",
-      description: "",
+      title: "",
+      body: "",
+      hashtags: "",
+      link: "",
       platforms: [],
       mediaFile: null,
     }
   });
 
-  const captionVal = watch("caption", "");
-  const descVal = watch("description", "");
+  const titleVal = watch("title", "");
+  const bodyVal = watch("body", "");
   const selectedPlatforms = watch("platforms", []);
   const mediaFile = watch("mediaFile", null);
 
@@ -114,8 +116,8 @@ export default function NewPostPage() {
   // ── Submit Logic ──────────────────────────────────────────────────
   const onSubmit = async (data) => {
     // 1. Validation
-    if (!data.caption.trim()) {
-      toast({ description: "Caption cannot be empty.", variant: "destructive" });
+    if (!data.title?.trim() && !data.body?.trim()) {
+      toast({ description: "You must provide either a title or a body.", variant: "destructive" });
       return;
     }
     if (selectedPlatforms.length === 0) {
@@ -133,8 +135,10 @@ export default function NewPostPage() {
 
     // 2. Build Payload
     const formData = new FormData();
-    formData.append("caption", data.caption);
-    if (data.description) formData.append("description", data.description);
+    if (data.title) formData.append("title", data.title);
+    if (data.body) formData.append("body", data.body);
+    if (data.hashtags) formData.append("hashtags", data.hashtags);
+    if (data.link) formData.append("link", data.link);
     formData.append("platforms", JSON.stringify(selectedPlatforms));
 
     if (data.mediaFile) {
@@ -164,7 +168,7 @@ export default function NewPostPage() {
 
       // Update Context History
       addToHistory({
-        caption: data.caption,
+        caption: data.title || data.body || "New Post",
         platforms: selectedPlatforms,
         status: finalDate ? "Scheduled" : "Published",
         scheduledFor: finalDate,
@@ -172,8 +176,10 @@ export default function NewPostPage() {
       });
 
       // Reset form
-      setValue("caption", "");
-      setValue("description", "");
+      setValue("title", "");
+      setValue("body", "");
+      setValue("hashtags", "");
+      setValue("link", "");
       setValue("platforms", []);
       removeMedia();
       setIsScheduling(false);
@@ -210,48 +216,57 @@ export default function NewPostPage() {
           {/* ── LEFT COLUMN (The Form) ───────────────────────────────────── */}
           <div className="space-y-6">
 
-            {/* Caption */}
+            {/* Title */}
             <div className="space-y-2">
               <div className="flex justify-between">
-                <label className="text-sm font-medium text-slate-300">Caption <span className="text-red-400">*</span></label>
-                <span className={`text-xs ${captionVal.length > 220 ? "text-red-400" : "text-slate-500"}`}>
-                  {captionVal.length} / 220
+                <label className="text-sm font-medium text-slate-300">Title / Headline <span className="text-red-400">*</span></label>
+                <span className={`text-xs ${titleVal.length > 100 ? "text-red-400" : "text-slate-500"}`}>
+                  {titleVal.length} / 100
                 </span>
               </div>
-              <textarea
-                {...register("caption", { required: true, maxLength: 220 })}
-                placeholder="What do you want to share?"
-                className="w-full bg-[#1e2230] border border-white/5 rounded-lg p-3 text-sm focus:outline-none focus:border-[#6366f1] resize-none h-24 transition-colors placeholder:text-slate-500"
+              <input
+                type="text"
+                {...register("title", { required: true, maxLength: 100 })}
+                placeholder="Catchy headline for your post"
+                className="w-full bg-[#1e2230] border border-white/5 rounded-lg p-3 text-sm focus:outline-none focus:border-[#6366f1] transition-colors placeholder:text-slate-500"
               />
             </div>
 
-            {/* Description with Mock Toolbar */}
-            <div className="space-y-2 bg-[#141720] border border-white/5 rounded-lg overflow-hidden flex flex-col">
-              <div className="bg-[#1e2230] border-b border-white/5 p-2 flex items-center gap-1">
-                {[Bold, Italic, Underline, List, Link2, ImageIcon, Smile].map((Icon, idx) => (
-                  <button
-                    key={idx}
-                    type="button"
-                    title="Rich text formatting unavailable"
-                    className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-white/5 rounded cursor-not-allowed group relative"
-                  >
-                    <Icon className="h-4 w-4" />
-                    {/* Simple pure CSS tooltip inside the group */}
-                    <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10 transition-opacity">
-                      Rich text formatting unavailable
-                    </span>
-                  </button>
-                ))}
-                <div className="flex-1" />
-                <span className={`text-xs px-2 ${descVal.length > 2000 ? "text-red-400" : "text-slate-500"}`}>
-                  {descVal.length} / 2000
+            {/* Body */}
+            <div className="space-y-2">
+              <div className="flex justify-between">
+                <label className="text-sm font-medium text-slate-300">Body / Description</label>
+                <span className={`text-xs ${bodyVal.length > 2000 ? "text-red-400" : "text-slate-500"}`}>
+                  {bodyVal.length} / 2000
                 </span>
               </div>
               <textarea
-                {...register("description", { maxLength: 2000 })}
-                placeholder="Add a detailed description (optional)..."
-                className="w-full bg-transparent p-3 text-sm focus:outline-none resize-none h-40 placeholder:text-slate-600"
+                {...register("body", { maxLength: 2000 })}
+                placeholder="What do you want to share?"
+                className="w-full bg-[#1e2230] border border-white/5 rounded-lg p-3 text-sm focus:outline-none focus:border-[#6366f1] resize-none h-32 transition-colors placeholder:text-slate-500"
               />
+            </div>
+
+            {/* Hashtags & Link (2 columns) */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300">Hashtags</label>
+                <input
+                  type="text"
+                  {...register("hashtags")}
+                  placeholder="#tech #innovation"
+                  className="w-full bg-[#1e2230] border border-white/5 rounded-lg p-3 text-sm focus:outline-none focus:border-[#6366f1] transition-colors placeholder:text-slate-500"
+                />
+              </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-slate-300">Link (Optional)</label>
+                <input
+                  type="url"
+                  {...register("link")}
+                  placeholder="https://example.com"
+                  className="w-full bg-[#1e2230] border border-white/5 rounded-lg p-3 text-sm focus:outline-none focus:border-[#6366f1] transition-colors placeholder:text-slate-500"
+                />
+              </div>
             </div>
 
             {/* Media Upload */}
@@ -396,7 +411,7 @@ export default function NewPostPage() {
                           </td>
                         </tr>
                       ) : (
-                        postHistory.map((post) => (
+                        postHistory.slice(0, 6).map((post) => (
                           <tr key={post.id} className="hover:bg-white/[0.02]">
                             <td className="px-4 py-3">
                               <div className="flex items-center gap-3">
@@ -444,6 +459,18 @@ export default function NewPostPage() {
                     </tbody>
                   </table>
                 </div>
+                {postHistory.length > 6 && (
+                  <div className="bg-[#1e2230] border-t border-white/5 p-3 flex justify-center">
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={() => navigate("/dashboard/crosspost/history")}
+                      className="text-xs text-[#6366f1] hover:text-[#4f46e5] hover:bg-transparent"
+                    >
+                      View in details
+                    </Button>
+                  </div>
+                )}
               </Card>
             </div>
 

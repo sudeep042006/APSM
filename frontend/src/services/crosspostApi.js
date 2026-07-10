@@ -29,6 +29,15 @@ const crosspostApi = {
       headers: { 'Content-Type': 'multipart/form-data' }
     });
     return response.data;
+  },
+
+  /**
+   * Fetches the user's past automation jobs (history).
+   * @returns {Promise<Array>} Array of automation job histories.
+   */
+  getHistory: async () => {
+    const response = await api.get('/automation/jobs');
+    return response.data;
   }
 };
 

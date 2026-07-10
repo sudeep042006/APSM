@@ -59,6 +59,7 @@ import InstagramHelp from "@/pages/InstagramDash/InstagramHelp";
 import Placeholder from "@/components/Placeholder";
 import CrossPostingDash from "@/pages/CrossPostingDash/CrossPostingDash";
 import NewPostPage from "@/pages/CrossPostingDash/NewPostPage";
+import CrossPostHistory from "@/pages/CrossPostingDash/CrossPostHistory";
 import CrossPostLayout from "@/pages/CrossPostingDash/CrossPostLayout";
 import NotFound from "@/pages/NotFound/NotFound";
 import Settings from "@/pages/Settings";
@@ -169,6 +170,7 @@ const router = createBrowserRouter([
         children: [
           { index: true, element: <CrossPostingDash /> },
           { path: "new", element: <NewPostPage /> },
+          { path: "history", element: <CrossPostHistory /> },
         ]
       },
     ],
