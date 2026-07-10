@@ -99,8 +99,15 @@ export default function CrossPostingDash() {
       <ConfirmDisconnectModal 
         isOpen={!!disconnectTarget} 
         onClose={() => setDisconnectTarget(null)} 
-        onConfirm={() => {
-          // No API function currently implemented for this page, just close the modal
+        onConfirm={async () => {
+          if (disconnectTarget) {
+            try {
+              await crosspostApi.revokeAccess(disconnectTarget);
+              window.location.reload();
+            } catch (err) {
+              console.error("Failed to disconnect", err);
+            }
+          }
           setDisconnectTarget(null);
         }} 
       />
