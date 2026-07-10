@@ -4,7 +4,6 @@
 // interaction with the dashboard until the user reconnects their account.
 // Rendered inside AuthContext so it covers the entire application tree.
 
-import { useNavigate } from "react-router-dom";
 import { ShieldAlert, RefreshCw } from "lucide-react";
 
 // ── Constants ─────────────────────────────────────────────────────────
@@ -29,14 +28,13 @@ const PLATFORM_BUTTONS = [
 
 // ── AuthErrorModal Component ──────────────────────────────────────────
 export default function AuthErrorModal({ onDismiss }) {
-  const navigate = useNavigate();
 
   // ── Handle reconnect click ─────────────────────────────────────────
   // Navigates the user to the Settings page where they can re-authenticate
   // their individual social platform accounts via the existing OAuth flow.
   const handleReconnect = () => {
     if (onDismiss) onDismiss();
-    navigate("/dashboard/settings");
+    window.location.href = "/settings";
   };
 
   return (

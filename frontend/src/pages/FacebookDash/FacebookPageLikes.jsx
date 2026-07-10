@@ -1,0 +1,157 @@
+// ── Facebook Page Likes Page ──────────────────────────────────────────────────
+// Fetches data independently via fbapi.getPageLikesMetrics() on mount.
+// Shows net growth KPIs + follower gained/lost AreaChart + Gained vs Lost BarChart.
+
+import { useState, useEffect } from "react";
+import { useOutletContext } from "react-router-dom";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import fbapi from "@/services/fbapi";
+import { ThumbsUp, TrendingUp, TrendingDown, UserMinus, ArrowUpRight, ArrowDownRight } from "lucide-react";
+import {
+  ResponsiveContainer, AreaChart, Area, BarChart, Bar,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+} from "recharts";
+
+const FB_BLUE = "#1877F2";
+const fmt = (n) => n == null ? "—" : new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);
+
+const GlassTooltip = ({ active, payload, label }) => {
+  if (!active || !payload?.length) return null;
+  return (
+    <div style={{ backgroundColor: "rgba(22,27,34,0.85)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }} className="px-3 py-2.5 text-xs">
+      <p className="font-semibold text-white mb-1">{label}</p>
+      {payload.map((e, i) => <p key={i} style={{ color: e.color }}>{e.name}: <span className="font-bold text-white">{fmt(e.value)}</span></p>)}
+    </div>
+  );
+};
+
+const FacebookPageLikes = () => {
+  const { isConnected } = useOutletContext();
+  const [data, setData]     = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError]   = useState(null);
+
+  // ── Fetch page likes metrics independently on mount ───────────────────────
+  useEffect(() => {
+    let mounted = true;
+    const fetch = async () => {
+      try {
+        const result = await fbapi.getPageLikesMetrics();
+        if (mounted) setData(result);
+      } catch (e) {
+        if (mounted) setError("Could not load page likes data.");
+      } finally {
+        if (mounted) setIsLoading(false);
+      }
+    };
+    fetch();
+    return () => { mounted = false; };
+  }, []);
+
+  if (error) return (
+    <div className="p-6 flex items-center justify-center min-h-[50vh]">
+      <div className="text-center space-y-3">
+        <TrendingDown className="h-10 w-10 text-red-400 mx-auto" />
+        <p className="text-sm text-gray-400">{error}</p>
+        <Button onClick={() => window.location.reload()} className="bg-[#1877F2] hover:bg-[#1877F2]/90 text-white text-xs">Retry</Button>
+      </div>
+    </div>
+  );
+
+  // ── KPI definitions ────────────────────────────────────────────────────────
+  const kpis = [
+    { label: "Total Gained",  value: data?.gained, change:  8.3,  icon: ThumbsUp,   color: "bg-[#1877F2]/10 text-[#1877F2]"   },
+    { label: "Total Lost",    value: data?.lost,   change: -2.1,  icon: UserMinus,  color: "bg-red-500/10 text-red-400"        },
+    { label: "Net Growth",    value: data?.net,    change:  12.4, icon: TrendingUp, color: "bg-emerald-500/10 text-emerald-400" },
+  ];
+
+  return (
+    <div className="p-4 md:p-6 space-y-6">
+
+      {/* ── KPI Cards ─────────────────────────────────────────────────────── */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {kpis.map((k, i) => (
+          <Card key={i} className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 p-5">
+            <CardContent className="p-0">
+              {isLoading ? (
+                <><Skeleton className="h-10 w-10 rounded-full bg-gray-700/50 mb-3" /><Skeleton className="h-3 w-20 bg-gray-700/50 mb-2" /><Skeleton className="h-8 w-24 bg-gray-700/50" /></>
+              ) : (
+                <>
+                  <div className={`flex h-10 w-10 items-center justify-center rounded-full ${k.color} mb-3`}>
+                    <k.icon className="h-5 w-5" />
+                  </div>
+                  <p className="text-xs uppercase tracking-wider text-gray-400 font-semibold">{k.label}</p>
+                  <p className="text-3xl font-bold text-white mt-2">{fmt(k.value)}</p>
+                  <div className={`text-xs font-medium flex items-center gap-0.5 mt-1 ${k.change >= 0 ? "text-emerald-400" : "text-red-400"}`}>
+                    {k.change >= 0 ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                    {k.change >= 0 ? "+" : ""}{k.change}%
+                    <span className="text-gray-500 font-normal ml-1">vs last month</span>
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+
+        {/* ── Follower Growth AreaChart ──────────────────────────────────── */}
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold text-white">Follower Growth Timeline</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            {isLoading ? (
+              <Skeleton className="w-full h-full bg-gray-700/30 rounded-xl" />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={data?.followerGrowthTimeline} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="fbGainGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor={FB_BLUE} stopOpacity={0.35} />
+                      <stop offset="95%" stopColor={FB_BLUE} stopOpacity={0}    />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="date" stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} tickFormatter={fmt} />
+                  <Tooltip content={<GlassTooltip />} />
+                  <Area type="monotone" dataKey="followers" name="Total Followers" stroke={FB_BLUE} strokeWidth={2} fillOpacity={1} fill="url(#fbGainGrad)" />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* ── Gained vs Lost BarChart ───────────────────────────────────── */}
+        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
+          <CardHeader>
+            <CardTitle className="text-sm font-semibold text-white">Gained vs. Lost (Daily)</CardTitle>
+          </CardHeader>
+          <CardContent className="h-[300px]">
+            {isLoading ? (
+              <Skeleton className="w-full h-full bg-gray-700/30 rounded-xl" />
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={data?.followerGrowthTimeline} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                  <XAxis dataKey="date" stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
+                  <Tooltip content={<GlassTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
+                  <Legend iconType="circle" wrapperStyle={{ fontSize: 11, color: "#9ca3af" }} />
+                  <Bar dataKey="gained"    name="Gained" fill={FB_BLUE}   radius={[4,4,0,0]} maxBarSize={16} />
+                  <Bar dataKey="unfollows" name="Lost"   fill="#ef4444"   radius={[4,4,0,0]} maxBarSize={16} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  );
+};
+
+export default FacebookPageLikes;

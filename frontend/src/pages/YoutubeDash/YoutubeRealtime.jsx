@@ -93,7 +93,7 @@ export default function YoutubeRealtime({ loading }) {
         </div>
         <h2 className="text-xl font-bold">Realtime Analytics</h2>
         <p className="mt-2 text-sm text-slate-400 max-w-md leading-relaxed">
-          Realtime analytics are coming soon. You'll be able to monitor live viewer counts,
+          Realtime analytics synchronization is currently in progress. You will soon be able to monitor live viewer counts,
           trending content, and minute-by-minute performance metrics for your channel.
         </p>
       </div>

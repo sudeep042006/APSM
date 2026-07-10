@@ -77,8 +77,8 @@ export default function YoutubePlaylists({ loading }) {
         </div>
         <h2 className="text-xl font-bold">Playlist Analytics</h2>
         <p className="mt-2 text-sm text-slate-400 max-w-md leading-relaxed">
-          Playlist-level analytics are coming soon. You'll be able to track performance,
-          views, watch time, and engagement for each of your YouTube playlists.
+          Playlist-level analytics are currently processing. You will be able to track performance,
+          views, watch time, and engagement for each of your YouTube playlists here shortly.
         </p>
       </div>
 

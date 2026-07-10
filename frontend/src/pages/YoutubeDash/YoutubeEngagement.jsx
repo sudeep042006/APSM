@@ -251,10 +251,9 @@ export default function YoutubeEngagement({ data, loading }) {
                     dataKey="date"
                     stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
-                    tickLine={false}
                     interval="preserveStartEnd"
                   />
-                  <YAxis stroke={"#94a3b8"} tickLine={false} axisLine={false} fontSize={10} tickLine={false} />
+                  <YAxis stroke={"#94a3b8"} tickLine={false} axisLine={false} fontSize={10} />
                   <Tooltip content={<CustomTooltip />} />
                   <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "11px" }} />
                   <Line type="monotone" dataKey="likes" name="Likes" stroke={COLORS.blue} strokeWidth={2} dot={false} />
@@ -293,10 +292,9 @@ export default function YoutubeEngagement({ data, loading }) {
                     dataKey="date"
                     stroke={"#94a3b8"} tickLine={false} axisLine={false}
                     fontSize={10}
-                    tickLine={false}
                     interval="preserveStartEnd"
                   />
-                  <YAxis stroke={"#94a3b8"} tickLine={false} axisLine={false} fontSize={10} tickLine={false} />
+                  <YAxis stroke={"#94a3b8"} tickLine={false} axisLine={false} fontSize={10} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area
                     type="monotone"
