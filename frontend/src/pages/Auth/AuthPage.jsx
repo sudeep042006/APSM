@@ -17,13 +17,18 @@ import { Eye, EyeOff } from "lucide-react";
 import { Youtube, Linkedin, Facebook } from "@/components/icons/BrandIcons";
 import ApsmLogo from "@/assets/images/apsm-logo.svg";
 
+// Helper: check if path is signup (handles trailing slashes)
+const isSignupPath = (path) => {
+  return path.replace(/\/$/, "") === "/signup";
+};
+
 export default function AuthPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { login, register, user, loading: authLoading } = useAuth();
 
   // ── State management ──────────────────────────────────────────────
-  const [isLogin, setIsLogin] = useState(location.pathname !== "/signup");
+  const [isLogin, setIsLogin] = useState(!isSignupPath(location.pathname));
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -31,7 +36,7 @@ export default function AuthPage() {
 
   // ── Sync login/signup mode with path changes ─────────────────────
   useEffect(() => {
-    setIsLogin(location.pathname !== "/signup");
+    setIsLogin(!isSignupPath(location.pathname));
   }, [location.pathname]);
 
   // ── Redirect authenticated users away from auth pages ───────────

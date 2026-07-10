@@ -5,8 +5,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { Outlet, NavLink } from 'react-router-dom';
-import { 
-  Home, Grid, Users, Activity, Clock, PlaySquare, 
+import {
+  Home, Grid, Users, Activity, Clock, PlaySquare,
   TrendingUp, Hash, BarChart, FileText, Settings, HelpCircle,
   Menu, X, ChevronLeft, ChevronRight
 } from 'lucide-react';
@@ -42,12 +42,10 @@ const SidebarLink = ({ to, icon: Icon, label, end, onClick, isCollapsed }) => {
       end={end}
       onClick={onClick}
       className={({ isActive }) =>
-        `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ${
-          isCollapsed ? 'justify-center' : ''
-        } ${
-          isActive 
-            ? 'bg-[#E1306C]/10 text-[#E1306C] shadow-sm' 
-            : 'text-gray-400 hover:text-white hover:bg-white/5'
+        `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ${isCollapsed ? 'justify-center' : ''
+        } ${isActive
+          ? 'bg-[#E1306C]/10 text-[#E1306C] shadow-sm'
+          : 'text-gray-400 hover:text-white hover:bg-white/5'
         }`
       }
       title={isCollapsed ? label : undefined}
@@ -68,7 +66,7 @@ const InstagramLayout = () => {
   // ── Fetch only top-level layout data (Connection State & Identity) ──
   useEffect(() => {
     let isMounted = true;
-    
+
     const fetchLayoutData = async () => {
       try {
         const data = await igapi.getProfile();
@@ -101,11 +99,32 @@ const InstagramLayout = () => {
 
   const isConnected = profileData?.isConnected ?? false;
 
+  if (!isConnected && !isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-[#0B1121] -m-6 text-white p-6 animate-fade-in">
+        <ConnectCard
+          icon={
+            <svg className="h-8 w-8 text-[#E1306C]" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
+            </svg>
+          }
+          cardTitle="Connect Instagram Account"
+          cardDescription="Connect your Instagram account to view impressions, follower growth, content engagement, and detailed analytics."
+          onConnect={handleConnect}
+          buttonText="Connect Instagram Business Account"
+          brandBgClass="bg-[#E1306C]/10"
+          brandTextClass="text-[#E1306C]"
+          brandButtonClass="bg-[#E1306C] hover:bg-[#E1306C]/90 text-white font-semibold"
+        />
+      </div>
+    );
+  }
+
   return (
     <div className="flex gap-0 -m-6 h-[calc(100vh-4rem)] bg-[#0B1121] text-white overflow-hidden relative">
       {/* ── Mobile Backdrop ──────────────────────────────────────────── */}
       {isMobileMenuOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/50 z-40 lg:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
@@ -121,8 +140,8 @@ const InstagramLayout = () => {
       `}>
         {/* ── Mobile Close Button ──────────────────────────────────── */}
         <div className="lg:hidden flex justify-end p-4 border-b border-white/5">
-          <button 
-            onClick={() => setIsMobileMenuOpen(false)} 
+          <button
+            onClick={() => setIsMobileMenuOpen(false)}
             className="text-gray-400 hover:text-[#E1306C] transition-colors"
           >
             <X className="w-6 h-6" />
@@ -134,7 +153,7 @@ const InstagramLayout = () => {
           <div className="flex items-center gap-2">
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#E1306C]/10">
               <svg className="h-4 w-4 text-[#E1306C]" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
+                <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z" />
               </svg>
             </div>
             {!isCollapsed && (
@@ -159,9 +178,8 @@ const InstagramLayout = () => {
         <div className="hidden lg:block p-2 border-b border-white/10">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-gray-400 hover:bg-white/10 hover:text-white transition-all duration-200 ${
-              isCollapsed ? 'justify-center' : ''
-            }`}
+            className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-gray-400 hover:bg-white/10 hover:text-white transition-all duration-200 ${isCollapsed ? 'justify-center' : ''
+              }`}
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             id="ig-collapse-btn"
           >
@@ -179,26 +197,26 @@ const InstagramLayout = () => {
         {/* ── Navigation Links ─────────────────────────────────────── */}
         <nav className="flex-1 py-2 px-1.5 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => (
-            <SidebarLink 
-              key={item.path} 
-              to={item.path} 
-              icon={item.icon} 
-              label={item.label} 
-              end={item.end} 
+            <SidebarLink
+              key={item.path}
+              to={item.path}
+              icon={item.icon}
+              label={item.label}
+              end={item.end}
               onClick={() => setIsMobileMenuOpen(false)}
               isCollapsed={isCollapsed}
             />
           ))}
         </nav>
-        
+
         {/* ── Bottom Navigation (Settings/Help) ────────────────────── */}
         <div className="py-2 px-1.5 border-t border-white/5 space-y-0.5 mt-auto">
           {bottomItems.map((item) => (
-            <SidebarLink 
-              key={item.path} 
-              to={item.path} 
-              icon={item.icon} 
-              label={item.label} 
+            <SidebarLink
+              key={item.path}
+              to={item.path}
+              icon={item.icon}
+              label={item.label}
               onClick={() => setIsMobileMenuOpen(false)}
               isCollapsed={isCollapsed}
             />
@@ -210,7 +228,7 @@ const InstagramLayout = () => {
       <div className="flex-1 flex flex-col min-w-0 h-full">
         {/* ── Mobile Header Toggle ───────────────────────────────────── */}
         <div className="lg:hidden flex items-center p-4 border-b border-white/10 bg-[#0B1121]">
-          <button 
+          <button
             onClick={() => setIsMobileMenuOpen(true)}
             className="text-gray-400 hover:text-[#E1306C] transition-colors"
           >
@@ -221,30 +239,11 @@ const InstagramLayout = () => {
 
         {/* ── Scrollable Content Area ────────────────────────────────── */}
         <main className="flex-1 overflow-y-auto">
-          {!isConnected && !isLoading ? (
-            <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] p-6 animate-fade-in">
-              <ConnectCard
-                icon={
-                  <svg className="h-8 w-8 text-[#E1306C]" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
-                  </svg>
-                }
-                cardTitle="Connect Instagram Account"
-                cardDescription="Connect your Instagram account to view impressions, follower growth, content engagement, and detailed analytics."
-                onConnect={handleConnect}
-                buttonText="Connect Instagram Business Account"
-                brandBgClass="bg-[#E1306C]/10"
-                brandTextClass="text-[#E1306C]"
-                brandButtonClass="bg-[#E1306C] hover:bg-[#E1306C]/90"
-              />
-            </div>
-          ) : (
-            <Outlet context={{ 
-              profile: profileData?.profile, 
-              isConnected, 
-              isLayoutLoading: isLoading 
-            }} />
-          )}
+          <Outlet context={{
+            profile: profileData?.profile,
+            isConnected,
+            isLayoutLoading: isLoading
+          }} />
         </main>
       </div>
     </div>

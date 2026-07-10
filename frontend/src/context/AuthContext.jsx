@@ -52,7 +52,10 @@ export function AuthProvider({ children }) {
           setUser(latestUser);
         } catch (err) {
           console.error("Session sync failed:", err);
-          logout();
+          const status = err.response?.status;
+          if (status === 401 || status === 403) {
+            logout();
+          }
         } finally {
           setLoading(false);
         }

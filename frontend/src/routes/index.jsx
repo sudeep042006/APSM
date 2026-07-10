@@ -20,6 +20,11 @@ import YoutubeSettings from "@/pages/YoutubeDash/YoutubeSettings";
 import YoutubeHelp from "@/pages/YoutubeDash/YoutubeHelp";
 import LinkedInLayout from "@/pages/LinkedInDash/LinkedInLayout";
 import LinkedInOverview from "@/pages/LinkedInDash/LinkedInOverview";
+import LinkedInContent from "@/pages/LinkedInDash/LinkedInContent";
+import LinkedInAudience from "@/pages/LinkedInDash/LinkedInAudience";
+import LinkedInEngagement from "@/pages/LinkedInDash/LinkedInEngagement";
+import LinkedInGrowth from "@/pages/LinkedInDash/LinkedInGrowth";
+import LinkedInReports from "@/pages/LinkedInDash/LinkedInReports";
 import LinkedInSettings from "@/pages/LinkedInDash/LinkedInSettings";
 import LinkedInHelp from "@/pages/LinkedInDash/LinkedInHelp";
 import FacebookLayout from "@/pages/FacebookDash/FacebookLayout";
@@ -106,6 +111,11 @@ const router = createBrowserRouter([
         element: <LinkedInLayout />,
         children: [
           { index: true, element: <LinkedInOverview /> },
+          { path: "content", element: <LinkedInContent /> },
+          { path: "audience", element: <LinkedInAudience /> },
+          { path: "engagement", element: <LinkedInEngagement /> },
+          { path: "growth", element: <LinkedInGrowth /> },
+          { path: "reports", element: <LinkedInReports /> },
           { path: "settings", element: <LinkedInSettings /> },
           { path: "help", element: <LinkedInHelp /> },
         ]

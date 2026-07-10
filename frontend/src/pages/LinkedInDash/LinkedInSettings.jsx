@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useOutletContext } from 'react-router-dom';
 import { User, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from "@/components/ui/button";
+import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
 
 // Custom switch
 const CustomSwitch = ({ checked, onChange }) => (
@@ -29,6 +30,7 @@ const CustomSwitch = ({ checked, onChange }) => (
 export default function LinkedInSettings() {
   const { isConnected, username, handleRevoke } = useOutletContext();
   const [emailReports, setEmailReports] = useState(true);
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
   return (
     <div className="h-full overflow-y-auto w-full p-4 md:p-6">
@@ -111,13 +113,23 @@ export default function LinkedInSettings() {
                   Disconnecting your LinkedIn account will pause all data syncing. Historical data will be retained for 30 days.
                 </p>
               </div>
-              <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={handleRevoke}>
+              <Button variant="destructive" className="bg-red-600 hover:bg-red-700 text-white" onClick={() => setShowDisconnectModal(true)}>
                 Disconnect Account
               </Button>
             </div>
           </div>
         )}
       </div>
+
+      {/* Disconnect Confirmation Modal */}
+      <ConfirmDisconnectModal
+        isOpen={showDisconnectModal}
+        onClose={() => setShowDisconnectModal(false)}
+        onConfirm={() => {
+          handleRevoke();
+          setShowDisconnectModal(false);
+        }}
+      />
     </div>
   );
 }

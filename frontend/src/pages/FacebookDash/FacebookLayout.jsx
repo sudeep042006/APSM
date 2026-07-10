@@ -25,24 +25,24 @@ const FB_BLUE = "#1877F2";
 // ── Sidebar navigation items (main) ──────────────────────────────────────────
 // Mapped directly in this file — no shared component dependency.
 const FB_NAV_ITEMS = [
-  { path: "/dashboard/facebook",             label: "Overview",      icon: BarChart3,  end: true },
-  { path: "/dashboard/facebook/content",     label: "Content",       icon: FileText              },
-  { path: "/dashboard/facebook/audience",    label: "Audience",      icon: Users                 },
-  { path: "/dashboard/facebook/engagement",  label: "Engagement",    icon: Heart                 },
-  { path: "/dashboard/facebook/page_likes",  label: "Page Likes",    icon: ThumbsUp              },
-  { path: "/dashboard/facebook/reach_views", label: "Reach & Views", icon: Eye                   },
-  { path: "/dashboard/facebook/videos",      label: "Videos",        icon: Video                 },
-  { path: "/dashboard/facebook/stories",     label: "Stories",       icon: History               },
-  { path: "/dashboard/facebook/groups",      label: "Groups",        icon: Users                 },
-  { path: "/dashboard/facebook/ads",         label: "Ads",           icon: Target                },
-  { path: "/dashboard/facebook/reports",     label: "Reports",       icon: FileText              },
-  { path: "/dashboard/facebook/insights",    label: "Insights",      icon: BarChart3             },
+  { path: "/dashboard/facebook", label: "Overview", icon: BarChart3, end: true },
+  { path: "/dashboard/facebook/content", label: "Content", icon: FileText },
+  { path: "/dashboard/facebook/audience", label: "Audience", icon: Users },
+  { path: "/dashboard/facebook/engagement", label: "Engagement", icon: Heart },
+  { path: "/dashboard/facebook/page_likes", label: "Page Likes", icon: ThumbsUp },
+  { path: "/dashboard/facebook/reach_views", label: "Reach & Views", icon: Eye },
+  { path: "/dashboard/facebook/videos", label: "Videos", icon: Video },
+  { path: "/dashboard/facebook/stories", label: "Stories", icon: History },
+  { path: "/dashboard/facebook/groups", label: "Groups", icon: Users },
+  { path: "/dashboard/facebook/ads", label: "Ads", icon: Target },
+  { path: "/dashboard/facebook/reports", label: "Reports", icon: FileText },
+  { path: "/dashboard/facebook/insights", label: "Insights", icon: BarChart3 },
 ];
 
 // ── Sidebar bottom-pinned items (Settings & Help — no profile block) ──────────
 const FB_NAV_BOTTOM = [
-  { path: "/dashboard/facebook/settings", label: "Settings", icon: Settings    },
-  { path: "/dashboard/facebook/help",     label: "Help",     icon: HelpCircle  },
+  { path: "/dashboard/facebook/settings", label: "Settings", icon: Settings },
+  { path: "/dashboard/facebook/help", label: "Help", icon: HelpCircle },
 ];
 
 // ── Reusable Sidebar Link ─────────────────────────────────────────────────────
@@ -53,12 +53,10 @@ const SidebarLink = ({ to, icon: Icon, label, end, onClick, isCollapsed }) => {
       end={end}
       onClick={onClick}
       className={({ isActive }) =>
-        `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ${
-          isCollapsed ? 'justify-center' : ''
-        } ${
-          isActive 
-            ? 'bg-[#1877F2]/10 text-[#1877F2] shadow-sm' 
-            : 'text-gray-400 hover:text-white hover:bg-white/5'
+        `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ${isCollapsed ? 'justify-center' : ''
+        } ${isActive
+          ? 'bg-[#1877F2]/10 text-[#1877F2] shadow-sm'
+          : 'text-gray-400 hover:text-white hover:bg-white/5'
         }`
       }
       title={isCollapsed ? label : undefined}
@@ -108,8 +106,29 @@ const FacebookLayout = () => {
   const closeMobile = () => setIsMobileOpen(false);
 
   // ── Resolved profile shorthand ────────────────────────────────────────────
-  const profile     = profileData?.profile;
+  const profile = profileData?.profile;
   const isConnected = profileData?.isConnected ?? false;
+
+  if (!isConnected && !isLayoutLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-[#0B1121] -m-6 text-white p-6 animate-fade-in">
+        <ConnectCard
+          icon={
+            <svg className="h-8 w-8 text-[#1877F2]" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+            </svg>
+          }
+          cardTitle="Connect Facebook Page"
+          cardDescription="Connect your Facebook account to view Page likes, post reach, engagements, and detailed visual performance metrics."
+          onConnect={handleConnect}
+          buttonText="Connect Facebook Page"
+          brandBgClass="bg-[#1877F2]/10"
+          brandTextClass="text-[#1877F2]"
+          brandButtonClass="bg-[#1877F2] hover:bg-[#1877F2]/90 text-white font-semibold"
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex gap-0 -m-6 h-[calc(100vh-4rem)] bg-[#0B1121] text-white overflow-hidden relative">
@@ -137,8 +156,8 @@ const FacebookLayout = () => {
       >
         {/* ── Mobile Close Button ──────────────────────────────────── */}
         <div className="lg:hidden flex justify-end p-4 border-b border-white/5">
-          <button 
-            onClick={closeMobile} 
+          <button
+            onClick={closeMobile}
             className="text-gray-400 hover:text-[#1877F2] transition-colors"
           >
             <X className="w-6 h-6" />
@@ -175,9 +194,8 @@ const FacebookLayout = () => {
         <div className="hidden lg:block p-2 border-b border-white/10">
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-gray-400 hover:bg-white/10 hover:text-white transition-all duration-200 ${
-              isCollapsed ? 'justify-center' : ''
-            }`}
+            className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-gray-400 hover:bg-white/10 hover:text-white transition-all duration-200 ${isCollapsed ? 'justify-center' : ''
+              }`}
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
             id="fb-collapse-btn"
           >
@@ -229,7 +247,7 @@ const FacebookLayout = () => {
 
         {/* ── Mobile Header Toggle ───────────────────────────────────── */}
         <div className="lg:hidden flex items-center p-4 border-b border-white/10 bg-[#0B1121]">
-          <button 
+          <button
             onClick={() => setIsMobileOpen(true)}
             className="text-gray-400 hover:text-[#1877F2] transition-colors"
           >
@@ -241,32 +259,13 @@ const FacebookLayout = () => {
         {/* ── Scrollable Outlet Area ────────────────────────────────────── */}
         {/* Passes layout context to all child pages via Outlet context */}
         <main className="flex-1 overflow-y-auto">
-          {!isConnected && !isLayoutLoading ? (
-            <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] p-6 animate-fade-in">
-              <ConnectCard
-                icon={
-                  <svg className="h-8 w-8 text-[#1877F2]" viewBox="0 0 24 24" fill="currentColor">
-                    <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
-                  </svg>
-                }
-                cardTitle="Connect Facebook Page"
-                cardDescription="Connect your Facebook account to view Page likes, post reach, engagements, and detailed visual performance metrics."
-                onConnect={handleConnect}
-                buttonText="Connect Facebook Page"
-                brandBgClass="bg-[#1877F2]/10"
-                brandTextClass="text-[#1877F2]"
-                brandButtonClass="bg-[#1877F2] hover:bg-[#1877F2]/90"
-              />
-            </div>
-          ) : (
-            <Outlet
-              context={{
-                profile,
-                isConnected,
-                isLayoutLoading,
-              }}
-            />
-          )}
+          <Outlet
+            context={{
+              profile,
+              isConnected,
+              isLayoutLoading,
+            }}
+          />
         </main>
       </div>
     </div>

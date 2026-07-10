@@ -257,8 +257,22 @@ export default function YoutubeLayout() {
   if (connectionLoading) return <YTSpinner />;
 
   // ── Not connected state ───────────────────────────────────────────
-  // ── Connection checks and empty state are now handled in the main content area.
-
+  if (!isConnected || localStorage.getItem('youtubeToken') === 'false') {
+    return (
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-[#0B1121] -m-6 text-white p-6 animate-fade-in">
+        <ConnectCard
+          icon={<Youtube className="h-8 w-8 text-[#FF0000]" />}
+          cardTitle="Connect YouTube Channel"
+          cardDescription="Connect your YouTube account to view sub counts, channel views, watch time, and detailed visual performance graphs."
+          onConnect={handleConnect}
+          buttonText="Connect YouTube Channel"
+          brandBgClass="bg-[#FF0000]/10"
+          brandTextClass="text-[#FF0000]"
+          brandButtonClass="bg-[#FF0000] hover:bg-[#FF0000]/90 text-white font-semibold"
+        />
+      </div>
+    );
+  }
 
   const closeMobile = () => setIsMobileOpen(false);
 
@@ -427,20 +441,7 @@ export default function YoutubeLayout() {
 
         {/* ── Active Page Content ──────────────────────────────────────── */}
         <div className="p-6">
-          {!isConnected || localStorage.getItem('youtubeToken') === 'false' ? (
-            <div className="flex-1 flex flex-col items-center justify-center min-h-[50vh] animate-fade-in">
-              <ConnectCard
-                icon={<Youtube className="h-8 w-8" />}
-                cardTitle="Connect YouTube Channel"
-                cardDescription="Connect your YouTube account to view sub counts, channel views, watch time, and detailed visual performance graphs."
-                onConnect={handleConnect}
-                buttonText="Connect YouTube Channel"
-                brandBgClass="bg-[#FF0000]/10"
-                brandTextClass="text-[#FF0000]"
-                brandButtonClass="bg-[#FF0000] hover:bg-[#FF0000]/90"
-              />
-            </div>
-          ) : analyticsError ? (
+          {analyticsError ? (
             <ErrorState onRetry={loadAnalytics} />
           ) : (
             <Outlet context={{ data: analyticsData, loading: analyticsLoading, isConnected, username, handleRevoke, handleConnect }} />

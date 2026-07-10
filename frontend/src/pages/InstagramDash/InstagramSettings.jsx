@@ -57,7 +57,7 @@ export default function InstagramSettings() {
         {/* Section B: Account Connection */}
         <div className="bg-[#161B22]/90 backdrop-blur-sm border border-white/5 rounded-xl p-6">
           <h2 className="text-xl font-semibold text-white mb-4">Account Connection</h2>
-          
+
           {isConnected && profile ? (
             <div className="flex items-center justify-between flex-wrap gap-4">
               <div className="flex items-center gap-4">
@@ -91,7 +91,7 @@ export default function InstagramSettings() {
         {/* Section C: Dashboard Preferences */}
         <div className="bg-[#161B22]/90 backdrop-blur-sm border border-white/5 rounded-xl p-6">
           <h2 className="text-xl font-semibold text-white mb-6">Dashboard Preferences</h2>
-          
+
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between pb-6 border-b border-white/5">
               <div>

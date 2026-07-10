@@ -76,7 +76,7 @@ export default function FacebookSettings() {
         {/* Section C: Dashboard Preferences */}
         <div className="bg-[#161B22]/90 backdrop-blur-sm border border-white/5 rounded-xl p-6">
           <h2 className="text-xl font-semibold text-white mb-6">Dashboard Preferences</h2>
-          
+
           <div className="flex flex-col gap-6">
             <div className="flex items-center justify-between pb-6 border-b border-white/5">
               <div>
@@ -113,22 +113,24 @@ export default function FacebookSettings() {
         </div>
 
         {/* Section D: Danger Zone */}
-        <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6">
-          <div className="flex items-start justify-between flex-wrap gap-4">
-            <div>
-              <h2 className="text-red-400 font-semibold mb-2 flex items-center gap-2">
-                <AlertTriangle className="h-5 w-5" />
-                Danger Zone
-              </h2>
-              <p className="text-sm text-red-400/80 max-w-xl">
-                Disconnecting your Facebook Page will pause all data syncing. Historical data will be retained for 30 days.
-              </p>
+        {isConnected && (
+          <div className="bg-red-500/5 border border-red-500/20 rounded-xl p-6">
+            <div className="flex items-start justify-between flex-wrap gap-4">
+              <div>
+                <h2 className="text-red-400 font-semibold mb-2 flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5" />
+                  Danger Zone
+                </h2>
+                <p className="text-sm text-red-400/80 max-w-xl">
+                  Disconnecting your Facebook Page will pause all data syncing. Historical data will be retained for 30 days.
+                </p>
+              </div>
+              <Button variant="destructive" onClick={handleDisconnect} className="bg-red-600 hover:bg-red-700 text-white">
+                Disconnect Page
+              </Button>
             </div>
-            <Button variant="destructive" onClick={handleDisconnect} className="bg-red-600 hover:bg-red-700 text-white">
-              Disconnect Page
-            </Button>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
