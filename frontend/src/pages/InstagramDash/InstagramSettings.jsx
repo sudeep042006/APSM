@@ -27,16 +27,23 @@ const CustomSwitch = ({ checked, onChange }) => (
 );
 
 import metaApi from '@/services/metaApi';
+import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
 
 export default function InstagramSettings() {
   const { isConnected, profile } = useOutletContext();
   const [emailReports, setEmailReports] = useState(true);
   const [autoSyncStories, setAutoSyncStories] = useState(true);
 
-  const handleDisconnect = async () => {
+  // ── Modal State ────────────────────────────────────────────────────
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
+
+  const handleDisconnect = () => {
+    setShowDisconnectModal(true);
+  };
+
+  const executeDisconnect = async () => {
     try {
       await metaApi.revokeInstagram();
-      // Optionally trigger UI refresh or context update here
       window.location.reload();
     } catch (error) {
       console.error("Failed to disconnect:", error);
@@ -45,6 +52,12 @@ export default function InstagramSettings() {
 
   return (
     <div className="h-full overflow-y-auto w-full p-4 md:p-6">
+      {/* ── Disconnection Confirmation Modal ──────────────────────────── */}
+      <ConfirmDisconnectModal
+        isOpen={showDisconnectModal}
+        onClose={() => setShowDisconnectModal(false)}
+        onConfirm={executeDisconnect}
+      />
       <div className="max-w-4xl mx-auto flex flex-col gap-6 pb-12">
         {/* Section A: Header */}
         <div>

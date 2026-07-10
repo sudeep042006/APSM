@@ -99,7 +99,19 @@ const InstagramLayout = () => {
 
   const isConnected = profileData?.isConnected ?? false;
 
-  if (!isConnected && !isLoading) {
+  // ── Loading state (checking connection) ───────────────────────────
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center bg-[#0B1121] text-white">
+        <div className="relative w-12 h-12">
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-[#E1306C]/20 rounded-full" />
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-t-[#E1306C] rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isConnected) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-[#0B1121] -m-6 text-white p-6 animate-fade-in">
         <ConnectCard

@@ -20,9 +20,9 @@ export default function LinkedInEngagement() {
 
   // ── Interaction Ledger Calculations ─────────────────────────────────
   const posts = content.posts || [];
-  const totalReactions = posts.reduce((acc, p) => acc + (p.reactions || 0), 0) || 965;
-  const totalComments = posts.reduce((acc, p) => acc + (p.comments || 0), 0) || 109;
-  const totalShares = metrics.shares || 185; 
+  const totalReactions = posts.reduce((acc, p) => acc + (p.reactions || 0), 0) || 0;
+  const totalComments = posts.reduce((acc, p) => acc + (p.comments || 0), 0) || 0;
+  const totalShares = metrics.shares || 0; 
 
   const ledgerStats = [
     {
@@ -59,16 +59,25 @@ export default function LinkedInEngagement() {
     { name: "Funny", count: Math.round(totalReactions * 0.02), color: "#10b981" }
   ];
 
-  // ── Overlapping Trendlines (Comments vs. Reposts/Shares) ──────────────
-  const trendData = (metrics.engagementTrend || []).map((item) => {
-    // Generate comment and share trends that track with engagement
-    const baseVal = item.value * 8000; 
+  let trendData = (metrics.engagementTrend || []).map((item) => {
     return {
       day: item.day,
-      Comments: Math.round(baseVal * 0.5 + Math.random() * 5),
-      Reposts: Math.round(baseVal * 0.25 + Math.random() * 3)
+      Comments: 0,
+      Reposts: 0
     };
   });
+
+  if (trendData.length === 0) {
+    trendData = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return {
+        day: d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
+        Comments: 0,
+        Reposts: 0
+      };
+    });
+  }
 
   // Custom Chart Tooltip
   const CustomTooltip = ({ active, payload, label }) => {

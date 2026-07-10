@@ -12,11 +12,7 @@ export default function LinkedInReports() {
   const [isExporting, setIsExporting] = useState(false);
 
   // Seed default history logs
-  const [downloadHistory, setDownloadHistory] = useState([
-    { id: 1, name: "linkedin_audience_demographics", date: "2026-07-08 14:32", type: "Audience Demographics", format: "PDF", status: "Completed" },
-    { id: 2, name: "linkedin_corporate_updates_q2", date: "2026-07-05 09:15", type: "Update Performance", format: "CSV", status: "Completed" },
-    { id: 3, name: "linkedin_comprehensive_snapshot", date: "2026-07-01 18:40", type: "Comprehensive Summary", format: "PDF", status: "Completed" },
-  ]);
+  const [downloadHistory, setDownloadHistory] = useState([]);
 
   // ── Handlers ──────────────────────────────────────────────────────
   const handleExport = (e) => {

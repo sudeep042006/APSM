@@ -17,7 +17,17 @@ export default function LinkedInGrowth() {
   const { analyticsData } = useOutletContext();
   const metrics = analyticsData?.metrics || {};
 
-  const growthTrend = metrics.growthTrend || [];
+  let growthTrend = metrics.growthTrend || [];
+  if (growthTrend.length === 0) {
+    growthTrend = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return {
+        day: d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
+        value: 0
+      };
+    });
+  }
 
   // Calculate Net Followers Acquisition Splits (Organic vs Sponsored)
   const acquisitionData = [];
@@ -38,8 +48,8 @@ export default function LinkedInGrowth() {
   }
 
   // Summary Metrics
-  const currentFollowers = growthTrend.length > 0 ? growthTrend[growthTrend.length - 1].value : (metrics.followers || 12450);
-  const startFollowers = growthTrend.length > 0 ? growthTrend[0].value : 11000;
+  const currentFollowers = growthTrend.length > 0 ? growthTrend[growthTrend.length - 1].value : (metrics.followers || 0);
+  const startFollowers = growthTrend.length > 0 ? growthTrend[0].value : 0;
   const netNewFollowersSum = acquisitionData.reduce((acc, curr) => acc + curr.Total, 0);
   const organicSum = acquisitionData.reduce((acc, curr) => acc + curr.Organic, 0);
   const sponsoredSum = acquisitionData.reduce((acc, curr) => acc + curr.Sponsored, 0);

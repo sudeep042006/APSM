@@ -51,17 +51,19 @@ const InstagramGrowth = () => {
     const fetchData = async () => {
       try {
         const response = await igapi.getGrowth(); // Ensure we add getGrowth mock logic to igapi.js if missing
-        // Fallback for mocked getGrowth array
-        const history = response.history && response.history.length > 0 ? response.history : Array.from({ length: 30 }, (_, i) => {
-          const date = new Date();
-          date.setDate(date.getDate() - (29 - i));
-          return {
-            date: date.toISOString().split('T')[0],
-            gained: Math.floor(Math.random() * 50) + 10,
-            lost: Math.floor(Math.random() * 20) + 2,
-            net: 0
-          };
-        }).map(d => ({ ...d, net: d.gained - d.lost }));
+        let history = response.history || [];
+        if (history.length === 0) {
+          history = Array.from({ length: 30 }, (_, i) => {
+            const date = new Date();
+            date.setDate(date.getDate() - (29 - i));
+            return {
+              date: date.toISOString().split('T')[0],
+              gained: 0,
+              lost: 0,
+              net: 0
+            };
+          });
+        }
 
         if (isMounted) setData({ history });
       } catch (error) {

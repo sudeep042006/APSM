@@ -5,12 +5,6 @@
 
 // ── Imports ──────────────────────────────────────────────────────────
 import api from "@/services/api";
-import { mockDatabase } from "@/mocks/dashboardData";
-
-// ── Global Mock Toggle ───────────────────────────────────────────────
-// Set USE_MOCKS to true to bypass backend APIs and use localized mock data.
-const USE_MOCKS = false;
-
 // ── Connection Status ───────────────────────────────────────────────
 // Check whether the user's YouTube account is connected via OAuth.
 export const fetchYouTubeStatus = async () => {
@@ -42,66 +36,13 @@ const getCachedSnapshot = async (force = false) => {
 // Calls GET /analytics/youtube which triggers a fresh YouTube API fetch
 // on the backend, or returns the latest cached snapshot.
 export const fetchYouTubeAnalytics = async (force = false, options = null) => {
-  if (USE_MOCKS) {
-    console.log("[ytapi] Using Mock Data Engine with 800ms latency...");
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const rawYT = mockDatabase.youtube;
-        
-        if (!options || !options.startDate || !options.endDate) {
-          resolve(rawYT);
-          return;
-        }
-
-        const start = new Date(options.startDate);
-        const end = new Date(options.endDate);
-
-        // Filter daily report rows
-        let updatedDaily = { ...(rawYT.rawPlatformData?.analyticsReports?.daily || {}) };
-        if (updatedDaily.rows && updatedDaily.columnHeaders) {
-          const colMap = {};
-          updatedDaily.columnHeaders.forEach((h, i) => {
-            colMap[h.name] = i;
-          });
-          updatedDaily.rows = (updatedDaily.rows || []).filter(row => {
-            const dateStr = row[colMap["day"]] || "";
-            const d = new Date(dateStr);
-            return d >= start && d <= end;
-          });
-        }
-
-        // Filter recent videos
-        let updatedRecentVideos = (rawYT.rawPlatformData?.recentVideos || []).filter(video => {
-          const dateStr = video.snippet?.publishedAt;
-          if (!dateStr) return true;
-          const d = new Date(dateStr);
-          return d >= start && d <= end;
-        });
-
-        const filteredYT = {
-          ...rawYT,
-          rawPlatformData: {
-            ...rawYT.rawPlatformData,
-            analyticsReports: {
-              ...rawYT.rawPlatformData.analyticsReports,
-              daily: updatedDaily
-            },
-            recentVideos: updatedRecentVideos
-          }
-        };
-
-        resolve(filteredYT);
-      }, 800);
-    });
-  } else {
-    try {
-      const snapshot = await getCachedSnapshot(force);
-      if (!snapshot) return null;
-      return snapshot;
-    } catch (err) {
-      console.error("Failed to fetch YouTube analytics:", err);
-      throw err;
-    }
+  try {
+    const snapshot = await getCachedSnapshot(force);
+    if (!snapshot) return null;
+    return snapshot;
+  } catch (err) {
+    console.error("Failed to fetch YouTube analytics:", err);
+    throw err;
   }
 };
 

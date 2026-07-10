@@ -22,31 +22,7 @@ const InstagramReels = () => {
     const fetchData = async () => {
       try {
         const response = await igapi.getReels();
-        // Fallback for mocked getReels array if empty
-        const items = response.items && response.items.length > 0 ? response.items : [
-          {
-            id: "reel_1",
-            title: "Quick Tutorial: OAuth setup!",
-            date: "3 days ago",
-            plays: 12500,
-            likes: 1240,
-            comments: 53,
-            shares: 89,
-            saves: 210,
-            image: "https://images.unsplash.com/photo-1536240478700-b869070f9279?w=300&h=500&fit=crop"
-          },
-          {
-            id: "reel_2",
-            title: "5 Tips for SaaS Dashboards",
-            date: "5 days ago",
-            plays: 8400,
-            likes: 850,
-            comments: 42,
-            shares: 45,
-            saves: 110,
-            image: "https://images.unsplash.com/photo-1551434678-e076c223a692?w=300&h=500&fit=crop"
-          }
-        ];
+        const items = response.items || [];
         if (isMounted) setData({ items });
       } catch (error) {
         console.error("Failed to fetch reels data:", error);

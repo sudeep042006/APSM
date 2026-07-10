@@ -1,18 +1,27 @@
 import api from "./api";
-import { mockDatabase } from "@/mocks/dashboardData";
 
-// ── Global Mock Toggle ────────────────────────────────────────────────────────
-// Set USE_MOCKS = true to bypass the backend and use the centralized mock engine.
-const USE_MOCKS = false;
+// ── Cache management and fetch wrapper ────────────────────────────────
+let snapshotCache = null;
+let cacheTime = null;
 
-// ── Utility: Simulated network latency ────────────────────────────────────────
-const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const getCachedSnapshot = async () => {
+  if (snapshotCache && cacheTime && (Date.now() - cacheTime < 5000)) {
+    return snapshotCache;
+  }
+  try {
+    const response = await api.get("/analytics/facebook");
+    snapshotCache = response.data?.data || null;
+    cacheTime = Date.now();
+    return snapshotCache;
+  } catch (err) {
+    console.warn("Failed to fetch Facebook analytics from API:", err.message);
+    return null;
+  }
+};
 
-// ── Utility: Get the Facebook snapshot from the mock database ─────────────────
-// The mock database meta getter returns [fbSnapshot, igSnapshot]. We extract fb.
-const getFbMock = () => {
-  const metaSnapshots = mockDatabase.meta;
-  return metaSnapshots.find((s) => s.platform === "facebook") || {};
+const getFbSnapshotData = async () => {
+  const snapshot = await getCachedSnapshot();
+  return snapshot || {};
 };
 
 // ── Utility: Number formatter (compact notation) ──────────────────────────────
@@ -26,7 +35,6 @@ export const formatNumber = (num) => {
 };
 
 // ── Utility: Date filtering helper ────────────────────────────────────────────
-// Filters an array of objects with a `date` or `end_time` field to a date range.
 const filterByDateRange = (arr, dateRange) => {
   if (!dateRange || !arr) return arr || [];
   const start = new Date(dateRange.start);
@@ -39,126 +47,50 @@ const filterByDateRange = (arr, dateRange) => {
   });
 };
 
-let snapshotCache = null;
-let cacheTime = null;
-
-const getCachedSnapshot = async () => {
-  if (snapshotCache && cacheTime && (Date.now() - cacheTime < 5000)) {
-    return snapshotCache;
-  }
-  const response = await api.get("/analytics/facebook");
-  snapshotCache = response.data?.data || null;
-  cacheTime = Date.now();
-  return snapshotCache;
-};
-
-const getFbSnapshotData = async () => {
-  if (USE_MOCKS) {
-    return getFbMock();
-  }
-  const snapshot = await getCachedSnapshot();
-  const fbMock = getFbMock();
-  if (!snapshot) {
-    return fbMock;
-  }
-  return {
-    ...fbMock,
-    metrics: {
-      ...fbMock.metrics,
-      followers: snapshot.metrics?.followers || fbMock.metrics?.followers,
-      reach: snapshot.metrics?.reach || fbMock.metrics?.reach,
-      impressions: snapshot.metrics?.impressions || fbMock.metrics?.impressions,
-      profileViews: snapshot.metrics?.profileViews || fbMock.metrics?.profileViews,
-      totalEngagement: snapshot.metrics?.totalEngagement || fbMock.metrics?.totalEngagement,
-    },
-    demographics: snapshot.demographics || fbMock.demographics,
-    rawPlatformData: snapshot.rawPlatformData || fbMock.rawPlatformData,
-    extended: snapshot.extended || fbMock.extended || {}
-  };
-};
-
-// ═════════════════════════════════════════════════════════════════════════════
-// DISTRIBUTED API METHODS — one per page, fetching only what that page needs.
-// ═════════════════════════════════════════════════════════════════════════════
-
 const fbapi = {
-
-  // ── 1. getProfile ────────────────────────────────────────────────────────────
-  // Used by: FacebookLayout.jsx (layout shell).
-  // Fetches connection status and top-level page identity only.
-  // Does NOT fetch any analytics data.
   getProfile: async () => {
-    if (USE_MOCKS) {
-      await delay(600);
-      const fb = getFbMock();
+    try {
+      const res = await api.get("/auth/status");
+      const statusArr = res.data?.status ?? [];
+      const fbStatus = statusArr.find((s) => s.platform === "facebook");
+      const isConnected = !!(fbStatus?.connected && !fbStatus?.isExpired);
+      
+      if (!isConnected) {
+        return { isConnected: false, profile: null };
+      }
+      
+      const data = await getFbSnapshotData();
+      const fb = data.rawPlatformData?.facebook || {};
+      
       return {
-        isConnected: true,
+        isConnected,
         profile: {
-          // Page identity from mock rawPlatformData
-          name: fb.rawPlatformData?.facebook?.pageName || "Incubien Enterprise",
-          pageId: fb.rawPlatformData?.facebook?.pageId || "fb_page_12345",
-          handle: "@incubienenterprise",
-          category: "Software Company · India",
-          avatar: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=150&auto=format&fit=crop&q=60",
-          // Inline stats shown in the header block
-          pageLikes: fb.rawPlatformData?.facebook?.fanCount || 18450,
-          followers: fb.metrics?.followers || 18450,
-          reach: fb.metrics?.reach || 0,
-          totalPosts:
-            (fb.extended?.contentData?.posts?.length || 0) +
-            (fb.extended?.contentData?.videos?.length || 0),
+          name: fbStatus.username || fb.pageName || "Facebook Page",
+          pageId: fb.pageId || "fb_page",
+          handle: "@facebookpage",
+          category: "Business",
+          avatar: "",
+          pageLikes: data.metrics?.followers || fb.fanCount || 0,
+          followers: data.metrics?.followers || 0,
+          reach: data.metrics?.reach || 0,
+          totalPosts: (data.extended?.contentData?.posts?.length || 0) + (data.extended?.contentData?.videos?.length || 0),
         },
       };
-    } else {
-      try {
-        const res = await api.get("/auth/status");
-        const statusArr = res.data?.status ?? [];
-        const fbStatus = statusArr.find((s) => s.platform === "facebook");
-        const isConnected = !!(fbStatus?.connected && !fbStatus?.isExpired);
-        
-        if (!isConnected) {
-          return { isConnected: false, profile: null };
-        }
-        
-        const data = await getFbSnapshotData();
-        const fb = data.rawPlatformData?.facebook || {};
-        
-        return {
-          isConnected,
-          profile: {
-            name: fbStatus.username || fb.pageName || "Facebook Page",
-            pageId: fb.pageId || "fb_page_12345",
-            handle: "@facebookpage",
-            category: "Business",
-            avatar: "https://images.unsplash.com/photo-1611162617213-7d7a39e9b1d7?w=150&auto=format&fit=crop&q=60",
-            pageLikes: data.metrics?.followers || fb.fanCount || 0,
-            followers: data.metrics?.followers || 0,
-            reach: data.metrics?.reach || 0,
-            totalPosts: (data.extended?.contentData?.posts?.length || 0) + (data.extended?.contentData?.videos?.length || 0),
-          },
-        };
-      } catch (err) {
-        console.error("Failed to fetch Facebook profile:", err);
-        throw err;
-      }
+    } catch (err) {
+      console.error("Failed to fetch Facebook profile:", err);
+      throw err;
     }
   },
 
-  // ── 2. getOverviewMetrics ─────────────────────────────────────────────────────
-  // Used by: FacebookDash.jsx (Overview index page).
-  // Fetches 6 KPIs, reach/engagement chart data, engagement rate,
-  // top posts table, top videos table, reach-by-source donut, audience summary.
   getOverviewMetrics: async (dateRange = null) => {
     const fb = await getFbSnapshotData();
     const insights = fb.rawPlatformData?.facebook?.insights || [];
 
-    // ── Helper: sum all values for a named metric ──────────────────────────
     const sumMetric = (name) =>
       insights
         .find((m) => m.name === name)
         ?.values?.reduce((a, b) => a + (b.value || 0), 0) || 0;
 
-    // ── Helper: build chart series, respecting dateRange filter ───────────
     const chartSeries = (name) => {
       const metric = insights.find((m) => m.name === name);
       if (!metric?.values) return [];
@@ -169,7 +101,6 @@ const fbapi = {
       return dateRange ? filterByDateRange(raw, dateRange) : raw;
     };
 
-    // ── Engagement rate series (derived from engagements / impressions) ───
     const engagements = insights.find((m) => m.name === "page_post_engagements")?.values || [];
     const impressions = insights.find((m) => m.name === "page_impressions")?.values || [];
     const engagementRateData = engagements.map((e, i) => ({
@@ -189,7 +120,6 @@ const fbapi = {
           ).toFixed(2) + "%"
         : "N/A";
 
-    // ── Filter top content tables by dateRange ────────────────────────────
     const allPosts = fb.extended?.contentData?.posts || [];
     const allVideos = fb.extended?.contentData?.videos || [];
     const topPosts = dateRange
@@ -204,10 +134,7 @@ const fbapi = {
       reachOverTime = Array.from({ length: 7 }, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - (6 - i));
-        return {
-          date: d.toISOString().split("T")[0],
-          value: Math.round((fb.metrics?.impressions || 18450) / 7 * (0.8 + Math.random() * 0.4))
-        };
+        return { date: d.toISOString().split("T")[0], value: 0 };
       });
     }
 
@@ -216,45 +143,42 @@ const fbapi = {
       engagementsOverTime = Array.from({ length: 7 }, (_, i) => {
         const d = new Date();
         d.setDate(d.getDate() - (6 - i));
-        return {
-          date: d.toISOString().split("T")[0],
-          value: Math.round((fb.metrics?.totalEngagement || 1200) / 7 * (0.8 + Math.random() * 0.4))
-        };
+        return { date: d.toISOString().split("T")[0], value: 0 };
+      });
+    }
+
+    let finalEngRateData = filteredEngRate;
+    if (finalEngRateData.length === 0) {
+      finalEngRateData = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        return { date: d.toISOString().split("T")[0], rate: 0 };
       });
     }
 
     return {
-      // ── Row 2: 6 KPI metrics ──────────────────────────────────────────
       kpis: {
-        pageLikes:       { value: fb.metrics?.followers || 0,                            change: 3.2  },
-        postReach:       { value: fb.metrics?.reach || 0,                                change: 8.1  },
-        postEngagements: { value: fb.metrics?.totalEngagement || sumMetric("page_post_engagements"),                  change: 12.4 },
-        reactions:       { value: Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.6),change: 5.8  },
-        comments:        { value: Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.2),change: -1.2 },
-        shares:          { value: Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.2),change: 9.3  },
+        pageLikes:       { value: fb.metrics?.followers || 0,                            change: 0  },
+        postReach:       { value: fb.metrics?.reach || 0,                                change: 0  },
+        postEngagements: { value: fb.metrics?.totalEngagement || sumMetric("page_post_engagements"), change: 0 },
+        reactions:       { value: Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.6), change: 0 },
+        comments:        { value: Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.2), change: 0 },
+        shares:          { value: Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.2), change: 0 },
       },
-      // ── Row 3: chart data ─────────────────────────────────────────────
       charts: {
         reachOverTime,
         engagementsOverTime,
         engagementRate: {
-          rate: avgEngRate !== "N/A" ? avgEngRate : "4.8%",
-          change: 1.4,
-          data: filteredEngRate.length > 0 ? filteredEngRate : reachOverTime.map(r => ({ date: r.date, rate: 4.5 })),
+          rate: avgEngRate !== "N/A" ? avgEngRate : "0%",
+          change: 0,
+          data: finalEngRateData,
         },
       },
-      // ── Row 4: tables ─────────────────────────────────────────────────
       tables: {
         topPosts,
         topVideos,
       },
-      // ── Row 4: reach by source donut data ─────────────────────────────
-      reachBySource: [
-        { name: "Organic", value: 72 },
-        { name: "Paid",    value: 18 },
-        { name: "Viral",   value: 10 },
-      ],
-      // ── Row 4: audience summary (age/gender + top countries) ──────────
+      reachBySource: [],
       audience: {
         ageGender: (fb.demographics?.ageAndGender || []).map((a) => ({
           group: a.group,
@@ -263,70 +187,103 @@ const fbapi = {
         topCountries: (fb.demographics?.topCountries || []).map((c) => ({
           country: c.name,
           value: Math.round(
-            (c.count / (fb.metrics?.followers || 18450)) * 100
+            (c.count / (fb.metrics?.followers || 1)) * 100
           ),
         })),
       },
     };
   },
 
-  // ── 3. getAudienceMetrics ─────────────────────────────────────────────────────
-  // Used by: FacebookAudience.jsx
   getAudienceMetrics: async () => {
     const fb = await getFbSnapshotData();
-    const details = fb.extended?.audienceDetails || {};
     const demographics = fb.demographics || {};
+    const details = fb.extended?.audienceDetails || {};
     
     return {
-      totalGrowth: details.totalGrowth || "+8.5% followers this month",
+      totalGrowth: details.totalGrowth || "",
       ageAndGender: demographics.ageAndGender?.length > 0 
         ? demographics.ageAndGender.map(a => ({ group: a.group, value: a.count }))
-        : details.ageAndGender || [],
+        : [],
       topLocations: demographics.topCountries?.length > 0
         ? demographics.topCountries.map(c => ({ name: c.name, value: c.count }))
-        : details.topLocations || [],
+        : [],
       topInterests: details.topInterests || [],
     };
   },
 
-  // ── 4. getEngagementMetrics ──────────────────────────────────────────────────
-  // Used by: FacebookEngagement.jsx
   getEngagementMetrics: async () => {
     const fb = await getFbSnapshotData();
     const details = fb.extended?.engagementDetails || {};
     const metrics = fb.metrics || {};
     
+    let engagementTrend = details.engagementTrend || [];
+    if (engagementTrend.length === 0) {
+      engagementTrend = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        return {
+          date: d.toISOString().split("T")[0],
+          likes: 0,
+          comments: 0,
+          shares: 0
+        };
+      });
+    }
+
     return {
       kpis: {
         totalLikes: Math.round((metrics.totalEngagement || 0) * 0.6),
         totalComments: Math.round((metrics.totalEngagement || 0) * 0.2),
         totalShares: Math.round((metrics.totalEngagement || 0) * 0.2),
       },
-      engagementTrend: details.engagementTrend || [],
+      engagementTrend,
       reactionTypes: details.reactionTypes || [],
     };
   },
 
-  // ── 5. getPageLikesMetrics ───────────────────────────────────────────────────
-  // Used by: FacebookPageLikes.jsx
   getPageLikesMetrics: async () => {
     const fb = await getFbSnapshotData();
     const growth = fb.extended?.growth || {};
     const metrics = fb.metrics || {};
     
+    let followerGrowthTimeline = growth.followerGrowthTimeline || [];
+    if (followerGrowthTimeline.length === 0) {
+      followerGrowthTimeline = Array.from({ length: 30 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (29 - i));
+        return {
+          date: d.toISOString().split("T")[0],
+          gained: 0,
+          lost: 0,
+          net: 0
+        };
+      });
+    }
+    
     return {
       gained: Math.round((metrics.followers || 0) * 0.05) || growth.gained || 0,
       lost: Math.round((metrics.followers || 0) * 0.01) || growth.lost || 0,
       net: Math.round((metrics.followers || 0) * 0.04) || growth.net || 0,
-      followerGrowthTimeline: growth.followerGrowthTimeline || [],
+      followerGrowthTimeline,
     };
   },
 
-  // ── 6. getReachViewsMetrics ──────────────────────────────────────────────────
-  // Used by: FacebookReachViews.jsx
   getReachViewsMetrics: async () => {
     const fb = await getFbSnapshotData();
-    const timeline = fb.extended?.reachAndViews || [];
+    let timeline = fb.extended?.reachAndViews || [];
+    if (timeline.length === 0) {
+      timeline = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        return {
+          date: d.toISOString().split("T")[0],
+          organicReach: 0,
+          paidReach: 0,
+          threeSecondViews: 0,
+          oneMinuteViews: 0
+        };
+      });
+    }
     const metrics = fb.metrics || {};
     
     const totals = timeline.reduce(
@@ -342,16 +299,14 @@ const fbapi = {
     );
     return {
       kpis: {
-        totalReach:    { value: metrics.reach || totals.totalReach,   change: 12.5 },
-        organicReach:  { value: Math.round((metrics.reach || totals.totalReach) * 0.8) || totals.organicReach, change: 8.4  },
-        videoViews:    { value: Math.round((metrics.impressions || totals.totalReach) * 0.3) || totals.total3s,      change: 15.2 },
+        totalReach:    { value: metrics.reach || totals.totalReach,   change: 0 },
+        organicReach:  { value: Math.round((metrics.reach || totals.totalReach) * 0.8) || totals.organicReach, change: 0 },
+        videoViews:    { value: Math.round((metrics.impressions || totals.totalReach) * 0.3) || totals.total3s,      change: 0 },
       },
       timeline,
     };
   },
 
-  // ── 7. getVideosMetrics ──────────────────────────────────────────────────────
-  // Used by: FacebookVideos.jsx
   getVideosMetrics: async () => {
     const fb = await getFbSnapshotData();
     const videos = fb.extended?.contentData?.videos || [];
@@ -359,15 +314,13 @@ const fbapi = {
       kpis: {
         totalVideos:  videos.length,
         totalPlays:   videos.reduce((a, v) => a + (v.plays || 0), 0),
-        avgWatchTime: "2:15",
-        topRetention: "42%",
+        avgWatchTime: "0:00",
+        topRetention: "0%",
       },
       videos,
     };
   },
 
-  // ── 8. getStoriesMetrics ─────────────────────────────────────────────────────
-  // Used by: FacebookStories.jsx
   getStoriesMetrics: async () => {
     const fb = await getFbSnapshotData();
     const stories = fb.extended?.contentData?.stories || [];
@@ -375,47 +328,30 @@ const fbapi = {
       kpis: {
         activeStories:    stories.length,
         avgReach:         Math.round(stories.reduce((a, s) => a + (s.reach || 0), 0) / Math.max(stories.length, 1)),
-        completionRate:   "78%",
+        completionRate:   "0%",
         totalReplies:     stories.reduce((a, s) => a + (s.replies || 0), 0),
       },
       stories,
     };
   },
 
-  // ── 9. getGroupsMetrics ──────────────────────────────────────────────────────
-  // Used by: FacebookGroups.jsx
   getGroupsMetrics: async () => {
     const fb = await getFbSnapshotData();
     const groups = fb.extended?.groups || {};
     return {
       kpis: {
-        totalMembers:  groups.totalMembers  || 420,
-        activeMembers: Math.round((groups.totalMembers || 420) * 0.45),
-        postsCount:    groups.postsCount    || 15,
+        totalMembers:  groups.totalMembers  || 0,
+        activeMembers: Math.round((groups.totalMembers || 0) * 0.45),
+        postsCount:    groups.postsCount    || 0,
       },
-      // Generate a simple growth timeline for chart rendering
-      growthTimeline: Array.from({ length: 14 }, (_, i) => ({
-        date: new Date(Date.now() - (13 - i) * 86400000)
-          .toISOString()
-          .split("T")[0],
-        totalMembers:  380 + i * 3,
-        activeMembers: 150 + i * 2,
-      })),
-      // Static recent posts for display (not from API)
-      recentPosts: [
-        { author: "Rahul Verma",  time: "2 hours ago",  content: "Does anyone have recommendations for a good video editor?",        likes: 45,  comments: 12 },
-        { author: "Sneha Patel",  time: "5 hours ago",  content: "Just reached 10k followers! Thank you all for the support! 🎉",    likes: 120, comments: 34 },
-        { author: "Admin",        time: "1 day ago",    content: "Welcome new members! Please read the pinned group rules.",          likes: 210, comments: 8  },
-      ],
+      growthTimeline: [],
+      recentPosts: [],
     };
   },
 
-  // ── 10. getAdsMetrics ────────────────────────────────────────────────────────
-  // Used by: FacebookAds.jsx
   getAdsMetrics: async () => {
     const fb = await getFbSnapshotData();
     const ads = fb.extended?.ads || [];
-    // Aggregate totals across campaigns
     const totals = ads.reduce(
       (acc, a) => {
         acc.spend       += a.spend       || 0;
@@ -430,10 +366,10 @@ const fbapi = {
       : "0.00";
     return {
       kpis: {
-        totalSpend:   { value: `₹${totals.spend.toLocaleString()}`, change: 12.5 },
-        impressions:  { value: totals.impressions,                   change: 8.4  },
-        linkClicks:   { value: totals.clicks,                        change: 15.2 },
-        avgCpc:       { value: `₹${avgCpc}`,                         change: -4.2 },
+        totalSpend:   { value: `₹${totals.spend.toLocaleString()}`, change: 0 },
+        impressions:  { value: totals.impressions,                   change: 0 },
+        linkClicks:   { value: totals.clicks,                        change: 0 },
+        avgCpc:       { value: `₹${avgCpc}`,                         change: 0 },
       },
       campaigns: ads.map((a) => ({
         campaignName: a.name,
@@ -450,37 +386,29 @@ const fbapi = {
     };
   },
 
-  // ── 11. getReportsData ───────────────────────────────────────────────────────
-  // Used by: FacebookReports.jsx
   getReportsData: async () => {
     const fb = await getFbSnapshotData();
     const exports_ = fb.extended?.utilityData?.recentExports || [];
     return {
       recentExports: exports_.map((e) => ({
         ...e,
-        // Derive format from file extension for display
         type:   e.name?.endsWith(".pdf") ? "PDF" : "XLSX",
         status: "Ready",
-        // Rename `name` key to `report` to match existing table expectations
         report: e.name,
       })),
     };
   },
 
-  // ── 12. getInsightsData ──────────────────────────────────────────────────────
-  // Used by: FacebookInsights.jsx
   getInsightsData: async () => {
     const fb = await getFbSnapshotData();
     const insights = fb.extended?.insights || [];
     return {
-      // Static smart highlight cards
       highlights: {
-        bestTimeToPost:        "6:00 PM – 9:00 PM",
-        topPerformingFormat:   "Video",
-        topAudienceSegment:    "25–34 Female",
-        recommendedContentType:"Short-form Video",
+        bestTimeToPost:        "N/A",
+        topPerformingFormat:   "N/A",
+        topAudienceSegment:    "N/A",
+        recommendedContentType:"N/A",
       },
-      // AI-style recommendations derived from mock insight objects
       recommendations: insights.map((i) => ({
         type:           i.type,
         recommendation: i.recommendation,
@@ -488,8 +416,6 @@ const fbapi = {
     };
   },
 
-  // ── 13. revokeAccess ─────────────────────────────────────────────────────────
-  // Used by: FacebookLayout.jsx (disconnect button).
   revokeAccess: async () => {
     const res = await api.delete("/auth/facebook/revoke");
     return res.data;

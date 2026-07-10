@@ -28,52 +28,21 @@ export default function LinkedInAudience() {
   const jobFunctions = demographics.jobTitles?.map(j => ({
     label: j.name,
     percentage: j.value
-  })) || [
-    { label: "Engineering", percentage: 38 },
-    { label: "Business Development", percentage: 22 },
-    { label: "Product Management", percentage: 18 },
-    { label: "Marketing", percentage: 12 },
-    { label: "Operations", percentage: 10 }
-  ];
+  })) || [];
 
   const companySizes = demographics.companySizes?.map(c => ({
     label: `${c.name} employees`,
     percentage: c.value
-  })) || [
-    { label: "1-10 employees", percentage: 15 },
-    { label: "11-50 employees", percentage: 30 },
-    { label: "51-200 employees", percentage: 25 },
-    { label: "201-500 employees", percentage: 12 },
-    { label: "501-1000 employees", percentage: 8 },
-    { label: "1000+ employees", percentage: 10 }
-  ];
+  })) || [];
 
   const industries = demographics.industries?.map(i => ({
     label: i.name,
     percentage: i.value
-  })) || [
-    { label: "Technology, Information & Internet", percentage: 45 },
-    { label: "Professional Services & Consulting", percentage: 25 },
-    { label: "Financial Services", percentage: 15 },
-    { label: "Higher Education", percentage: 10 },
-    { label: "Staffing & Recruiting", percentage: 5 }
-  ];
+  })) || [];
 
-  const seniorityLevels = demographics.seniorityLevel || [
-    { label: "CXO / Partner / Owner", percentage: 18 },
-    { label: "Director / Vice President", percentage: 22 },
-    { label: "Manager / Senior Lead", percentage: 35 },
-    { label: "Senior Individual Contributor", percentage: 17 },
-    { label: "Entry Level", percentage: 8 }
-  ];
+  const seniorityLevels = demographics.seniorityLevel || [];
 
-  const locations = demographics.locations || [
-    { label: "San Francisco Bay Area, US", percentage: 35 },
-    { label: "Bengaluru Area, India", percentage: 25 },
-    { label: "Greater London, UK", percentage: 15 },
-    { label: "Munich Area, Germany", percentage: 10 },
-    { label: "Greater Toronto Area, Canada", percentage: 15 }
-  ];
+  const locations = demographics.locations || [];
 
   const cardsConfig = [
     {

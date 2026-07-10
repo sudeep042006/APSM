@@ -22,13 +22,7 @@ const InstagramHashtags = () => {
     const fetchData = async () => {
       try {
         const response = await igapi.getHashtags();
-        const tags = response.tags && response.tags.length > 0 ? response.tags : [
-          { id: 1, name: "saas", reach: 45000, usage: 12, engagementRate: 4.2 },
-          { id: 2, name: "startuplife", reach: 32000, usage: 8, engagementRate: 3.8 },
-          { id: 3, name: "techinnovation", reach: 28000, usage: 5, engagementRate: 5.1 },
-          { id: 4, name: "founder", reach: 19500, usage: 15, engagementRate: 2.9 },
-          { id: 5, name: "coding", reach: 15000, usage: 4, engagementRate: 6.5 }
-        ];
+        const tags = response.tags || [];
         if (isMounted) setData({ tags });
       } catch (error) {
         console.error("Failed to fetch hashtags data:", error);

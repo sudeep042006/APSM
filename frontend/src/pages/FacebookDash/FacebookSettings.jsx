@@ -27,15 +27,22 @@ const CustomSwitch = ({ checked, onChange }) => (
 );
 
 import fbapi from '@/services/fbapi';
+import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
 
 export default function FacebookSettings() {
   const [emailReports, setEmailReports] = useState(true);
   const { isConnected, profile } = useOutletContext();
+  
+  // ── Modal State ────────────────────────────────────────────────────
+  const [showDisconnectModal, setShowDisconnectModal] = useState(false);
 
-  const handleDisconnect = async () => {
+  const handleDisconnect = () => {
+    setShowDisconnectModal(true);
+  };
+
+  const executeDisconnect = async () => {
     try {
       await fbapi.revokeAccess();
-      // Optionally trigger UI refresh or context update here
       window.location.reload();
     } catch (error) {
       console.error("Failed to disconnect:", error);
@@ -44,6 +51,12 @@ export default function FacebookSettings() {
 
   return (
     <div className="h-full overflow-y-auto w-full p-4 md:p-6">
+      {/* ── Disconnection Confirmation Modal ──────────────────────────── */}
+      <ConfirmDisconnectModal
+        isOpen={showDisconnectModal}
+        onClose={() => setShowDisconnectModal(false)}
+        onConfirm={executeDisconnect}
+      />
       <div className="max-w-4xl mx-auto flex flex-col gap-6 pb-12">
         {/* Section A: Header */}
         <div>
@@ -53,24 +66,31 @@ export default function FacebookSettings() {
           </p>
         </div>
 
-        {/* Section B: Account Connection */}
+        {/* ── Section B: Account Connection ───────────────────────────────── */}
+        {/* Shows either the connected profile name or a disconnected notice */}
         <div className="bg-[#161B22]/90 backdrop-blur-sm border border-white/5 rounded-xl p-6">
           <h2 className="text-xl font-semibold text-white mb-4">Account Connection</h2>
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-4">
-              <div className="h-12 w-12 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 overflow-hidden">
-                <User className="h-6 w-6 text-slate-400" />
+          {isConnected && profile ? (
+            <div className="flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <div className="h-12 w-12 rounded-full bg-slate-800 flex items-center justify-center border border-white/10 overflow-hidden">
+                  <User className="h-6 w-6 text-slate-400" />
+                </div>
+                <div>
+                  <h3 className="text-white font-medium">{profile.name || "Connected Facebook Page"}</h3>
+                  <p className="text-sm text-emerald-500">Connected</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-white font-medium">Connected Facebook Page</h3>
-                <p className="text-sm text-gray-400">authenticated.user@facebook.com</p>
-              </div>
+              <Button variant="outline" className="border-white/10 bg-white/5 hover:bg-white/10 text-white">
+                <RefreshCw className="h-4 w-4 mr-2" />
+                Refresh Sync
+              </Button>
             </div>
-            <Button variant="outline" className="border-white/10 bg-white/5 hover:bg-white/10 text-white">
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Refresh Sync
-            </Button>
-          </div>
+          ) : (
+            <div className="text-center py-6">
+              <p className="text-gray-400 mb-4">Your Facebook Page is currently disconnected.</p>
+            </div>
+          )}
         </div>
 
         {/* Section C: Dashboard Preferences */}

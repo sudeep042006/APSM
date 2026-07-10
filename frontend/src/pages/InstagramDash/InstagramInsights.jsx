@@ -23,11 +23,11 @@ const InstagramInsights = () => {
       try {
         const response = await igapi.getInsights();
         const actions = response.actions && response.actions.length > 0 ? response.actions : [
-          { id: 'profile_visits', title: "Profile Visits", value: 12450, icon: User, color: "text-[#833AB4]" },
-          { id: 'website_clicks', title: "Website Taps", value: 3200, icon: ExternalLink, color: "text-[#E1306C]" },
-          { id: 'email_clicks', title: "Email Button Taps", value: 145, icon: Mail, color: "text-emerald-500" },
-          { id: 'call_clicks', title: "Call Button Taps", value: 24, icon: Phone, color: "text-blue-500" },
-          { id: 'direction_clicks', title: "Get Directions Taps", value: 89, icon: MapPin, color: "text-[#FCAF45]" }
+          { id: 'profile_visits', title: "Profile Visits", value: 0, icon: User, color: "text-[#833AB4]" },
+          { id: 'website_clicks', title: "Website Taps", value: 0, icon: ExternalLink, color: "text-[#E1306C]" },
+          { id: 'email_clicks', title: "Email Button Taps", value: 0, icon: Mail, color: "text-emerald-500" },
+          { id: 'call_clicks', title: "Call Button Taps", value: 0, icon: Phone, color: "text-blue-500" },
+          { id: 'direction_clicks', title: "Get Directions Taps", value: 0, icon: MapPin, color: "text-[#FCAF45]" }
         ];
         if (isMounted) setData({ actions });
       } catch (error) {

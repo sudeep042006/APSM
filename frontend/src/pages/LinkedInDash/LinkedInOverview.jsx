@@ -24,29 +24,29 @@ export default function LinkedInOverview() {
 
   // ── Mock Profile Info Fallbacks ──────────────────────────────────
   const profileInfo = {
-    avatar: analyticsData?.profile?.avatar || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=150&auto=format&fit=crop&q=60",
-    name: analyticsData?.profile?.name || "Acme Corporation",
-    headline: analyticsData?.profile?.headline || "Enterprise SaaS & B2B Solutions Developer",
-    connections: rawData.connections || 1540,
-    followers: metrics.followers || rawData.followers || 12450,
+    avatar: analyticsData?.profile?.avatar || "",
+    name: analyticsData?.profile?.name || "LinkedIn Page",
+    headline: analyticsData?.profile?.headline || "",
+    connections: rawData.connections || 0,
+    followers: metrics.followers || rawData.followers || 0,
     pageType: analyticsData?.profile?.pageType || "Company" // "Company" or "Individual"
   };
 
   // ── Dynamic Engagement Rate Aggregation & Calculations ────────────
   // Formula: ((Reactions + Comments + Shares + Clicks) / Total Impressions) * 100
   const allPosts = content.posts || [];
-  const totalImpressions = metrics.impressions || allPosts.reduce((acc, p) => acc + (p.impressions || 0), 0) || 17100;
-  const totalReactions = allPosts.reduce((acc, p) => acc + (p.reactions || 0), 0) || 965;
-  const totalComments = allPosts.reduce((acc, p) => acc + (p.comments || 0), 0) || 109;
-  const totalClicks = rawData.clicks || metrics.clicks || allPosts.reduce((acc, p) => acc + (p.clicks || 0), 0) || 840;
-  const totalShares = metrics.shares || 185; 
+  const totalImpressions = metrics.impressions || allPosts.reduce((acc, p) => acc + (p.impressions || 0), 0) || 0;
+  const totalReactions = allPosts.reduce((acc, p) => acc + (p.reactions || 0), 0) || 0;
+  const totalComments = allPosts.reduce((acc, p) => acc + (p.comments || 0), 0) || 0;
+  const totalClicks = rawData.clicks || metrics.clicks || allPosts.reduce((acc, p) => acc + (p.clicks || 0), 0) || 0;
+  const totalShares = metrics.shares || 0; 
 
   const calculatedEngagementRate = totalImpressions > 0 
     ? (((totalReactions + totalComments + totalShares + totalClicks) / totalImpressions) * 100).toFixed(2)
     : "0.00";
 
   // ── Dual-Axis composed chart data mapping ─────────────────────────
-  const composedData = (metrics.impressionsTrend || []).map((impItem) => {
+  let composedData = (metrics.impressionsTrend || []).map((impItem) => {
     const engItem = (metrics.engagementTrend || []).find(e => e.day === impItem.day);
     const rateDec = engItem ? Number(engItem.value) : 0;
     return {
@@ -55,6 +55,18 @@ export default function LinkedInOverview() {
       engagementRate: Number((rateDec * 100).toFixed(2)) // Decimal fraction converted to percentage
     };
   });
+
+  if (composedData.length === 0) {
+    composedData = Array.from({ length: 7 }, (_, i) => {
+      const d = new Date();
+      d.setDate(d.getDate() - (6 - i));
+      return {
+        day: d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
+        impressions: 0,
+        engagementRate: 0
+      };
+    });
+  }
 
   // ── Custom Tooltip for Composed Chart ─────────────────────────────
   const CustomTooltip = ({ active, payload, label }) => {
@@ -93,7 +105,7 @@ export default function LinkedInOverview() {
     },
     {
       label: "Net New Followers",
-      value: "+168",
+      value: `+${metrics.netNewFollowers || 0}`,
       desc: "Organic & sponsored growth split",
       icon: Users,
       color: "text-[#0A66C2]",

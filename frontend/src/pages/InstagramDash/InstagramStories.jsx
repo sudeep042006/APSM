@@ -22,32 +22,7 @@ const InstagramStories = () => {
     const fetchData = async () => {
       try {
         const response = await igapi.getStories();
-        const items = response.items && response.items.length > 0 ? response.items : [
-          {
-            id: "story_1",
-            title: "Behind the scenes 📸",
-            date: "2 hours ago",
-            reach: 3400,
-            impressions: 4100,
-            tapForwards: 1200,
-            tapBacks: 150,
-            exits: 80,
-            replies: 12,
-            image: "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=150&h=250&fit=crop"
-          },
-          {
-            id: "story_2",
-            title: "New feature announcement 🚀",
-            date: "12 hours ago",
-            reach: 5200,
-            impressions: 6500,
-            tapForwards: 2100,
-            tapBacks: 320,
-            exits: 145,
-            replies: 34,
-            image: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=150&h=250&fit=crop"
-          }
-        ];
+        const items = response.items || [];
         if (isMounted) setData({ items });
       } catch (error) {
         console.error("Failed to fetch stories data:", error);

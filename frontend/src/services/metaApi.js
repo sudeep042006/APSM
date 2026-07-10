@@ -1,97 +1,12 @@
 import api from "./api";
-import { mockDatabase } from "@/mocks/dashboardData";
-
-// ── Global Mock Toggle ───────────────────────────────────────────────
-// Set USE_MOCKS to true to bypass backend APIs and use localized mock data.
-const USE_MOCKS = false;
-
 const metaApi = {
   // Fetch Meta (Facebook & Instagram) analytics unified snapshot
   getMetaAnalytics: async (forceRefresh = false, dateRange = null) => {
     let snapshots = [];
 
-    // ── Data Fetching / Mock Interceptor ─────────────────────────────
-    if (USE_MOCKS) {
-      console.log("[metaApi] Using Mock Data Engine with 800ms latency...");
-      snapshots = await new Promise((resolve) => {
-        setTimeout(() => {
-          const rawMeta = mockDatabase.meta; // [fbSnapshot, igSnapshot]
-          
-          if (!dateRange) {
-            resolve(rawMeta);
-            return;
-          }
-
-          // Filter data by selected date range
-          const start = new Date(dateRange.start);
-          const end = new Date(dateRange.end);
-
-          const filteredMeta = rawMeta.map((snapshot) => {
-            const platform = snapshot.platform;
-
-            // Filter rawPlatformData insights values
-            let updatedInsights = [];
-            if (snapshot.rawPlatformData?.[platform]?.insights) {
-              updatedInsights = snapshot.rawPlatformData[platform].insights.map(metric => ({
-                ...metric,
-                values: (metric.values || []).filter(v => {
-                  const d = new Date(v.end_time?.split('T')[0] || v.date);
-                  return d >= start && d <= end;
-                })
-              }));
-            }
-
-            // Filter extended lists (posts, videos, stories, reels, history trends)
-            let updatedExtended = { ...(snapshot.extended || {}) };
-            
-            if (updatedExtended.contentData) {
-              const filterContent = (list) => (list || []).filter(item => {
-                const d = new Date(item.date);
-                return d >= start && d <= end;
-              });
-              updatedExtended.contentData = {
-                posts: filterContent(updatedExtended.contentData.posts),
-                videos: filterContent(updatedExtended.contentData.videos),
-                stories: filterContent(updatedExtended.contentData.stories),
-                reels: filterContent(updatedExtended.contentData.reels)
-              };
-            }
-
-            if (updatedExtended.growth?.history) {
-              updatedExtended.growth.history = (updatedExtended.growth.history || []).filter(item => {
-                const d = new Date(item.date);
-                return d >= start && d <= end;
-              });
-            }
-
-            if (updatedExtended.reachAndViews?.viewsHistory) {
-              updatedExtended.reachAndViews.viewsHistory = (updatedExtended.reachAndViews.viewsHistory || []).filter(item => {
-                const d = new Date(item.date);
-                return d >= start && d <= end;
-              });
-            }
-
-            return {
-              ...snapshot,
-              rawPlatformData: {
-                ...snapshot.rawPlatformData,
-                [platform]: {
-                  ...snapshot.rawPlatformData[platform],
-                  insights: updatedInsights
-                }
-              },
-              extended: updatedExtended
-            };
-          });
-
-          resolve(filteredMeta);
-        }, 800);
-      });
-    } else {
-      const url = forceRefresh ? "/analytics/meta?forceRefresh=true" : "/analytics/meta";
-      const response = await api.get(url);
-      snapshots = response.data?.data || [];
-    }
+    const url = forceRefresh ? "/analytics/meta?forceRefresh=true" : "/analytics/meta";
+    const response = await api.get(url);
+    snapshots = response.data?.data || [];
     
     // Find the facebook and instagram snapshots from the array
     const fbSnapshot = snapshots.find(s => s.platform === 'facebook' || s.rawPlatformData?.facebook) || {};

@@ -136,54 +136,40 @@ const Dashboard = () => {
     }
   };
 
-  // Mock data for analytics
+  // Mock data for analytics replaced with empty state
   const analyticsMetrics = [
-    { title: 'Total Subscribers', value: '14,820', change: '+12.4%', label: 'vs last week', icon: <Users size={20} className="text-purple-400" /> },
-    { title: 'Estimated Views', value: '342,912', change: '+8.2%', label: 'vs last week', icon: <Eye size={20} className="text-blue-400" /> },
-    { title: 'Watch Time (Hours)', value: '18,450', change: '+14.1%', label: 'vs last week', icon: <Clock size={20} className="text-emerald-400" /> },
-    { title: 'Engagement Rate', value: '6.45%', change: '+0.8%', label: 'vs last week', icon: <Percent size={20} className="text-pink-400" /> },
+    { title: 'Total Subscribers', value: '0', change: '0%', label: 'vs last week', icon: <Users size={20} className="text-purple-400" /> },
+    { title: 'Estimated Views', value: '0', change: '0%', label: 'vs last week', icon: <Eye size={20} className="text-blue-400" /> },
+    { title: 'Watch Time (Hours)', value: '0', change: '0%', label: 'vs last week', icon: <Clock size={20} className="text-emerald-400" /> },
+    { title: 'Engagement Rate', value: '0%', change: '0%', label: 'vs last week', icon: <Percent size={20} className="text-pink-400" /> },
   ];
 
+  const generateEmptyChart = (label) => Array.from({ length: 7 }, (_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    return { day: d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }), val: 0, label: `0 ${label}` };
+  });
+
   const chartData = {
-    views: [
-      { day: 'Jun 05', val: 12000, label: '12,000 views' },
-      { day: 'Jun 06', val: 18000, label: '18,000 views' },
-      { day: 'Jun 07', val: 15000, label: '15,000 views' },
-      { day: 'Jun 08', val: 24000, label: '24,000 views' },
-      { day: 'Jun 09', val: 32000, label: '32,000 views' },
-      { day: 'Jun 10', val: 28000, label: '28,000 views' },
-      { day: 'Jun 11', val: 36000, label: '36,000 views' },
-    ],
-    subscribers: [
-      { day: 'Jun 05', val: 450, label: '+450 subs' },
-      { day: 'Jun 06', val: 620, label: '+620 subs' },
-      { day: 'Jun 07', val: 510, label: '+510 subs' },
-      { day: 'Jun 08', val: 840, label: '+840 subs' },
-      { day: 'Jun 09', val: 1100, label: '+1,100 subs' },
-      { day: 'Jun 10', val: 980, label: '+980 subs' },
-      { day: 'Jun 11', val: 1240, label: '+1,240 subs' },
-    ]
+    views: generateEmptyChart('views'),
+    subscribers: generateEmptyChart('subs')
   };
 
   const currentChartPoints = chartData[chartDataType];
   // Chart dimensions config
   const chartHeight = 160;
   const chartWidth = 500;
-  const maxVal = Math.max(...currentChartPoints.map(p => p.val));
+  const maxVal = Math.max(1, ...currentChartPoints.map(p => p.val));
   const pointsString = currentChartPoints.map((p, index) => {
-    const x = (index / (currentChartPoints.length - 1)) * chartWidth;
+    const x = (index / (Math.max(1, currentChartPoints.length - 1))) * chartWidth;
     const y = chartHeight - (p.val / maxVal) * (chartHeight - 20) - 10;
     return `${x},${y}`;
   }).join(' ');
 
   const areaString = `${pointsString} ${chartWidth},${chartHeight} 0,${chartHeight}`;
 
-  // Mock synced video stream data
-  const syncedVideos = [
-    { id: 'v1', title: 'Ultimate Guide to Next.js API Routes & Middleware', platform: 'youtube', thumbnail: 'https://images.unsplash.com/photo-1618477388954-7852f32655ec?auto=format&fit=crop&w=120&q=80', views: '24.1k', likes: '1.8k', date: 'Jun 08, 2026', status: 'Synced' },
-    { id: 'v2', title: 'Why I Switched from Tailwind CSS to Vanilla CSS', platform: 'youtube', thumbnail: 'https://images.unsplash.com/photo-1507238691740-187a5b1d37b8?auto=format&fit=crop&w=120&q=80', views: '18.2k', likes: '1.2k', date: 'Jun 04, 2026', status: 'Synced' },
-    { id: 'v3', title: 'Behind the Scenes: My Coding Workflow Secrets', platform: 'youtube', thumbnail: 'https://images.unsplash.com/photo-1542831371-29b0f74f9713?auto=format&fit=crop&w=120&q=80', views: '12.5k', likes: '890', date: 'May 28, 2026', status: 'Synced' },
-  ];
+  // Sync'd video stream data
+  const syncedVideos = [];
 
   return (
     <div className="flex min-h-screen bg-[#070a13] relative">

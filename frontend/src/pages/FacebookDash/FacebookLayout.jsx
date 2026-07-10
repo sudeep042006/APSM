@@ -109,7 +109,19 @@ const FacebookLayout = () => {
   const profile = profileData?.profile;
   const isConnected = profileData?.isConnected ?? false;
 
-  if (!isConnected && !isLayoutLoading) {
+  // ── Loading state (checking connection) ───────────────────────────
+  if (isLayoutLoading) {
+    return (
+      <div className="flex min-h-[60vh] items-center justify-center bg-[#0B1121] text-white">
+        <div className="relative w-12 h-12">
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-[#1877F2]/20 rounded-full" />
+          <div className="absolute top-0 left-0 w-full h-full border-4 border-t-[#1877F2] rounded-full animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!isConnected) {
     return (
       <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-[#0B1121] -m-6 text-white p-6 animate-fade-in">
         <ConnectCard
