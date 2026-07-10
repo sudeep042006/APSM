@@ -12,6 +12,7 @@ import automationRouter from './modules/automation/automation.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import connectRedis from './config/redis.js';
 import './modules/automation/automation.worker.js'; // Start the cross-posting worker
+import { startAnalyticsCron } from './modules/analytics/analytics.cron.js';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -50,6 +51,7 @@ app.use(errorHandler);
 // ─── Start ────────────────────────────────────────────────────────────────────
 connectDB();
 // connectRedis() is no longer needed since redis.js auto-initializes on import
+startAnalyticsCron(); // Start the analytics 6-hour refresh cron job
 
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running on http://localhost:${PORT}`);

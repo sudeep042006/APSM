@@ -91,6 +91,19 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
           console.warn(`⚠️ [meta.analytics] Failed to fetch Page Insights (metrics might be deprecated or empty):`, insightsErr.message);
           // Non-blocking: keep metrics as 0
         }
+
+        try {
+          const postsRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/published_posts`, {
+            params: {
+              fields: 'id,message,created_time,full_picture,attachments,shares,comments.summary(total_count),likes.summary(total_count)',
+              limit: 20,
+              access_token: pageToken
+            }
+          });
+          facebookData.posts = postsRes.data.data || [];
+        } catch (postsErr) {
+          console.warn(`⚠️ [meta.analytics] Failed to fetch Page Posts:`, postsErr.message);
+        }
       } else {
         console.warn(`[DEBUG-FB] ❌ No pages returned! Full response data:`, JSON.stringify(pagesRes.data, null, 2));
       }
@@ -279,6 +292,20 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
             }
           } catch (demoErr) {
             console.warn(`⚠️ [meta.analytics] Failed to fetch Instagram demographics (metrics might be deprecated or empty):`, demoErr.message);
+          }
+
+          // Fetch media (posts, reels, etc.)
+          try {
+            const mediaRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/media`, {
+              params: {
+                fields: 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count',
+                limit: 30,
+                access_token: igToken
+              }
+            });
+            instagramData.media = mediaRes.data.data || [];
+          } catch (mediaErr) {
+            console.warn(`⚠️ [meta.analytics] Failed to fetch Instagram media:`, mediaErr.message);
           }
         }
       }

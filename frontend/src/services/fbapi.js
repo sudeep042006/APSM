@@ -4,12 +4,13 @@ import api from "./api";
 let snapshotCache = null;
 let cacheTime = null;
 
-const getCachedSnapshot = async () => {
-  if (snapshotCache && cacheTime && (Date.now() - cacheTime < 5000)) {
+const getCachedSnapshot = async (forceRefresh = false) => {
+  if (!forceRefresh && snapshotCache && cacheTime && (Date.now() - cacheTime < 5000)) {
     return snapshotCache;
   }
   try {
-    const response = await api.get("/analytics/facebook");
+    const url = forceRefresh ? "/analytics/meta/facebook?forceRefresh=true" : "/analytics/meta/facebook";
+    const response = await api.get(url);
     snapshotCache = response.data?.data || null;
     cacheTime = Date.now();
     return snapshotCache;
@@ -19,8 +20,8 @@ const getCachedSnapshot = async () => {
   }
 };
 
-const getFbSnapshotData = async () => {
-  const snapshot = await getCachedSnapshot();
+const getFbSnapshotData = async (forceRefresh = false) => {
+  const snapshot = await getCachedSnapshot(forceRefresh);
   return snapshot || {};
 };
 
@@ -82,8 +83,8 @@ const fbapi = {
     }
   },
 
-  getOverviewMetrics: async (dateRange = null) => {
-    const fb = await getFbSnapshotData();
+  getOverviewMetrics: async (dateRange = null, forceRefresh = false) => {
+    const fb = await getFbSnapshotData(forceRefresh);
     const insights = fb.rawPlatformData?.facebook?.insights || [];
 
     const sumMetric = (name) =>
@@ -120,8 +121,31 @@ const fbapi = {
           ).toFixed(2) + "%"
         : "N/A";
 
-    const allPosts = fb.extended?.contentData?.posts || [];
-    const allVideos = fb.extended?.contentData?.videos || [];
+    const rawPosts = fb.rawPlatformData?.facebook?.posts || [];
+    const formattedPosts = rawPosts.map((p) => {
+      const type = p.attachments?.data?.[0]?.media_type === "video" ? "Videos" : (p.full_picture ? "Photos" : "Text");
+      return {
+        id: p.id,
+        title: p.message || "Untitled Post",
+        image: p.full_picture || "https://placehold.co/150",
+        date: p.created_time ? new Date(p.created_time).toISOString().split("T")[0] : "",
+        reach: 0,
+        impressions: 0,
+        engagements: (p.likes?.summary?.total_count || 0) + (p.comments?.summary?.total_count || 0) + (p.shares?.count || 0),
+        reactions: p.likes?.summary?.total_count || 0,
+        likes: p.likes?.summary?.total_count || 0,
+        comments: p.comments?.summary?.total_count || 0,
+        shares: p.shares?.count || 0,
+        type: type,
+        rate: "N/A",
+        duration: type === "Videos" ? "0:00" : undefined,
+        views: 0,
+        watchTime: "0:00"
+      };
+    });
+
+    const allPosts = formattedPosts.filter(p => p.type !== "Videos");
+    const allVideos = formattedPosts.filter(p => p.type === "Videos");
     const topPosts = dateRange
       ? filterByDateRange(allPosts, dateRange)
       : allPosts;

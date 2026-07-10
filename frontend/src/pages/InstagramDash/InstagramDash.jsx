@@ -93,7 +93,7 @@ const InstagramDash = () => {
   const fetchData = async (showRefresh = false) => {
     try {
       if (showRefresh) setIsRefreshing(true);
-      const overviewData = await igapi.getOverviewMetrics();
+      const overviewData = await igapi.getOverviewMetrics(showRefresh);
       setData(overviewData);
     } catch (error) {
       console.error("Failed to fetch overview metrics:", error);
@@ -398,8 +398,8 @@ const InstagramDash = () => {
                 {/* Table Rows */}
                 {data.contentPerformance.map((post) => (
                   <div key={post.id} className="grid grid-cols-[40px_1fr_50px_50px_50px_50px] gap-1 py-2 items-center hover:bg-white/5 rounded-md transition-colors">
-                    <img src={post.thumbnail} alt="" className="w-8 h-8 rounded-md object-cover" />
-                    <div className="min-w-0">
+                    <img src={post.image} alt="" className="w-8 h-8 rounded-md object-cover flex-shrink-0" />
+                    <div className="min-w-0 pr-2">
                       <p className="text-[11px] text-white truncate">{post.caption || post.type}</p>
                       <p className="text-[10px] text-gray-500">{post.type}</p>
                     </div>
@@ -407,7 +407,7 @@ const InstagramDash = () => {
                     <span className="text-[11px] text-gray-300 text-right">{formatNumber(post.likes)}</span>
                     <span className="text-[11px] text-gray-300 text-right">{formatNumber(post.comments)}</span>
                     <span className="text-[11px] text-[#E1306C] font-medium text-right">
-                      {((post.likes + post.comments) / post.reach * 100).toFixed(1)}%
+                      {post.reach ? ((post.likes + post.comments) / post.reach * 100).toFixed(1) + '%' : 'N/A'}
                     </span>
                   </div>
                 ))}
@@ -445,9 +445,9 @@ const InstagramDash = () => {
                 {/* Table Rows */}
                 {data.topReels.map((reel) => (
                   <div key={reel.id} className="grid grid-cols-[40px_1fr_55px_50px_50px] gap-1 py-2 items-center hover:bg-white/5 rounded-md transition-colors">
-                    <img src={reel.thumbnail} alt="" className="w-8 h-8 rounded-md object-cover" />
-                    <p className="text-[11px] text-white truncate min-w-0">{reel.title}</p>
-                    <span className="text-[11px] text-gray-300 text-right">{formatNumber(reel.plays)}</span>
+                    <img src={reel.image} alt="" className="w-8 h-8 rounded-md object-cover flex-shrink-0" />
+                    <p className="text-[11px] text-white truncate min-w-0 pr-2">{reel.caption || "Reel"}</p>
+                    <span className="text-[11px] text-gray-300 text-right">{formatNumber(reel.plays || reel.views || 0)}</span>
                     <span className="text-[11px] text-gray-300 text-right">{formatNumber(reel.likes)}</span>
                     <span className="text-[11px] text-gray-300 text-right">{formatNumber(reel.comments)}</span>
                   </div>

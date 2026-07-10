@@ -134,10 +134,10 @@ const FacebookContent = () => {
                     <tr><td colSpan={8} className="py-12 text-center text-gray-500 text-sm">No content for this filter</td></tr>
                   ) : filtered.map((p, i) => (
                     <tr key={i} className="hover:bg-white/[0.02] transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-3">
+                      <td className="px-6 py-4 max-w-[200px] md:max-w-[300px]">
+                        <div className="flex items-center gap-3 min-w-0">
                           <img src={p.image} alt="" className="h-10 w-10 rounded object-cover flex-shrink-0" />
-                          <p className="text-xs font-medium text-gray-200 truncate max-w-[200px]">{p.title}</p>
+                          <p className="text-xs font-medium text-gray-200 truncate">{p.title}</p>
                         </div>
                       </td>
                       <td className="px-6 py-4 text-gray-400 text-xs whitespace-nowrap">{p.date}</td>

@@ -141,7 +141,7 @@ const FacebookDash = () => {
     else setIsLoading(true);
     setError(null);
     try {
-      const result = await fbapi.getOverviewMetrics(dateRange);
+      const result = await fbapi.getOverviewMetrics(dateRange, isRefresh);
       setData(result);
     } catch (err) {
       console.error("[FacebookDash] Failed to load overview metrics:", err);

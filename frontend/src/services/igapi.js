@@ -4,12 +4,13 @@ import api from "./api";
 let snapshotCache = null;
 let cacheTime = null;
 
-const getCachedSnapshot = async () => {
-  if (snapshotCache && cacheTime && (Date.now() - cacheTime < 5000)) {
+const getCachedSnapshot = async (forceRefresh = false) => {
+  if (!forceRefresh && snapshotCache && cacheTime && (Date.now() - cacheTime < 5000)) {
     return snapshotCache;
   }
   try {
-    const response = await api.get("/analytics/instagram");
+    const url = forceRefresh ? "/analytics/meta/instagram?forceRefresh=true" : "/analytics/meta/instagram";
+    const response = await api.get(url);
     snapshotCache = response.data?.data || null;
     cacheTime = Date.now();
     return snapshotCache;
@@ -19,8 +20,8 @@ const getCachedSnapshot = async () => {
   }
 };
 
-const getIgSnapshotData = async () => {
-  const snapshot = await getCachedSnapshot();
+const getIgSnapshotData = async (forceRefresh = false) => {
+  const snapshot = await getCachedSnapshot(forceRefresh);
   return snapshot || {};
 };
 
@@ -57,8 +58,8 @@ const igapi = {
     }
   },
 
-  getOverviewMetrics: async () => {
-    const data = await getIgSnapshotData();
+  getOverviewMetrics: async (forceRefresh = false) => {
+    const data = await getIgSnapshotData(forceRefresh);
     
     const metrics = data.metrics || {};
     const demographics = data.demographics || {};
@@ -139,8 +140,31 @@ const igapi = {
       ]
     };
     
-    const contentPerformance = data.contentPerformance || [];
-    const topReels = data.topReels || [];
+    const rawMedia = ig.media || [];
+    const formattedMedia = rawMedia.map(m => {
+      const type = m.media_type === "VIDEO" ? "Reel" : (m.media_type === "CAROUSEL_ALBUM" ? "Carousel" : "Post");
+      const eng = (m.like_count || 0) + (m.comments_count || 0);
+      return {
+        id: m.id,
+        image: m.thumbnail_url || m.media_url || "https://placehold.co/150",
+        type,
+        caption: m.caption || "Untitled",
+        date: m.timestamp ? new Date(m.timestamp).toISOString().split('T')[0] : "",
+        likes: m.like_count || 0,
+        comments: m.comments_count || 0,
+        shares: 0,
+        saves: 0,
+        reach: 0,
+        impressions: 0,
+        engagement: eng,
+        rate: "N/A",
+        views: 0, // Video views are not available in basic media fetch without insights
+        watchTime: "0:00"
+      };
+    });
+
+    const contentPerformance = formattedMedia;
+    const topReels = formattedMedia.filter(m => m.type === "Reel");
     
     return {
       kpis,
@@ -161,10 +185,8 @@ const igapi = {
   },
 
   getContent: async () => {
-    const data = await getIgSnapshotData();
-    return {
-      posts: data.contentPerformance || []
-    };
+    const ov = await igapi.getOverviewMetrics();
+    return { posts: ov.contentPerformance || [] };
   },
 
   getAudience: async () => {
@@ -218,31 +240,59 @@ const igapi = {
     const data = await getIgSnapshotData();
     const metrics = data.metrics || {};
     const ig = data.rawPlatformData?.instagram || {};
+    const rawMedia = ig.media || [];
     
-    const insights = ig.insights || [];
-    const reachMetric = insights.find(m => m.name === 'reach')?.values || [];
-    
-    const trend = reachMetric.map((v, i) => ({
-      date: v.end_time?.split('T')[0] || `Day ${i + 1}`,
-      rate: v.value ? (Math.random() * 3 + 2).toFixed(1) : 0
-    }));
+    const totalLikes = rawMedia.reduce((sum, m) => sum + (m.like_count || 0), 0);
+    const totalComments = rawMedia.reduce((sum, m) => sum + (m.comments_count || 0), 0);
+    const totalEngagementFromMedia = totalLikes + totalComments;
+
+    const trendMap = {};
+    for (let i = 0; i < 7; i++) {
+        const d = new Date();
+        d.setDate(d.getDate() - (6 - i));
+        trendMap[d.toISOString().split('T')[0]] = { eng: 0 };
+    }
+
+    rawMedia.forEach(m => {
+        if (!m.timestamp) return;
+        const dateStr = new Date(m.timestamp).toISOString().split('T')[0];
+        if (trendMap[dateStr] !== undefined) {
+            trendMap[dateStr].eng += (m.like_count || 0) + (m.comments_count || 0);
+        }
+    });
+
+    const followers = metrics.followers || 1;
+    const trend = Object.keys(trendMap).map(date => {
+        const rate = ((trendMap[date].eng / followers) * 100).toFixed(2);
+        return {
+            date,
+            rate: parseFloat(rate)
+        };
+    });
 
     return {
       interactions: [
-        { name: 'Likes', value: Math.round((metrics.totalEngagement || 0) * 0.7) },
-        { name: 'Comments', value: Math.round((metrics.totalEngagement || 0) * 0.2) },
+        { name: 'Likes', value: totalLikes || Math.round((metrics.totalEngagement || 0) * 0.7) },
+        { name: 'Comments', value: totalComments || Math.round((metrics.totalEngagement || 0) * 0.2) },
         { name: 'Shares', value: 0 },
-        { name: 'Saves', value: Math.round((metrics.totalEngagement || 0) * 0.1) }
+        { name: 'Saves', value: Math.round((totalEngagementFromMedia || metrics.totalEngagement || 0) * 0.1) }
       ],
       trend
     };
   },
 
   getStories: async () => { return { items: [] }; },
-  getReels: async () => { return { items: [] }; },
+  getReels: async () => { 
+    const ov = await igapi.getOverviewMetrics();
+    return { items: ov.topReels || [] };
+  },
   getGrowth: async () => { return { history: [] }; },
   getHashtags: async () => { return { tags: [] }; },
   getInsights: async () => { return { actions: [] }; },
+  revokeAccess: async () => {
+    const response = await api.delete("/auth/instagram/revoke");
+    return response.data;
+  },
 };
 
 export default igapi;
