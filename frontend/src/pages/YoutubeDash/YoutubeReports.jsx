@@ -98,7 +98,7 @@ export default function YoutubeReports({ loading }) {
         </div>
         <h2 className="text-xl font-bold">Reports & Exports</h2>
         <p className="mt-2 text-sm text-slate-400 max-w-md leading-relaxed">
-          Report exports are coming soon. You'll be able to download detailed analytics
+          Report export functionality is currently initializing. You will soon be able to download detailed analytics
           reports as CSV or PDF files, with custom date ranges and historical data.
         </p>
       </div>

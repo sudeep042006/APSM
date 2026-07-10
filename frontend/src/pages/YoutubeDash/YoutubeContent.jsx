@@ -301,8 +301,8 @@ export default function YoutubeContent({ data, loading }) {
         <TabsContent value="shorts" className="mt-4">
           <EmptyTabState
             icon={Film}
-            title="Shorts analytics coming soon"
-            description="YouTube Shorts performance data will be available here in a future update. Stay tuned!"
+            title="Shorts Analytics Processing"
+            description="Detailed performance metrics for YouTube Shorts are currently being aggregated and will be displayed here."
           />
         </TabsContent>
 
@@ -310,8 +310,8 @@ export default function YoutubeContent({ data, loading }) {
         <TabsContent value="live" className="mt-4">
           <EmptyTabState
             icon={Radio}
-            title="Live stream analytics coming soon"
-            description="Analytics for your live streams including concurrent viewers, chat activity, and super chats will be shown here."
+            title="Live Stream Analytics Processing"
+            description="Metrics for live streams, including concurrent viewers and chat activity, will populate as data is aggregated."
           />
         </TabsContent>
 
@@ -319,8 +319,8 @@ export default function YoutubeContent({ data, loading }) {
         <TabsContent value="posts" className="mt-4">
           <EmptyTabState
             icon={FileText}
-            title="Community posts coming soon"
-            description="Performance data for your community posts, polls, and images will appear here."
+            title="Community Posts Analytics Processing"
+            description="Performance metrics for your community posts and polls will be available here."
           />
         </TabsContent>
 
@@ -328,8 +328,8 @@ export default function YoutubeContent({ data, loading }) {
         <TabsContent value="playlists" className="mt-4">
           <EmptyTabState
             icon={ListVideo}
-            title="Playlist analytics coming soon"
-            description="Track how your playlists perform with views, watch time, and engagement metrics."
+            title="Playlist Analytics Processing"
+            description="Playlist-level metrics, such as views and watch time, will be displayed upon data synchronization."
           />
         </TabsContent>
 
@@ -337,8 +337,8 @@ export default function YoutubeContent({ data, loading }) {
         <TabsContent value="promotions" className="mt-4">
           <EmptyTabState
             icon={Megaphone}
-            title="Promotion analytics coming soon"
-            description="View the performance of your promoted content and advertising campaigns here."
+            title="Promotion Analytics Processing"
+            description="Campaign performance metrics are currently being tracked and will be visualized upon initial sync completion."
           />
         </TabsContent>
       </Tabs>

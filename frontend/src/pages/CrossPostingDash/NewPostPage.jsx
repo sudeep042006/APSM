@@ -232,13 +232,13 @@ export default function NewPostPage() {
                   <button
                     key={idx}
                     type="button"
-                    title="Rich text coming soon"
+                    title="Rich text formatting unavailable"
                     className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-white/5 rounded cursor-not-allowed group relative"
                   >
                     <Icon className="h-4 w-4" />
                     {/* Simple pure CSS tooltip inside the group */}
                     <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-10 transition-opacity">
-                      Rich text coming soon
+                      Rich text formatting unavailable
                     </span>
                   </button>
                 ))}
