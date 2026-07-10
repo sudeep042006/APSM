@@ -42,6 +42,13 @@ export function CrossPostProvider({ children }) {
           description: "Failed to load connected platforms",
           variant: "destructive"
         });
+      }
+
+      try {
+        const history = await crosspostApi.getHistory();
+        if (mounted) setPostHistory(history);
+      } catch (err) {
+        console.error("Failed to fetch post history", err);
       } finally {
         if (mounted) setIsLoadingAuth(false);
       }

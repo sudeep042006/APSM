@@ -11,8 +11,15 @@ const workerConnection = process.env.REDIS_URL
     ? new Redis(process.env.REDIS_URL, redisConnectionOptions) 
     : null;
 
+if (workerConnection) {
+    workerConnection.on('error', (err) => {
+        if (err.message.includes('ECONNRESET') || err.message.includes('ETIMEDOUT')) return;
+        console.error('🔴 Worker Redis error:', err.message);
+    });
+}
+
 const worker = new Worker('CrossPostQueue', async (job) => {
-    const { postId, userId, caption, platforms, mediaUrl } = job.data;
+    const { postId, userId, caption, title, body, hashtags, link, platforms, mediaUrl } = job.data;
     
     await Automation.findByIdAndUpdate(postId, { status: 'PROCESSING' });
     console.log(`Executing Scheduled Job ${job.id} for Post ${postId}`);
@@ -90,9 +97,16 @@ const worker = new Worker('CrossPostQueue', async (job) => {
             }
 
             // 4. Create Post
+            const fullBody = [
+                title, 
+                body || caption, 
+                hashtags, 
+                link
+            ].filter(Boolean).join('\n\n');
+
             const payload = {
                 author: `urn:li:person:${personId}`,
-                commentary: caption,
+                commentary: fullBody,
                 visibility: "PUBLIC",
                 distribution: {
                     feedDistribution: "MAIN_FEED",
@@ -128,11 +142,23 @@ const worker = new Worker('CrossPostQueue', async (job) => {
             // Simple check to determine if it's a video (can be improved)
             const endpointType = mediaUrl.match(/\.(mp4|mov|wmv|flv|avi)$/i) ? 'videos' : 'photos';
 
+            const fullBody = [
+                body || caption,
+                hashtags,
+                link
+            ].filter(Boolean).join('\n\n');
+
             const payload = {
                 url: mediaUrl,
-                message: caption,
                 access_token: token
             };
+
+            if (endpointType === 'videos') {
+                if (title) payload.title = title;
+                payload.description = fullBody;
+            } else {
+                payload.message = [title, fullBody].filter(Boolean).join('\n\n');
+            }
 
             return axios.post(`https://graph.facebook.com/v19.0/${pageId}/${endpointType}`, payload);
         })(), 'Facebook'));
@@ -148,8 +174,15 @@ const worker = new Worker('CrossPostQueue', async (job) => {
             const isVideo = mediaUrl.match(/\.(mp4|mov|wmv|flv|avi|webm|mkv)$/i);
 
             // Step 1: Create media container
+            const fullCaption = [
+                title,
+                body || caption,
+                hashtags,
+                link
+            ].filter(Boolean).join('\n\n');
+
             const createPayload = {
-                caption: caption,
+                caption: fullCaption,
                 access_token: token
             };
 
@@ -209,16 +242,33 @@ const worker = new Worker('CrossPostQueue', async (job) => {
             const FormData = (await import('form-data')).default;
             const form = new FormData();
 
+            const fullDesc = [
+                body || caption,
+                hashtags,
+                link
+            ].filter(Boolean).join('\n\n');
+
+            const fallbackTitle = (title || caption || "Video").substring(0, 100);
+
+            let tagsArray = [];
+            if (hashtags) {
+                tagsArray = hashtags.split(/\s+/).map(t => t.replace('#', '')).filter(Boolean);
+            }
+
             const metadata = {
                 snippet: {
-                    title: caption.substring(0, 50) || "Video Title", 
-                    description: caption,
+                    title: fallbackTitle, 
+                    description: fullDesc,
                     categoryId: "22"
                 },
                 status: {
                     privacyStatus: "public" // or "unlisted" / "private"
                 }
             };
+
+            if (tagsArray.length > 0) {
+                metadata.snippet.tags = tagsArray;
+            }
 
             form.append('metadata', JSON.stringify(metadata), { contentType: 'application/json' });
             form.append('media', videoBuffer, { contentType: 'video/mp4', filename: 'video.mp4' });
@@ -270,6 +320,14 @@ worker.on('failed', async (job, err) => {
     if (job?.data?.postId) {
         await Automation.findByIdAndUpdate(job.data.postId, { status: 'FAILED' });
     }
+});
+
+worker.on('error', err => {
+    if (err.message.includes('ECONNRESET') || err.message.includes('ETIMEDOUT') || err.code === 'ECONNRESET' || err.code === 'ETIMEDOUT') {
+        // BullMQ will auto-reconnect, swallow these Upstash idle disconnects
+        return;
+    }
+    console.error('🔴 BullMQ Worker Error:', err.message);
 });
 
 export default worker;
