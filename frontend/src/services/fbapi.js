@@ -55,14 +55,14 @@ const fbapi = {
       const statusArr = res.data?.status ?? [];
       const fbStatus = statusArr.find((s) => s.platform === "facebook");
       const isConnected = !!(fbStatus?.connected && !fbStatus?.isExpired);
-      
+
       if (!isConnected) {
         return { isConnected: false, profile: null };
       }
-      
+
       const data = await getFbSnapshotData();
       const fb = data.rawPlatformData?.facebook || {};
-      
+
       return {
         isConnected,
         profile: {
@@ -116,9 +116,9 @@ const fbapi = {
     const avgEngRate =
       filteredEngRate.length > 0
         ? (
-            filteredEngRate.reduce((a, b) => a + b.rate, 0) /
-            filteredEngRate.length
-          ).toFixed(2) + "%"
+          filteredEngRate.reduce((a, b) => a + b.rate, 0) /
+          filteredEngRate.length
+        ).toFixed(2) + "%"
         : "N/A";
 
     const rawPosts = fb.rawPlatformData?.facebook?.posts || [];
@@ -182,12 +182,12 @@ const fbapi = {
 
     return {
       kpis: {
-        pageLikes:       { value: fb.metrics?.followers || 0,                            change: 0  },
-        postReach:       { value: fb.metrics?.reach || 0,                                change: 0  },
+        pageLikes: { value: fb.metrics?.followers || 0, change: 0 },
+        postReach: { value: fb.metrics?.reach || 0, change: 0 },
         postEngagements: { value: fb.metrics?.totalEngagement || sumMetric("page_post_engagements"), change: 0 },
-        reactions:       { value: Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.6), change: 0 },
-        comments:        { value: Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.2), change: 0 },
-        shares:          { value: Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.2), change: 0 },
+        reactions: { value: Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.6), change: 0 },
+        comments: { value: Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.2), change: 0 },
+        shares: { value: Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.2), change: 0 },
       },
       charts: {
         reachOverTime,
@@ -222,10 +222,10 @@ const fbapi = {
     const fb = await getFbSnapshotData();
     const demographics = fb.demographics || {};
     const details = fb.extended?.audienceDetails || {};
-    
+
     return {
       totalGrowth: details.totalGrowth || "",
-      ageAndGender: demographics.ageAndGender?.length > 0 
+      ageAndGender: demographics.ageAndGender?.length > 0
         ? demographics.ageAndGender.map(a => ({ group: a.group, value: a.count }))
         : [],
       topLocations: demographics.topCountries?.length > 0
@@ -239,7 +239,7 @@ const fbapi = {
     const fb = await getFbSnapshotData();
     const details = fb.extended?.engagementDetails || {};
     const metrics = fb.metrics || {};
-    
+
     let engagementTrend = details.engagementTrend || [];
     if (engagementTrend.length === 0) {
       engagementTrend = Array.from({ length: 7 }, (_, i) => {
@@ -269,7 +269,7 @@ const fbapi = {
     const fb = await getFbSnapshotData();
     const growth = fb.extended?.growth || {};
     const metrics = fb.metrics || {};
-    
+
     let followerGrowthTimeline = growth.followerGrowthTimeline || [];
     if (followerGrowthTimeline.length === 0) {
       followerGrowthTimeline = Array.from({ length: 30 }, (_, i) => {
@@ -283,7 +283,7 @@ const fbapi = {
         };
       });
     }
-    
+
     return {
       gained: Math.round((metrics.followers || 0) * 0.05) || growth.gained || 0,
       lost: Math.round((metrics.followers || 0) * 0.01) || growth.lost || 0,
@@ -309,23 +309,23 @@ const fbapi = {
       });
     }
     const metrics = fb.metrics || {};
-    
+
     const totals = timeline.reduce(
       (acc, d) => {
-        acc.totalReach    += d.organicReach + d.paidReach;
-        acc.organicReach  += d.organicReach;
-        acc.paidReach     += d.paidReach;
-        acc.total3s       += d.threeSecondViews;
-        acc.total1m       += d.oneMinuteViews;
+        acc.totalReach += d.organicReach + d.paidReach;
+        acc.organicReach += d.organicReach;
+        acc.paidReach += d.paidReach;
+        acc.total3s += d.threeSecondViews;
+        acc.total1m += d.oneMinuteViews;
         return acc;
       },
       { totalReach: 0, organicReach: 0, paidReach: 0, total3s: 0, total1m: 0 }
     );
     return {
       kpis: {
-        totalReach:    { value: metrics.reach || totals.totalReach,   change: 0 },
-        organicReach:  { value: Math.round((metrics.reach || totals.totalReach) * 0.8) || totals.organicReach, change: 0 },
-        videoViews:    { value: Math.round((metrics.impressions || totals.totalReach) * 0.3) || totals.total3s,      change: 0 },
+        totalReach: { value: metrics.reach || totals.totalReach, change: 0 },
+        organicReach: { value: Math.round((metrics.reach || totals.totalReach) * 0.8) || totals.organicReach, change: 0 },
+        videoViews: { value: Math.round((metrics.impressions || totals.totalReach) * 0.3) || totals.total3s, change: 0 },
       },
       timeline,
     };
@@ -336,8 +336,8 @@ const fbapi = {
     const videos = fb.extended?.contentData?.videos || [];
     return {
       kpis: {
-        totalVideos:  videos.length,
-        totalPlays:   videos.reduce((a, v) => a + (v.plays || 0), 0),
+        totalVideos: videos.length,
+        totalPlays: videos.reduce((a, v) => a + (v.plays || 0), 0),
         avgWatchTime: "0:00",
         topRetention: "0%",
       },
@@ -350,10 +350,10 @@ const fbapi = {
     const stories = fb.extended?.contentData?.stories || [];
     return {
       kpis: {
-        activeStories:    stories.length,
-        avgReach:         Math.round(stories.reduce((a, s) => a + (s.reach || 0), 0) / Math.max(stories.length, 1)),
-        completionRate:   "0%",
-        totalReplies:     stories.reduce((a, s) => a + (s.replies || 0), 0),
+        activeStories: stories.length,
+        avgReach: Math.round(stories.reduce((a, s) => a + (s.reach || 0), 0) / Math.max(stories.length, 1)),
+        completionRate: "0%",
+        totalReplies: stories.reduce((a, s) => a + (s.replies || 0), 0),
       },
       stories,
     };
@@ -364,9 +364,9 @@ const fbapi = {
     const groups = fb.extended?.groups || {};
     return {
       kpis: {
-        totalMembers:  groups.totalMembers  || 0,
+        totalMembers: groups.totalMembers || 0,
         activeMembers: Math.round((groups.totalMembers || 0) * 0.45),
-        postsCount:    groups.postsCount    || 0,
+        postsCount: groups.postsCount || 0,
       },
       growthTimeline: [],
       recentPosts: [],
@@ -378,8 +378,8 @@ const fbapi = {
     const ads = fb.extended?.ads || [];
     const totals = ads.reduce(
       (acc, a) => {
-        acc.spend       += a.spend       || 0;
-        acc.clicks      += a.clicks      || 0;
+        acc.spend += a.spend || 0;
+        acc.clicks += a.clicks || 0;
         acc.impressions += a.impressions || 0;
         return acc;
       },
@@ -390,20 +390,20 @@ const fbapi = {
       : "0.00";
     return {
       kpis: {
-        totalSpend:   { value: `₹${totals.spend.toLocaleString()}`, change: 0 },
-        impressions:  { value: totals.impressions,                   change: 0 },
-        linkClicks:   { value: totals.clicks,                        change: 0 },
-        avgCpc:       { value: `₹${avgCpc}`,                         change: 0 },
+        totalSpend: { value: `₹${totals.spend.toLocaleString()}`, change: 0 },
+        impressions: { value: totals.impressions, change: 0 },
+        linkClicks: { value: totals.clicks, change: 0 },
+        avgCpc: { value: `₹${avgCpc}`, change: 0 },
       },
       campaigns: ads.map((a) => ({
         campaignName: a.name,
-        status:       a.status === "ACTIVE" ? "Active" : "Paused",
-        spend:        `₹${(a.spend || 0).toLocaleString()}`,
-        impressions:  (a.impressions || 0).toLocaleString(),
-        ctr:          a.clicks && a.impressions
+        status: a.status === "ACTIVE" ? "Active" : "Paused",
+        spend: `₹${(a.spend || 0).toLocaleString()}`,
+        impressions: (a.impressions || 0).toLocaleString(),
+        ctr: a.clicks && a.impressions
           ? `${((a.clicks / a.impressions) * 100).toFixed(2)}%`
           : "N/A",
-        cpc:          a.clicks
+        cpc: a.clicks
           ? `₹${((a.spend || 0) / a.clicks).toFixed(2)}`
           : "N/A",
       })),
@@ -416,7 +416,7 @@ const fbapi = {
     return {
       recentExports: exports_.map((e) => ({
         ...e,
-        type:   e.name?.endsWith(".pdf") ? "PDF" : "XLSX",
+        type: e.name?.endsWith(".pdf") ? "PDF" : "XLSX",
         status: "Ready",
         report: e.name,
       })),
@@ -428,13 +428,13 @@ const fbapi = {
     const insights = fb.extended?.insights || [];
     return {
       highlights: {
-        bestTimeToPost:        "N/A",
-        topPerformingFormat:   "N/A",
-        topAudienceSegment:    "N/A",
-        recommendedContentType:"N/A",
+        bestTimeToPost: "N/A",
+        topPerformingFormat: "N/A",
+        topAudienceSegment: "N/A",
+        recommendedContentType: "N/A",
       },
       recommendations: insights.map((i) => ({
-        type:           i.type,
+        type: i.type,
         recommendation: i.recommendation,
       })),
     };

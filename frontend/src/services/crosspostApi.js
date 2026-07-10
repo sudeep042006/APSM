@@ -38,6 +38,14 @@ const crosspostApi = {
   getHistory: async () => {
     const response = await api.get('/automation/jobs');
     return response.data;
+  },
+
+  /**
+   * Revoke access for a specific platform.
+   */
+  revokeAccess: async (platformId) => {
+    const response = await api.delete(`/auth/${platformId}/revoke`);
+    return response.data;
   }
 };
 
