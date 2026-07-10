@@ -222,44 +222,6 @@ const fbapi = {
     const fb = await getFbSnapshotData();
     const demographics = fb.demographics || {};
     const details = fb.extended?.audienceDetails || {};
-<<<<<<< HEAD
-    
-    // Process Age & Gender: split "F.18-24" into female/male properties for Recharts side-by-side bars
-    let ageAndGender = [];
-    if (demographics.ageAndGender?.length > 0) {
-      const groups = {};
-      demographics.ageAndGender.forEach(item => {
-        const [gender, bracket] = item.group.split('.'); // e.g., F, 18-24
-        const ageBracket = bracket || item.group;
-        if (!groups[ageBracket]) {
-          groups[ageBracket] = { group: ageBracket, female: 0, male: 0 };
-        }
-        if (gender === 'F') {
-          groups[ageBracket].female = item.count;
-        } else if (gender === 'M') {
-          groups[ageBracket].male = item.count;
-        } else {
-          groups[ageBracket].female = item.count;
-        }
-      });
-      ageAndGender = Object.values(groups);
-    }
-
-    // Process Top Locations: compute percentage and return key "location" expected by FacebookAudience.jsx
-    const totalCount = demographics.topCountries?.reduce((sum, c) => sum + (c.count || 0), 0) || 1;
-    let topLocations = [];
-    if (demographics.topCountries?.length > 0) {
-      topLocations = demographics.topCountries.map(c => ({
-        location: c.name === 'IN' ? 'India' : (c.name === 'US' ? 'United States' : c.name),
-        value: Math.round((c.count / totalCount) * 100)
-      }));
-    }
-
-    return {
-      totalGrowth: details.totalGrowth || "Data not available",
-      ageAndGender,
-      topLocations,
-=======
 
     return {
       totalGrowth: details.totalGrowth || "",
@@ -269,7 +231,6 @@ const fbapi = {
       topLocations: demographics.topCountries?.length > 0
         ? demographics.topCountries.map(c => ({ name: c.name, value: c.count }))
         : [],
->>>>>>> main
       topInterests: details.topInterests || [],
     };
   },
@@ -278,12 +239,6 @@ const fbapi = {
     const fb = await getFbSnapshotData();
     const details = fb.extended?.engagementDetails || {};
     const metrics = fb.metrics || {};
-<<<<<<< HEAD
-    
-    // Generate or process timeline, adding the required 'total' key for Recharts AreaChart
-=======
-
->>>>>>> main
     let engagementTrend = details.engagementTrend || [];
     if (engagementTrend.length === 0) {
       engagementTrend = Array.from({ length: 7 }, (_, i) => {
@@ -321,12 +276,6 @@ const fbapi = {
     const fb = await getFbSnapshotData();
     const growth = fb.extended?.growth || {};
     const metrics = fb.metrics || {};
-<<<<<<< HEAD
-    
-    // Generate growth timeline with cumulative followers and 'unfollows' mapped to 'lost'
-=======
-
->>>>>>> main
     let followerGrowthTimeline = growth.followerGrowthTimeline || [];
     if (followerGrowthTimeline.length === 0) {
       let currentFollowers = metrics.followers || 0;
@@ -406,17 +355,10 @@ const fbapi = {
     const videos = fb.extended?.contentData?.videos || [];
     return {
       kpis: {
-<<<<<<< HEAD
-        totalVideos:  videos.length,
-        totalPlays:   videos.reduce((a, v) => a + (v.plays || 0), 0),
-        avgWatchTime: "N/A",
-        topRetention: "N/A",
-=======
         totalVideos: videos.length,
         totalPlays: videos.reduce((a, v) => a + (v.plays || 0), 0),
         avgWatchTime: "0:00",
         topRetention: "0%",
->>>>>>> main
       },
       videos,
     };
@@ -427,17 +369,10 @@ const fbapi = {
     const stories = fb.extended?.contentData?.stories || [];
     return {
       kpis: {
-<<<<<<< HEAD
-        activeStories:    stories.length,
-        avgReach:         Math.round(stories.reduce((a, s) => a + (s.reach || 0), 0) / Math.max(stories.length, 1)),
-        completionRate:   "N/A",
-        totalReplies:     stories.reduce((a, s) => a + (s.replies || 0), 0),
-=======
         activeStories: stories.length,
         avgReach: Math.round(stories.reduce((a, s) => a + (s.reach || 0), 0) / Math.max(stories.length, 1)),
         completionRate: "0%",
         totalReplies: stories.reduce((a, s) => a + (s.replies || 0), 0),
->>>>>>> main
       },
       stories,
     };
