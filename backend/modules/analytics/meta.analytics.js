@@ -164,16 +164,14 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
         platform: 'facebook',
         snapshotDate: new Date(),
         metrics: {
-          followers: Math.floor(Math.random() * 2000) + 1000,
-          impressions: Math.floor(Math.random() * 15000) + 4000,
-          reach: Math.floor(Math.random() * 10000) + 2000,
-          profileViews: Math.floor(Math.random() * 500) + 100,
-          totalEngagement: Math.floor(Math.random() * 1000) + 150
+          followers: 0,
+          impressions: 0,
+          reach: 0,
+          profileViews: 0,
+          totalEngagement: 0
         },
         demographics: {
-          topCountries: [
-            { name: 'IN', count: Math.floor(Math.random() * 1000) + 500 }
-          ],
+          topCountries: [],
           topCities: [],
           ageAndGender: []
         },
@@ -186,7 +184,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
         },
         rawPlatformData: {
           mock: true,
-          facebook: { pageName: 'Mock Center FB Page', likes: 1500 }
+          facebook: { pageName: 'Not Connected / Data Unavailable', likes: 0 }
         }
       },
       { upsert: true, new: true }
