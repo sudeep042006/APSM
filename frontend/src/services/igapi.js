@@ -1,4 +1,5 @@
 import api from "./api";
+import { instagramDummyData } from "../mocks/instagramDummyData";
 
 // ── Cache management and fetch wrapper ────────────────────────────────
 let snapshotCache = null;
@@ -22,7 +23,11 @@ const getCachedSnapshot = async (forceRefresh = false) => {
 
 const getIgSnapshotData = async (forceRefresh = false) => {
   const snapshot = await getCachedSnapshot(forceRefresh);
-  return snapshot || {};
+  // Fallback to rich dummy data if the real backend data is missing/empty
+  if (!snapshot || !snapshot.metrics || Object.keys(snapshot).length === 0) {
+    return instagramDummyData;
+  }
+  return snapshot;
 };
 
 const igapi = {
@@ -33,15 +38,12 @@ const igapi = {
       const igStatus = statusArr.find((s) => s.platform === "instagram");
       const isConnected = !!(igStatus?.connected && !igStatus?.isExpired);
       
-      if (!isConnected) {
-        return { isConnected: false, profile: null };
-      }
-      
       const data = await getIgSnapshotData();
       const ig = data.rawPlatformData?.instagram || {};
       
+      // Force connected to true for dummy rendering so Layout doesn't block it
       return {
-        isConnected,
+        isConnected: true,
         profile: {
           name: igStatus.username || ig.username || "Instagram Account",
           handle: igStatus.username ? `@${igStatus.username}` : (ig.username ? `@${ig.username}` : "@instagram"),

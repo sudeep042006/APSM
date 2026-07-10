@@ -223,20 +223,22 @@ const InstagramDash = () => {
             >
               {/* Icon + Label */}
               <div className="flex items-center gap-2 mb-2">
-                <div className="bg-[#E1306C]/10 text-[#E1306C] p-2 rounded-full group-hover:bg-[#E1306C]/20 transition-colors">
+                <div className="bg-[#E1306C]/10 text-[#E1306C] p-2 rounded-full group-hover:bg-[#E1306C]/20 transition-colors shrink-0">
                   <kpi.icon className="h-3.5 w-3.5" />
                 </div>
-                <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">{kpi.title}</span>
+                <span className="text-[10px] sm:text-xs uppercase tracking-wider text-gray-400 font-semibold truncate" title={kpi.title}>{kpi.title}</span>
               </div>
               {/* Value */}
               <div className="text-2xl font-bold text-white mt-1">
                 {formatNumber(kpi.current)}
               </div>
               {/* Trend */}
-              <div className={`text-xs font-medium flex items-center gap-0.5 mt-1 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
-                {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                {isPositive ? '+' : ''}{trend}%
-                <span className="text-gray-500 font-normal ml-1">vs previous 7 days</span>
+              <div className={`text-[10px] sm:text-xs font-medium flex flex-wrap items-center gap-x-1 mt-1 ${isPositive ? 'text-emerald-400' : 'text-red-400'}`}>
+                <div className="flex items-center">
+                  {isPositive ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  {isPositive ? '+' : ''}{trend}%
+                </div>
+                <span className="text-gray-500 font-normal truncate">vs prev 7 days</span>
               </div>
             </Card>
           );
@@ -387,28 +389,32 @@ const InstagramDash = () => {
             ) : (
               <div className="space-y-0">
                 {/* Table Header */}
-                <div className="grid grid-cols-[40px_1fr_50px_50px_50px_50px] gap-1 pb-2 border-b border-white/5 mb-2">
-                  <span></span>
-                  <span className="text-[10px] text-gray-500 uppercase tracking-wider">Post</span>
-                  <span className="text-[10px] text-gray-500 uppercase tracking-wider text-right">Reach</span>
-                  <span className="text-[10px] text-gray-500 uppercase tracking-wider text-right">Likes</span>
-                  <span className="text-[10px] text-gray-500 uppercase tracking-wider text-right">Cmts</span>
-                  <span className="text-[10px] text-gray-500 uppercase tracking-wider text-right">ER%</span>
+                <div className="flex items-center justify-between pb-2 border-b border-white/5 mb-2 gap-2">
+                  <span className="w-8"></span>
+                  <span className="flex-1 text-[10px] text-gray-500 uppercase tracking-wider">Post</span>
+                  <div className="flex gap-2 text-right w-[160px] justify-end">
+                    <span className="w-10 text-[10px] text-gray-500 uppercase tracking-wider">Reach</span>
+                    <span className="w-10 text-[10px] text-gray-500 uppercase tracking-wider">Likes</span>
+                    <span className="w-10 text-[10px] text-gray-500 uppercase tracking-wider">Cmts</span>
+                    <span className="w-10 text-[10px] text-gray-500 uppercase tracking-wider">ER%</span>
+                  </div>
                 </div>
                 {/* Table Rows */}
                 {data.contentPerformance.map((post) => (
-                  <div key={post.id} className="grid grid-cols-[40px_1fr_50px_50px_50px_50px] gap-1 py-2 items-center hover:bg-white/5 rounded-md transition-colors">
-                    <img src={post.image} alt="" className="w-8 h-8 rounded-md object-cover flex-shrink-0" />
-                    <div className="min-w-0 pr-2">
+                  <div key={post.id} className="flex items-center justify-between py-2 hover:bg-white/5 rounded-md transition-colors gap-2">
+                    <img src={post.image} alt="" className="w-8 h-8 rounded-md object-cover shrink-0" />
+                    <div className="flex-1 min-w-0 pr-2">
                       <p className="text-[11px] text-white truncate">{post.caption || post.type}</p>
-                      <p className="text-[10px] text-gray-500">{post.type}</p>
+                      <p className="text-[10px] text-gray-500 truncate">{post.type}</p>
                     </div>
-                    <span className="text-[11px] text-gray-300 text-right">{formatNumber(post.reach)}</span>
-                    <span className="text-[11px] text-gray-300 text-right">{formatNumber(post.likes)}</span>
-                    <span className="text-[11px] text-gray-300 text-right">{formatNumber(post.comments)}</span>
-                    <span className="text-[11px] text-[#E1306C] font-medium text-right">
-                      {post.reach ? ((post.likes + post.comments) / post.reach * 100).toFixed(1) + '%' : 'N/A'}
-                    </span>
+                    <div className="flex gap-2 text-right w-[160px] justify-end shrink-0">
+                      <span className="w-10 text-[11px] text-gray-300">{formatNumber(post.reach)}</span>
+                      <span className="w-10 text-[11px] text-gray-300">{formatNumber(post.likes)}</span>
+                      <span className="w-10 text-[11px] text-gray-300">{formatNumber(post.comments)}</span>
+                      <span className="w-10 text-[11px] text-[#E1306C] font-medium">
+                        {post.reach ? ((post.likes + post.comments) / post.reach * 100).toFixed(1) + '%' : 'N/A'}
+                      </span>
+                    </div>
                   </div>
                 ))}
                 {/* View All Link — routed via react-router-dom */}

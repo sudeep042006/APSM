@@ -56,17 +56,7 @@ export default function LinkedInOverview() {
     };
   });
 
-  if (composedData.length === 0) {
-    composedData = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date();
-      d.setDate(d.getDate() - (6 - i));
-      return {
-        day: d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
-        impressions: 0,
-        engagementRate: 0
-      };
-    });
-  }
+
 
   // ── Custom Tooltip for Composed Chart ─────────────────────────────
   const CustomTooltip = ({ active, payload, label }) => {
