@@ -28,7 +28,9 @@ api.interceptors.request.use(
 // AuthContext listens for this event and renders the AuthErrorModal overlay
 // non-destructively, keeping the dashboard UI intact beneath it.
 api.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    return response;
+  },
   (error) => {
     const status = error.response?.status;
 

@@ -5,7 +5,7 @@
 
 import { createContext, useContext, useState, useEffect } from "react";
 import AuthErrorModal from "../components/AuthErrorModal";
-import api from "../lib/api";
+import api from "../services/api";
 
 // ── Create the Auth Context ─────────────────────────────────────────
 const AuthContext = createContext(null);
@@ -36,31 +36,35 @@ export function AuthProvider({ children }) {
     const token = localStorage.getItem("incubein_token");
     const savedUser = localStorage.getItem("incubein_user");
 
-    if (token && savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-        api.get("/auth/me")
-          .then((res) => {
-            const latestUser = res.data.user;
-            localStorage.setItem("incubein_user", JSON.stringify(latestUser));
-            setUser(latestUser);
-          })
-          .catch((err) => {
-            console.error("Session sync failed:", err);
+    const verifySession = async () => {
+      if (token) {
+        try {
+          if (savedUser && savedUser !== "undefined") {
+            try {
+              setUser(JSON.parse(savedUser));
+            } catch (jsonErr) {
+              console.warn("Corrupted user cache in localStorage:", jsonErr);
+            }
+          }
+          const res = await api.get("/auth/me");
+          const latestUser = res.data.user;
+          localStorage.setItem("incubein_user", JSON.stringify(latestUser));
+          setUser(latestUser);
+        } catch (err) {
+          console.error("Session sync failed:", err);
+          const status = err.response?.status;
+          if (status === 401 || status === 403) {
             logout();
-          })
-          .finally(() => {
-            setLoading(false);
-          });
-        return;
-      } catch {
-        // ── Corrupted data, clear storage ───────────────────────────────
-        localStorage.removeItem("incubein_token");
-        localStorage.removeItem("incubein_user");
+          }
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setLoading(false);
       }
-    }
+    };
 
-    setLoading(false);
+    verifySession();
   }, []);
 
   // ── Action: Login ──────────────────────────────────────────────────
@@ -97,11 +101,11 @@ export function AuthProvider({ children }) {
   };
 
   // ── Action: Logout ────────────────────────────────────────────────────
-  const logout = () => {
+  function logout() {
     localStorage.removeItem("incubein_token");
     localStorage.removeItem("incubein_user");
     setUser(null);
-  };
+  }
 
   // ── Context value exposed to consumers ────────────────────────────────
   const value = {

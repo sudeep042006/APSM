@@ -4,6 +4,7 @@
 
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/context/AuthContext";
 import {
   BarChart3,
   Share2,
@@ -53,6 +54,14 @@ const stats = [
 ];
 
 export default function LandingPage() {
+  const { user } = useAuth();
+
+  const targetPath = user ? "/dashboard/youtube" : "/login";
+  const signupTargetPath = user ? "/dashboard/youtube" : "/signup";
+  const btnText = user ? "Dashboard" : "Sign In";
+  const ctaText = user ? "Go to Dashboard" : "Get Started Free";
+  const bottomCtaText = user ? "Go to Dashboard" : "Start Your Dashboard";
+
   return (
     <div className="min-h-screen bg-background">
       {/* ── Hero Section ───────────────────────────────────────────────── */}
@@ -67,9 +76,9 @@ export default function LandingPage() {
             <img src={ApsmLogo} alt="APSM Logo" className="h-8 w-auto object-contain shrink-0" />
             <span className="text-xl font-bold tracking-wide text-white">APSM</span>
           </div>
-          <Link to="/login">
+          <Link to={targetPath}>
             <Button variant="outline" size="sm" id="landing-login-btn">
-              Sign In
+              {btnText}
               <ArrowRight className="ml-2 h-4 w-4" />
             </Button>
           </Link>
@@ -96,9 +105,9 @@ export default function LandingPage() {
           </p>
 
           <div className="flex items-center justify-center gap-4">
-            <Link to="/login">
+            <Link to={signupTargetPath}>
               <Button size="lg" className="gap-2" id="landing-get-started-btn">
-                Get Started Free
+                {ctaText}
                 <ArrowRight className="h-4 w-4" />
               </Button>
             </Link>
@@ -169,9 +178,9 @@ export default function LandingPage() {
             Join thousands of creators and brands managing their social presence
             through Incubein.
           </p>
-          <Link to="/login">
+          <Link to={signupTargetPath}>
             <Button size="lg" className="gap-2" id="landing-cta-btn">
-              Start Your Dashboard
+              {bottomCtaText}
               <ArrowRight className="h-4 w-4" />
             </Button>
           </Link>
