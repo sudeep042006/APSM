@@ -145,6 +145,82 @@ export default function YoutubeContent({ data, loading }) {
     }
   };
 
+  const regularVideos = filteredVideos.filter((v) => !v.isShort);
+  const shortVideos = filteredVideos.filter((v) => v.isShort);
+
+  const renderVideoList = (videoList, emptyIcon, emptyTitle, emptyDesc) => {
+    return videoList.length > 0 ? (
+      <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none overflow-hidden">
+        <CardContent className="p-0">
+          <div className="hidden md:grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-4 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-white/10 bg-muted/20">
+            <span>Video</span>
+            <span className="text-center">Views</span>
+            <span className="text-center">Likes</span>
+            <span className="text-center">Comments</span>
+            <span className="text-center">Duration</span>
+            <span className="text-right">Published</span>
+          </div>
+          <div className="divide-y divide-border/20">
+            {videoList.map((video) => (
+              <div
+                key={video.id}
+                className="flex flex-col md:grid md:grid-cols-[1fr_80px_80px_80px_80px_100px] gap-2 md:gap-4 items-start md:items-center p-4 hover:bg-accent/30 transition-colors duration-200 group"
+              >
+                <div className="flex items-center gap-3 min-w-0 w-full md:w-auto">
+                  {video.thumbnail ? (
+                    <div className="relative shrink-0">
+                      <img
+                        src={video.thumbnail}
+                        alt={video.title}
+                        className="h-12 w-20 rounded-md object-cover ring-1 ring-border/20"
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Play className="h-4 w-4 text-white" />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-md bg-muted">
+                      <Play className="h-4 w-4 text-slate-400" />
+                    </div>
+                  )}
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-medium truncate">{video.title}</p>
+                    <div className="flex items-center gap-2 md:hidden mt-1 text-xs text-slate-400">
+                      <span>{formatCompactNumber(video.viewCount)} views</span>
+                      <span>•</span>
+                      <span>{formatRelativeTime(video.publishedAt)}</span>
+                    </div>
+                  </div>
+                </div>
+                <span className="hidden md:flex items-center justify-center gap-1 text-sm">
+                  <Eye className="h-3 w-3 text-blue-400" />
+                  {formatCompactNumber(video.viewCount)}
+                </span>
+                <span className="hidden md:flex items-center justify-center gap-1 text-sm">
+                  <ThumbsUp className="h-3 w-3 text-emerald-400" />
+                  {formatCompactNumber(video.likeCount)}
+                </span>
+                <span className="hidden md:flex items-center justify-center gap-1 text-sm">
+                  <MessageSquare className="h-3 w-3 text-amber-400" />
+                  {formatCompactNumber(video.commentCount)}
+                </span>
+                <span className="hidden md:flex items-center justify-center gap-1 text-xs text-slate-400">
+                  <Clock className="h-3 w-3" />
+                  {formatDuration(video.duration)}
+                </span>
+                <span className="hidden md:block text-right text-xs text-slate-400">
+                  {formatRelativeTime(video.publishedAt)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    ) : (
+      <EmptyTabState icon={emptyIcon} title={emptyTitle} description={emptyDesc} />
+    );
+  };
+
   return (
     <div className="space-y-6 animate-fade-in">
       {/* ── Content Type Tabs ─────────────────────────────────────────── */}
@@ -213,97 +289,22 @@ export default function YoutubeContent({ data, loading }) {
           </div>
 
           {/* Video Table */}
-          {filteredVideos.length > 0 ? (
-            <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none overflow-hidden">
-              <CardContent className="p-0">
-                {/* Table Header */}
-                <div className="hidden md:grid grid-cols-[1fr_80px_80px_80px_80px_100px] gap-4 px-4 py-3 text-xs font-semibold uppercase tracking-wider text-slate-400 border-b border-white/10 bg-muted/20">
-                  <span>Video</span>
-                  <span className="text-center">Views</span>
-                  <span className="text-center">Likes</span>
-                  <span className="text-center">Comments</span>
-                  <span className="text-center">Duration</span>
-                  <span className="text-right">Published</span>
-                </div>
-                {/* Table Rows */}
-                <div className="divide-y divide-border/20">
-                  {filteredVideos.map((video) => (
-                    <div
-                      key={video.id}
-                      className="flex flex-col md:grid md:grid-cols-[1fr_80px_80px_80px_80px_100px] gap-2 md:gap-4 items-start md:items-center p-4 hover:bg-accent/30 transition-colors duration-200 group"
-                    >
-                      {/* Video info with thumbnail */}
-                      <div className="flex items-center gap-3 min-w-0 w-full md:w-auto">
-                        {video.thumbnail ? (
-                          <div className="relative shrink-0">
-                            <img
-                              src={video.thumbnail}
-                              alt={video.title}
-                              className="h-12 w-20 rounded-md object-cover ring-1 ring-border/20"
-                            />
-                            <div className="absolute inset-0 flex items-center justify-center rounded-md bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity">
-                              <Play className="h-4 w-4 text-white" />
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex h-12 w-20 shrink-0 items-center justify-center rounded-md bg-muted">
-                            <Play className="h-4 w-4 text-slate-400" />
-                          </div>
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <p className="text-sm font-medium truncate">{video.title}</p>
-                          <div className="flex items-center gap-2 md:hidden mt-1 text-xs text-slate-400">
-                            <span>{formatCompactNumber(video.viewCount)} views</span>
-                            <span>•</span>
-                            <span>{formatRelativeTime(video.publishedAt)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Stats columns (visible on md+) */}
-                      <span className="hidden md:flex items-center justify-center gap-1 text-sm">
-                        <Eye className="h-3 w-3 text-blue-400" />
-                        {formatCompactNumber(video.viewCount)}
-                      </span>
-                      <span className="hidden md:flex items-center justify-center gap-1 text-sm">
-                        <ThumbsUp className="h-3 w-3 text-emerald-400" />
-                        {formatCompactNumber(video.likeCount)}
-                      </span>
-                      <span className="hidden md:flex items-center justify-center gap-1 text-sm">
-                        <MessageSquare className="h-3 w-3 text-amber-400" />
-                        {formatCompactNumber(video.commentCount)}
-                      </span>
-                      <span className="hidden md:flex items-center justify-center gap-1 text-xs text-slate-400">
-                        <Clock className="h-3 w-3" />
-                        {formatDuration(video.duration)}
-                      </span>
-                      <span className="hidden md:block text-right text-xs text-slate-400">
-                        {formatRelativeTime(video.publishedAt)}
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <EmptyTabState
-              icon={Video}
-              title={searchQuery ? "No matching videos" : "No videos found"}
-              description={
-                searchQuery
-                  ? `No videos match "${searchQuery}". Try a different search term.`
-                  : "Your uploaded videos will appear here once analytics data is available."
-              }
-            />
+          {renderVideoList(
+            regularVideos,
+            Video,
+            searchQuery ? "No matching videos" : "No videos found",
+            searchQuery ? `No videos match "${searchQuery}". Try a different search term.` : "Your uploaded videos will appear here once analytics data is available."
           )}
         </TabsContent>
 
         {/* ── Shorts Tab ──────────────────────────────────────────────── */}
         <TabsContent value="shorts" className="mt-4">
-          <EmptyTabState
-            icon={Film}
-            title="Shorts Analytics Processing"
-            description="Detailed performance metrics for YouTube Shorts are currently being aggregated and will be displayed here."
-          />
+          {renderVideoList(
+            shortVideos,
+            Film,
+            searchQuery ? "No matching Shorts" : "No Shorts found",
+            searchQuery ? `No Shorts match "${searchQuery}". Try a different search term.` : "Your YouTube Shorts will appear here once analytics data is available."
+          )}
         </TabsContent>
 
         {/* ── Live Tab ────────────────────────────────────────────────── */}
