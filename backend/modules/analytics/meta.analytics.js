@@ -1,4 +1,4 @@
-import axios from 'axios';
+﻿import axios from 'axios';
 import { getValidToken } from '../../utils/tokenManager.js';
 import { AnalyticsSnapshot } from './analytics.model.js';
 export const fetchAndSaveFacebookAnalytics = async (userId) => {
@@ -21,7 +21,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
     if (fbToken) {
       // DEBUG: Check what permissions the token actually has
       try {
-        const permRes = await axios.get('https://graph.facebook.com/v18.0/me/permissions', {
+        const permRes = await axios.get('https://graph.facebook.com/v25.0/me/permissions', {
           params: { access_token: fbToken }
         });
         console.log(`[DEBUG-FB] Token permissions:`, JSON.stringify(permRes.data, null, 2));
@@ -31,7 +31,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
 
       // DEBUG: Check who this token belongs to
       try {
-        const meRes = await axios.get('https://graph.facebook.com/v18.0/me', {
+        const meRes = await axios.get('https://graph.facebook.com/v25.0/me', {
           params: { fields: 'id,name', access_token: fbToken }
         });
         console.log(`[DEBUG-FB] Token belongs to:`, JSON.stringify(meRes.data, null, 2));
@@ -40,7 +40,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
       }
 
       console.log(`[meta.analytics] Fetching Facebook Pages for user ${userId}...`);
-      const pagesRes = await axios.get('https://graph.facebook.com/v18.0/me/accounts', {
+      const pagesRes = await axios.get('https://graph.facebook.com/v25.0/me/accounts', {
         params: { access_token: fbToken }
       });
 
@@ -53,7 +53,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
         console.log(`[meta.analytics] Fetching FB Page stats for page ${page.name} (${pageId})...`);
         console.log(`[DEBUG-FB] Page token received: ${pageToken ? 'YES' : 'NO'}`);
 
-        const detailRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}`, {
+        const detailRes = await axios.get(`https://graph.facebook.com/v25.0/${pageId}`, {
           params: { fields: 'fan_count,name', access_token: pageToken }
         });
 
@@ -69,9 +69,10 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
         followers += facebookData.fanCount;
 
         try {
-          const insightsRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/insights`, {
+          // Bug fix: replaced deprecated page_views_total with page_impressions_unique (actual reach).
+          const insightsRes = await axios.get(`https://graph.facebook.com/v25.0/${pageId}/insights`, {
             params: {
-              metric: 'page_impressions,page_post_engagements,page_views_total',
+              metric: 'page_impressions,page_impressions_unique,page_post_engagements',
               period: 'day',
               access_token: pageToken
             }
@@ -86,18 +87,24 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
           };
           impressions += getVal('page_impressions');
           totalEngagement += getVal('page_post_engagements');
-          profileViews += getVal('page_views_total');
-          reach += Math.round(getVal('page_impressions') * 0.75);
+          // Bug fix: reach is now page_impressions_unique (unique users who saw content),
+          // not a fabricated 75% ratio of total impressions.
+          reach += getVal('page_impressions_unique');
         } catch (insightsErr) {
           console.warn(`⚠️ [meta.analytics] Failed to fetch Page Insights (metrics might be deprecated or empty):`, insightsErr.message);
           // Non-blocking: keep metrics as 0
         }
 
         try {
-          const postsRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/published_posts`, {
+          // Bug fix: Use comments.limit(0).summary(true) and reactions.limit(0).summary(true).
+          // Using comments.summary(total_count) caused Facebook to reorder posts by cursor
+          // when new comments arrived, making posts disappear from page 1 entirely.
+          // Using reactions instead of likes captures all emoji reactions (👍❤️😂😮😢😡).
+          // Added story + picture fields for posts with no message or expired full_picture.
+          const postsRes = await axios.get(`https://graph.facebook.com/v25.0/${pageId}/published_posts`, {
             params: {
-              fields: 'id,message,created_time,full_picture,attachments,shares,comments.summary(total_count),likes.summary(total_count)',
-              limit: 20,
+              fields: 'id,message,story,created_time,full_picture,picture,attachments{type,media_type,media,url},shares,comments.limit(0).summary(true),reactions.limit(0).summary(true)',
+              limit: 25,
               access_token: pageToken
             }
           });
@@ -106,22 +113,13 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
           console.warn(`⚠️ [meta.analytics] Failed to fetch Page Posts:`, postsErr.message);
         }
 
-        try {
-          console.log(`[meta.analytics] Fetching FB Page stories for page ${pageId}...`);
-          const storiesRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/stories`, {
-            params: {
-              fields: 'id,creation_time,media_type,media_url',
-              access_token: pageToken
-            }
-          });
-          facebookData.stories = storiesRes.data.data || [];
-        } catch (storiesErr) {
-          console.warn(`⚠️ [meta.analytics] Failed to fetch Page Stories:`, storiesErr.message);
-        }
+        // Note: /{page-id}/stories returns page TEXT-MENTION stories, not ephemeral
+        // 24-hour Stories. Facebook Page Story metrics (reach, taps, completion) are NOT
+        // available through any public Graph API endpoint. Removed this incorrect fetch.
 
         try {
           console.log(`[meta.analytics] Fetching FB Page demographics for page ${pageId}...`);
-          const demoRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/insights`, {
+          const demoRes = await axios.get(`https://graph.facebook.com/v25.0/${pageId}/insights`, {
             params: {
               metric: 'page_fans_gender_age,page_fans_country',
               period: 'lifetime',
@@ -257,14 +255,14 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
 
     if (igToken) {
       console.log(`[meta.analytics] Fetching FB Page linked to Instagram for user ${userId}...`);
-      const pagesRes = await axios.get('https://graph.facebook.com/v18.0/me/accounts', {
+      const pagesRes = await axios.get('https://graph.facebook.com/v25.0/me/accounts', {
         params: { access_token: igToken }
       });
 
       const page = pagesRes.data.data?.[0];
       if (page) {
         console.log(`[meta.analytics] Fetching IG Business Account linked to FB Page ${page.id}...`);
-        const igAccountRes = await axios.get(`https://graph.facebook.com/v18.0/${page.id}`, {
+        const igAccountRes = await axios.get(`https://graph.facebook.com/v25.0/${page.id}`, {
           params: { fields: 'instagram_business_account', access_token: igToken }
         });
 
@@ -272,7 +270,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
         if (igAccountId) {
           console.log(`[meta.analytics] Fetching IG insights for Business Account ${igAccountId}...`);
 
-          const profileRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}`, {
+          const profileRes = await axios.get(`https://graph.facebook.com/v25.0/${igAccountId}`, {
             params: { fields: 'followers_count,media_count,username', access_token: igToken }
           });
 
@@ -288,7 +286,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
 
           // Fetch insights (non-blocking)
           try {
-            const insightsRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/insights`, {
+            const insightsRes = await axios.get(`https://graph.facebook.com/v25.0/${igAccountId}/insights`, {
               params: {
                 metric: 'impressions,reach', // profile_views is deprecated
                 period: 'day',
@@ -309,7 +307,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
 
           // Fetch demographics (non-blocking)
           try {
-            const demoRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/insights`, {
+            const demoRes = await axios.get(`https://graph.facebook.com/v25.0/${igAccountId}/insights`, {
               params: {
                 metric: 'audience_country,audience_gender_age',
                 period: 'lifetime',
@@ -341,7 +339,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
 
           // Fetch media (posts, reels, etc.)
           try {
-            const mediaRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/media`, {
+            const mediaRes = await axios.get(`https://graph.facebook.com/v25.0/${igAccountId}/media`, {
               params: {
                 fields: 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count',
                 limit: 30,

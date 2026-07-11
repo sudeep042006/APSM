@@ -120,22 +120,25 @@ const fbapi = {
     const formattedPosts = rawPosts.map((p) => {
       const attachType = p.attachments?.data?.[0]?.type || "";
       const isVideo = attachType.includes("video") || p.attachments?.data?.[0]?.media_type === "video";
-      const isLink = attachType === "share" || attachType === "link" || p.attachments?.data?.[0]?.url;
-      const type = isVideo ? "Videos" : (isLink ? "Links" : (p.full_picture ? "Photos" : "Text"));
-      const postLikes = p.likes?.summary?.total_count || 0;
+      const isLink = attachType === "share" || attachType === "link";
+      const type = isVideo ? "Videos" : (isLink ? "Links" : (p.full_picture || p.picture ? "Photos" : "Text"));
+      // Bug fix: use reactions (all emoji types) with likes as fallback for older API responses
+      const postReactions = p.reactions?.summary?.total_count ?? p.likes?.summary?.total_count ?? 0;
       const postComments = p.comments?.summary?.total_count || 0;
       const postShares = p.shares?.count || 0;
-      const postEngagements = postLikes + postComments + postShares;
+      const postEngagements = postReactions + postComments + postShares;
       return {
         id: p.id,
-        title: p.message || (isVideo ? "Untitled Video" : "Untitled Post"),
-        image: p.full_picture || "https://placehold.co/150",
+        // Bug fix: fall back to story field for shared links/events that have no message
+        title: p.message || p.story || (isVideo ? "Video Post" : "Post"),
+        // Bug fix: use picture as fallback when full_picture CDN URL has expired; null triggers UI fallback
+        image: p.full_picture || p.picture || null,
         date: p.created_time ? new Date(p.created_time).toISOString().split("T")[0] : "",
         reach: 0,
         impressions: 0,
         engagements: postEngagements,
-        reactions: postLikes,
-        likes: postLikes,
+        reactions: postReactions,
+        likes: postReactions,
         comments: postComments,
         shares: postShares,
         type: type,
@@ -203,7 +206,8 @@ const fbapi = {
       }));
     }
 
-    const totalPostLikes = rawPosts.reduce((sum, p) => sum + (p.likes?.summary?.total_count || 0), 0);
+    // Bug fix: use reactions field (all emoji types) with likes fallback
+    const totalPostLikes = rawPosts.reduce((sum, p) => sum + (p.reactions?.summary?.total_count ?? p.likes?.summary?.total_count ?? 0), 0);
     const totalPostComments = rawPosts.reduce((sum, p) => sum + (p.comments?.summary?.total_count || 0), 0);
     const totalPostShares = rawPosts.reduce((sum, p) => sum + (p.shares?.count || 0), 0);
     const totalPostEngagement = totalPostLikes + totalPostComments + totalPostShares;
@@ -221,9 +225,11 @@ const fbapi = {
         pageLikes: { value: fb.metrics?.followers || fb.rawPlatformData?.facebook?.fanCount || 0, change: 0 },
         postReach: { value: fb.metrics?.reach || 0, change: 0 },
         postEngagements: { value: fb.metrics?.totalEngagement || totalPostEngagement || sumMetric("page_post_engagements"), change: 0 },
-        reactions: { value: totalPostLikes || Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.6), change: 0 },
-        comments: { value: totalPostComments || Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.2), change: 0 },
-        shares: { value: totalPostShares || Math.round((fb.metrics?.totalEngagement || sumMetric("page_post_engagements")) * 0.2), change: 0 },
+        // Bug fix: removed fabricated Math.round(* 0.6/0.2/0.2) ratio splits.
+        // Now using real per-post reaction/comment/share counts summed from the posts array.
+        reactions: { value: totalPostLikes, change: 0 },
+        comments: { value: totalPostComments, change: 0 },
+        shares: { value: totalPostShares, change: 0 },
       },
       charts: {
         reachOverTime,
@@ -464,29 +470,20 @@ const fbapi = {
   },
 
   getStoriesMetrics: async () => {
-    const fb = await getFbSnapshotData();
-    const rawStories = fb.rawPlatformData?.facebook?.stories || [];
-
-    const stories = rawStories.map(s => ({
-      id: s.id,
-      title: `Story (${s.media_type || "Image"})`,
-      image: s.media_url || "https://placehold.co/150",
-      date: s.creation_time ? new Date(s.creation_time).toISOString().split("T")[0] : "",
-      opens: 0,
-      reach: 0,
-      exits: 0,
-      replies: 0,
-      completionRate: "N/A"
-    }));
-
+    // Facebook Page Story metrics (reach, taps, completion, replies, exits) are NOT
+    // available through the public Meta Graph API. The /{page-id}/stories edge returns
+    // page text-mention stories — not the ephemeral 24-hour Stories feature.
+    // Meta only exposes Story analytics through Meta Business Suite's internal systems.
     return {
       kpis: {
-        activeStories: stories.length,
-        avgReach: 0,
-        completionRate: "0%",
-        totalReplies: 0,
+        activeStories: null,
+        avgReach: null,
+        completionRate: null,
+        totalReplies: null,
       },
-      stories,
+      apiLimitation: true,
+      limitationMessage: "Facebook Page Story analytics are not accessible through the public Meta Graph API. Meta only exposes Story insights through Meta Business Suite. This is a platform-level restriction, not an app limitation.",
+      stories: [],
     };
   },
 
