@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Outlet } from "react-router-dom";
 import Sidebar from "@/components/Sidebar";
 import Navbar from "@/components/Navbar";
+import FloatingSuggestionChatbot from "@/components/FloatingSuggestionChatbot";
 
 export default function DashboardLayout() {
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -24,6 +25,7 @@ export default function DashboardLayout() {
         <main className="p-6">
           <Outlet />
         </main>
+        <FloatingSuggestionChatbot />
       </div>
     </div>
   );
