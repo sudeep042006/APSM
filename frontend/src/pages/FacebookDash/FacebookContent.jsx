@@ -12,7 +12,7 @@ import { FileText, MoreVertical, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 // ── Content type tabs ─────────────────────────────────────────────────────────
-const TABS = ["All", "Posts", "Photos", "Links", "Text"];
+const TABS = ["All", "Photos", "Videos", "Links", "Text"];
 
 // ── Number formatter ──────────────────────────────────────────────────────────
 const fmt = (n) =>
@@ -32,7 +32,12 @@ const FacebookContent = () => {
     const fetch = async () => {
       try {
         const data = await fbapi.getOverviewMetrics();
-        if (mounted) setPosts(data?.tables?.topPosts || []);
+        const allContent = [
+          ...(data?.tables?.topPosts || []),
+          ...(data?.tables?.topVideos || [])
+        ];
+        allContent.sort((a, b) => b.date.localeCompare(a.date));
+        if (mounted) setPosts(allContent);
       } catch (e) {
         if (mounted) setError("Could not load content data.");
       } finally {
