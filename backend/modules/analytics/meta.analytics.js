@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { getValidToken } from '../../utils/tokenManager.js';
 import { AnalyticsSnapshot } from './analytics.model.js';
-
 export const fetchAndSaveFacebookAnalytics = async (userId) => {
   let facebookData = null;
   let hasRealData = false;
@@ -10,6 +9,8 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
   let reach = 0;
   let profileViews = 0;
   let totalEngagement = 0;
+  let topCountries = [];
+  let ageAndGender = [];
 
   try {
     console.log(`[meta.analytics] Checking Facebook connection for user ${userId}...`);
@@ -104,6 +105,52 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
         } catch (postsErr) {
           console.warn(`⚠️ [meta.analytics] Failed to fetch Page Posts:`, postsErr.message);
         }
+
+        try {
+          console.log(`[meta.analytics] Fetching FB Page stories for page ${pageId}...`);
+          const storiesRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/stories`, {
+            params: {
+              fields: 'id,creation_time,media_type,media_url',
+              access_token: pageToken
+            }
+          });
+          facebookData.stories = storiesRes.data.data || [];
+        } catch (storiesErr) {
+          console.warn(`⚠️ [meta.analytics] Failed to fetch Page Stories:`, storiesErr.message);
+        }
+
+        try {
+          console.log(`[meta.analytics] Fetching FB Page demographics for page ${pageId}...`);
+          const demoRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/insights`, {
+            params: {
+              metric: 'page_fans_gender_age,page_fans_country',
+              period: 'lifetime',
+              access_token: pageToken
+            }
+          });
+          
+          console.log(`[DEBUG-FB] Demographics response data:`, JSON.stringify(demoRes.data, null, 2));
+
+          const countryMetric = demoRes.data?.data?.find(m => m.name === 'page_fans_country');
+          if (countryMetric?.values?.[0]?.value) {
+            const valObj = countryMetric.values[0].value;
+            topCountries = Object.entries(valObj).map(([name, count]) => ({
+              name,
+              count: parseInt(count) || 0
+            })).sort((a, b) => b.count - a.count).slice(0, 5);
+          }
+
+          const ageGenderMetric = demoRes.data?.data?.find(m => m.name === 'page_fans_gender_age');
+          if (ageGenderMetric?.values?.[0]?.value) {
+            const valObj = ageGenderMetric.values[0].value;
+            ageAndGender = Object.entries(valObj).map(([group, count]) => ({
+              group,
+              count: parseFloat(count) || 0
+            }));
+          }
+        } catch (demoErr) {
+          console.warn(`⚠️ [meta.analytics] Failed to fetch Page demographics:`, demoErr.message);
+        }
       } else {
         console.warn(`[DEBUG-FB] ❌ No pages returned! Full response data:`, JSON.stringify(pagesRes.data, null, 2));
       }
@@ -141,9 +188,9 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
           totalEngagement
         },
         demographics: {
-          topCountries: [],
+          topCountries,
           topCities: [],
-          ageAndGender: []
+          ageAndGender
         },
         rawPlatformData: { facebook: facebookData }
       },
