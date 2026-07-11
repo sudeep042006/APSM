@@ -19,6 +19,7 @@ export default defineConfig({
   // ── Dev Server Configuration ────────────────────────────────────────
   server: {
     strictPort: true,
+    allowedHosts:true,
     proxy: {
       // Proxy /auth requests to the Express backend during development
       "/auth": {

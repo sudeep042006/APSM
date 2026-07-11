@@ -57,7 +57,7 @@ export default function LinkedInGrowth() {
   };
 
   return (
-    <div className="animate-fade-in p-6 space-y-6 bg-[#0B1121] min-h-screen text-white">
+    <div className="animate-fade-in p-6 space-y-6  text-white">
       {/* ── Section A: Highlights Grid ───────────────────────────────── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         {[
@@ -117,3 +117,4 @@ export default function LinkedInGrowth() {
     </div>
   );
 }
+

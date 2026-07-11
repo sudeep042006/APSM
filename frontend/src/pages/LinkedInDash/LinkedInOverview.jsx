@@ -133,7 +133,7 @@ export default function LinkedInOverview() {
     .slice(0, 3);
 
   return (
-    <div className="animate-fade-in p-6 space-y-6 bg-[#0B1121] min-h-screen text-white">
+    <div className="animate-fade-in p-6 space-y-6  text-white">
       {/* ── Section A: Profile/Company Header Block ──────────────────── */}
       <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 overflow-hidden">
         <CardContent className="p-6">
@@ -271,3 +271,4 @@ export default function LinkedInOverview() {
     </div>
   );
 }
+
