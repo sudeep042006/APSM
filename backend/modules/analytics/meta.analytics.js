@@ -245,7 +245,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
           try {
             const insightsRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/insights`, {
               params: {
-                metric: 'impressions,reach', // profile_views is deprecated
+                metric: 'impressions,reach,website_clicks,email_contacts,phone_call_clicks,get_directions_clicks',
                 period: 'day',
                 access_token: igToken
               }

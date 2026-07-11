@@ -130,13 +130,17 @@ const getAnalyticsSummary = async (req, res, next) => {
           'instagram',
           fetchAndSaveInstagramAnalytics
         );
+        const history = await AnalyticsSnapshot.find({ incubationCenterId: userId, platform: 'instagram' })
+          .sort({ snapshotDate: 1 })
+          .limit(30);
         return res.json({
           message: failedLiveFetch
             ? 'Retrieved latest cached Instagram analytics (live fetch failed)'
             : fromCache
               ? 'Instagram analytics retrieved from cache'
               : 'Instagram analytics retrieved successfully',
-          data: snapshot,          // ← single object
+          data: snapshot,
+          history: history,
         });
       } catch (err) {
         return res.status(400).json({ error: err.message });

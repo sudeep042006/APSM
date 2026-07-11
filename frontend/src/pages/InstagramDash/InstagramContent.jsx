@@ -35,7 +35,14 @@ const InstagramContent = () => {
     return () => { isMounted = false; };
   }, [isConnected]);
 
-  const filters = ['All', 'Images', 'Carousels', 'Videos', 'Reels'];
+  const filters = ['All', 'Posts', 'Reels'];
+
+  const filteredPosts = data?.posts?.filter(p => {
+    if (filter === 'All') return true;
+    if (filter === 'Reels') return p.type === 'Reel' || p.type === 'VIDEO';
+    if (filter === 'Posts') return p.type === 'Post' || p.type === 'Carousel' || p.type === 'IMAGE' || p.type === 'CAROUSEL_ALBUM';
+    return true;
+  }) || [];
 
   if (!isConnected) {
     return (
@@ -84,13 +91,13 @@ const InstagramContent = () => {
             </Card>
           ))}
         </div>
-      ) : data.posts.length === 0 ? (
+      ) : filteredPosts.length === 0 ? (
         <div className="p-12 text-center border border-white/5 rounded-xl bg-[#161B22]/90 backdrop-blur-md rounded-xl">
           <p className="text-gray-400">Not enough data available yet.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data.posts.map((post) => (
+          {filteredPosts.map((post) => (
             <Card key={post.id} className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 overflow-hidden hover:border-white/10 transition-colors">
               <div className="relative h-48">
                 <img src={post.image} alt={post.type} className="w-full h-full object-cover" />
