@@ -9,6 +9,7 @@ import {
   Send,
   LogOut,
   Menu,
+  LayoutDashboard,
 } from "lucide-react";
 import { Youtube, Linkedin, Facebook, Instagram } from "@/components/icons/BrandIcons";
 import { Button } from "@/components/ui/button";
@@ -18,6 +19,7 @@ import ApsmLogo from "@/assets/images/apsm-logo.svg";
 // Defines the left-hand menu navigation links. Unbundled Meta into
 // separate Facebook and Instagram entries.
 const navItems = [
+  { label: "Combined Overview", path: "/dashboard/combined", icon: LayoutDashboard, isNew: true },
   { label: "YouTube", path: "/dashboard/youtube", icon: Youtube },
   { label: "LinkedIn", path: "/dashboard/linkedin", icon: Linkedin },
   { label: "Facebook", path: "/dashboard/facebook", icon: Facebook },
@@ -42,25 +44,34 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       </div>
 
       {/* ── Navigation Links ─────────────────────────────────────────── */}
-      <nav className="flex-1 space-y-1 px-3 py-4 overflow-hidden">
-        {navItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            className={({ isActive }) =>
-              `flex items-center rounded-lg py-2.5 text-sm font-medium transition-all duration-200 ${
-                isCollapsed ? "justify-center px-0" : "gap-3 px-3"
-              } ${
-                isActive
-                  ? "bg-white/10 text-white shadow-sm"
-                  : "text-slate-400 hover:bg-white/10 hover:text-white"
-              }`
-            }
-            title={isCollapsed ? item.label : undefined}
-          >
-            <item.icon className="h-4 w-4 shrink-0" />
-            {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
-          </NavLink>
+      <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto overflow-x-hidden">
+        {navItems.map((item, idx) => (
+          <div key={item.path}>
+            {idx === 1 && <div className="my-3 mx-2 h-px bg-white/10" />}
+            <NavLink
+              to={item.path}
+              className={({ isActive }) =>
+                `flex items-center rounded-lg py-2.5 text-sm font-medium transition-all duration-200 relative ${
+                  isCollapsed ? "justify-center px-0" : "gap-3 px-3"
+                } ${
+                  isActive
+                    ? item.isNew 
+                      ? "bg-indigo-600/20 text-indigo-400 shadow-sm border border-indigo-500/30" 
+                      : "bg-white/10 text-white shadow-sm"
+                    : "text-slate-400 hover:bg-white/10 hover:text-white"
+                }`
+              }
+              title={isCollapsed ? item.label : undefined}
+            >
+              <item.icon className={`h-4 w-4 shrink-0 ${item.isNew ? 'text-indigo-400' : ''}`} />
+              {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
+              {!isCollapsed && item.isNew && (
+                <span className="ml-auto flex items-center justify-center rounded bg-indigo-600 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white">
+                  NEW
+                </span>
+              )}
+            </NavLink>
+          </div>
         ))}
       </nav>
 

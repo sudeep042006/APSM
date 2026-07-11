@@ -10,6 +10,7 @@ import { authRouter, userRouter } from './modules/auth/auth.routes.js';
 import analyticsRouter from './modules/analytics/analytics.routes.js';
 import automationRouter from './modules/automation/automation.routes.js';
 import mlChatbotRouter from './modules/mlChatbot/mlChatbot.routes.js';
+import reportsRouter from './modules/reports/reports.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import connectRedis from './config/redis.js';
 import './modules/automation/automation.worker.js'; // Start the cross-posting worker
@@ -32,6 +33,7 @@ app.use('/user', userRouter);
 app.use('/analytics', analyticsRouter);
 app.use('/automation', automationRouter);
 app.use('/chatbot', mlChatbotRouter);
+app.use('/reports', reportsRouter);
 
 // Health check — visit http://localhost:5000/health to confirm server is alive
 app.get('/health', (req, res) => {

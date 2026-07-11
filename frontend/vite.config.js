@@ -45,6 +45,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Proxy /reports requests to the Express backend
+      "/reports": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+      },
       // Proxy /api catch-all requests to the Express backend during development
       "/api": {
         target: "http://localhost:5000",
