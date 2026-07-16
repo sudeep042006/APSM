@@ -71,7 +71,7 @@ const InstagramReports = () => {
                 onClick={handleExport}
                 disabled={isExporting}
                 variant="outline"
-                className="flex-1 border-white/10 text-white hover:bg-white/5"
+                className="flex-1 border-gray-300 text-black hover:bg-gray-100 dark:border-white/10 dark:text-white dark:hover:bg-white/5"
               >
                 {isExporting ? 'Generating...' : 'Export CSV'}
                 {!isExporting && <Download className="w-4 h-4 ml-2" />}
