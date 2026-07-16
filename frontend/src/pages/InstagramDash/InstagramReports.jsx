@@ -48,7 +48,7 @@ const InstagramReports = () => {
                   <span className="text-sm text-gray-300">Last 30 Days</span>
                 </div>
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium text-gray-300 mb-1 block">Metrics to Include</label>
                 <div className="flex items-center gap-2 p-2 border border-white/10 rounded-lg bg-black/20">
@@ -59,7 +59,7 @@ const InstagramReports = () => {
             </div>
 
             <div className="flex gap-3">
-              <Button 
+              <Button
                 onClick={handleExport}
                 disabled={isExporting}
                 className="flex-1 bg-[#E1306C] hover:bg-[#E1306C]/90 text-white"
@@ -67,7 +67,7 @@ const InstagramReports = () => {
                 {isExporting ? 'Generating...' : 'Export as PDF'}
                 {!isExporting && <FileText className="w-4 h-4 ml-2" />}
               </Button>
-              <Button 
+              <Button
                 onClick={handleExport}
                 disabled={isExporting}
                 variant="outline"
