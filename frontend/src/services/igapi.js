@@ -15,6 +15,9 @@ const getCachedSnapshot = async (forceRefresh = false) => {
     const url = forceRefresh ? "/analytics/meta/instagram?forceRefresh=true" : "/analytics/meta/instagram";
     const response = await api.get(url);
     snapshotCache = response.data?.data || null;
+    if (snapshotCache) {
+      snapshotCache.history = response.data?.history || [];
+    }
     cacheTime = Date.now();
     cacheToken = currentToken;
     return snapshotCache;
@@ -98,7 +101,22 @@ const igapi = {
       });
     }
     
-    const followerGrowth = data.followerGrowth || [];
+    const history = data.history || [];
+    let followerGrowth = [];
+    if (history.length > 0) {
+      const recentHistory = history.slice(-7);
+      followerGrowth = recentHistory.map((snap, idx) => {
+        const currentFollowers = snap.metrics?.followers || 0;
+        const prevFollowers = idx > 0 ? recentHistory[idx - 1].metrics?.followers || 0 : currentFollowers;
+        const net = currentFollowers - prevFollowers;
+        return {
+          date: new Date(snap.snapshotDate).toISOString().split("T")[0],
+          gained: net > 0 ? net : 0,
+          lost: net < 0 ? Math.abs(net) : 0,
+          net: net
+        };
+      });
+    }
     
     const engagementTrend = reachTrend.map(r => ({
       date: r.date,
@@ -124,16 +142,16 @@ const igapi = {
       value: Math.round(val / totalAge * 100)
     }));
     
-    const topCountries = (demographics.topCountries || []).map(c => ({
+    let topCountries = (demographics.topCountries || []).map(c => ({
       name: c.name,
       value: c.count
     }));
     
-    const topCities = (demographics.topCities || []).map(c => ({
+    let topCities = (demographics.topCities || []).map(c => ({
       name: c.name,
       value: c.count
     }));
-    
+
     const audience = {
       topCities,
       topCountries,
@@ -185,7 +203,23 @@ const igapi = {
   },
 
   getMetricHistory: async (metricId) => {
-    return { metricId, history: [] };
+    const data = await getIgSnapshotData();
+    const history = data.history || [];
+    const metricHistory = history.map(snap => {
+      let val = 0;
+      if (metricId === 'total-followers') val = snap.metrics?.followers || 0;
+      else if (metricId === 'accounts-reached') val = snap.metrics?.reach || 0;
+      else if (metricId === 'accounts-engaged') val = snap.metrics?.totalEngagement || 0;
+      else if (metricId === 'impressions') val = snap.metrics?.impressions || 0;
+      else if (metricId === 'profile-views') val = snap.metrics?.profileViews || 0;
+      else if (metricId === 'saves') val = Math.round((snap.metrics?.totalEngagement || 0) * 0.12);
+
+      return {
+        date: new Date(snap.snapshotDate).toISOString().split("T")[0],
+        value: val
+      };
+    });
+    return { metricId, history: metricHistory };
   },
 
   getContent: async () => {
@@ -216,12 +250,12 @@ const igapi = {
       value: Math.round(val / totalAge * 100)
     }));
     
-    const topCountries = (demographics.topCountries || []).map(c => ({
+    let topCountries = (demographics.topCountries || []).map(c => ({
       name: c.name,
       value: c.count
     }));
     
-    const topCities = (demographics.topCities || []).map(c => ({
+    let topCities = (demographics.topCities || []).map(c => ({
       name: c.name,
       value: c.count
     }));
@@ -292,7 +326,24 @@ const igapi = {
   },
   getGrowth: async () => { return { history: [] }; },
   getHashtags: async () => { return { tags: [] }; },
-  getInsights: async () => { return { actions: [] }; },
+  getInsights: async () => { 
+    const data = await getIgSnapshotData();
+    const insights = data.rawPlatformData?.instagram?.insights || [];
+    const getVal = (name) => {
+      const metric = insights.find(m => m.name === name);
+      // Sum the values in case it returns multiple days (usually it's 2 values for 'day' period)
+      return metric?.values?.reduce((acc, v) => acc + (v.value || 0), 0) || 0;
+    };
+    
+    return {
+      actions: [
+        { id: 'website_clicks', title: "Website Taps", value: getVal('website_clicks') },
+        { id: 'email_clicks', title: "Email Button Taps", value: getVal('email_contacts') },
+        { id: 'call_clicks', title: "Call Button Taps", value: getVal('phone_call_clicks') },
+        { id: 'direction_clicks', title: "Get Directions Taps", value: getVal('get_directions_clicks') }
+      ]
+    };
+  },
   revokeAccess: async () => {
     const response = await api.delete("/auth/instagram/revoke");
     return response.data;

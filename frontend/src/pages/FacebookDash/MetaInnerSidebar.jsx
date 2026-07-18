@@ -93,7 +93,7 @@ export default function MetaInnerSidebar({
     <aside
       className={`
         flex-shrink-0 flex flex-col h-full
-        overflow-y-auto bg-[#0B1121]/95 backdrop-blur-xl
+        overflow-y-auto bg-background/95 backdrop-blur-xl
         transition-all duration-300 z-40 custom-scrollbar
         ${isSlim ? "w-20" : "w-64"}
       `}
@@ -254,3 +254,4 @@ export default function MetaInnerSidebar({
     </aside>
   );
 }
+

@@ -110,7 +110,6 @@ const InstagramDash = () => {
   // ── 6-Column KPI Definitions ───────────────────────────────────────
   const kpis = [
     { id: 'total-followers', title: 'Followers', icon: Users, current: data?.kpis?.totalFollowers?.current, previous: data?.kpis?.totalFollowers?.previous },
-    { id: 'profile-views', title: 'Profile Views', icon: Eye, current: data?.profileViews?.current, previous: data?.profileViews?.previous },
     { id: 'accounts-reached', title: 'Reach', icon: Target, current: data?.kpis?.accountsReached?.current, previous: data?.kpis?.accountsReached?.previous },
     { id: 'accounts-engaged', title: 'Engagement', icon: Heart, current: data?.kpis?.accountsEngaged?.current, previous: data?.kpis?.accountsEngaged?.previous },
     { id: 'impressions', title: 'Impressions', icon: BarChart3, current: data?.reachTrend?.reduce((a, b) => a + b.impressions, 0), previous: data?.reachTrend?.reduce((a, b) => a + b.impressions, 0) * 0.85 },
@@ -196,7 +195,7 @@ const InstagramDash = () => {
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ROW 2 — 6-Column Core KPI Grid                                */}
       {/* ═══════════════════════════════════════════════════════════════ */}
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
         {kpis.map((kpi, idx) => {
           // ── Loading skeleton matching exact card dimensions ─────────
           if (isLoading) {

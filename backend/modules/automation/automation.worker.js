@@ -49,51 +49,76 @@ const worker = new Worker('CrossPostQueue', async (job) => {
             const mediaBuffer = Buffer.from(mediaBufferResponse.data);
             const isVideo = mediaUrl.match(/\.(mp4|mov|wmv|flv|avi|webm|mkv)$/i);
 
-            let uploadUrl = '';
             let mediaUrn = '';
             let uploadToken = null;
 
-            // 2. Initialize Upload
+            // 2 & 3. Initialize and Execute Upload
             if (isVideo) {
                 const initRes = await axios.post('https://api.linkedin.com/rest/videos?action=initializeUpload', {
                     initializeUploadRequest: {
                         owner: `urn:li:person:${personId}`,
                         fileSizeBytes: mediaBuffer.length
                     }
-                }, { headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': '202601', 'Content-Type': 'application/json' } });
+                }, { headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': '202601', 'X-Restli-Protocol-Version': '2.0.0', 'Content-Type': 'application/json' } });
 
-                uploadUrl = initRes.data.value.uploadInstructions[0].uploadUrl;
                 mediaUrn = initRes.data.value.video;
                 uploadToken = initRes.data.value.uploadToken;
+                const uploadInstructions = initRes.data.value.uploadInstructions;
+
+                // Upload each chunk as instructed by LinkedIn
+                const uploadedPartIds = [];
+                for (const instruction of uploadInstructions) {
+                    const chunk = mediaBuffer.slice(instruction.firstByte, instruction.lastByte + 1);
+                    const chunkRes = await axios.put(instruction.uploadUrl, chunk, {
+                        headers: {
+                            'Content-Type': 'application/octet-stream',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        maxBodyLength: Infinity,
+                        maxContentLength: Infinity
+                    });
+                    // LinkedIn requires the ETag header values for uploadedPartIds
+                    console.log('Chunk upload headers:', chunkRes.headers);
+                    if (chunkRes.headers.etag) {
+                        // Some endpoints return ETags with quotes, we keep them as is unless LinkedIn complains
+                        uploadedPartIds.push(chunkRes.headers.etag.replace(/"/g, ''));
+                    } else if (chunkRes.headers.Etag || chunkRes.headers.ETag) {
+                        const etag = chunkRes.headers.Etag || chunkRes.headers.ETag;
+                        uploadedPartIds.push(etag.replace(/"/g, ''));
+                    } else {
+                        console.error('MISSING ETAG IN HEADERS FOR LINKEDIN CHUNK:', instruction);
+                    }
+                }
+
+                console.log('Sending finalizeUploadRequest with ETags:', uploadedPartIds);
+                // Finalize Upload
+                await axios.post('https://api.linkedin.com/rest/videos?action=finalizeUpload', {
+                    finalizeUploadRequest: {
+                        video: mediaUrn,
+                        uploadToken: uploadToken,
+                        uploadedPartIds: uploadedPartIds
+                    }
+                }, { headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': '202601', 'X-Restli-Protocol-Version': '2.0.0', 'Content-Type': 'application/json' } });
+
             } else {
+                // Image Upload
                 const initRes = await axios.post('https://api.linkedin.com/rest/images?action=initializeUpload', {
                     initializeUploadRequest: {
                         owner: `urn:li:person:${personId}`
                     }
-                }, { headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': '202601', 'Content-Type': 'application/json' } });
+                }, { headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': '202601', 'X-Restli-Protocol-Version': '2.0.0', 'Content-Type': 'application/json' } });
 
-                uploadUrl = initRes.data.value.uploadUrl;
+                const uploadUrl = initRes.data.value.uploadUrl;
                 mediaUrn = initRes.data.value.image;
-            }
 
-            // 3. Upload Binary Data
-            await axios.put(uploadUrl, mediaBuffer, {
-                headers: {
-                    'Content-Type': 'application/octet-stream',
-                    'Authorization': `Bearer ${token}`
-                },
-                maxBodyLength: Infinity,
-                maxContentLength: Infinity
-            });
-
-            // 3.5 Finalize Upload (Videos Only)
-            if (isVideo && uploadToken) {
-                await axios.post('https://api.linkedin.com/rest/videos?action=finalizeUpload', {
-                    finalizeUploadRequest: {
-                        video: mediaUrn,
-                        uploadToken: uploadToken
-                    }
-                }, { headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': '202601', 'Content-Type': 'application/json' } });
+                await axios.put(uploadUrl, mediaBuffer, {
+                    headers: {
+                        'Content-Type': 'application/octet-stream',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    maxBodyLength: Infinity,
+                    maxContentLength: Infinity
+                });
             }
 
             // 4. Create Post
@@ -125,7 +150,8 @@ const worker = new Worker('CrossPostQueue', async (job) => {
             return axios.post('https://api.linkedin.com/rest/posts', payload, {
                 headers: { 
                     'Authorization': `Bearer ${token}`, 
-                    'LinkedIn-Version': '202601', // Must be YYYYMM format
+                    'LinkedIn-Version': '202601',
+                    'X-Restli-Protocol-Version': '2.0.0',
                     'Content-Type': 'application/json'
                 }
             });
@@ -135,9 +161,20 @@ const worker = new Worker('CrossPostQueue', async (job) => {
     // --- FACEBOOK EXECUTION ---
     if (platforms.includes('Facebook') || platforms.includes('facebook')) {
         publishTasks.push(addPlatformTask((async () => {
-            const token = await getValidToken(userId, 'facebook');
-            const account = user.getSocialAccount('facebook');
-            const pageId = account.platformUserId;
+            const userToken = await getValidToken(userId, 'facebook');
+            
+            // Fetch the Facebook Pages this user manages to get the Page ID and Page Access Token
+            const pagesRes = await axios.get('https://graph.facebook.com/v19.0/me/accounts', {
+                params: { access_token: userToken }
+            });
+            
+            const page = pagesRes.data.data?.[0];
+            if (!page) {
+                throw new Error("No Facebook Page found. You must have a Facebook Page to publish content.");
+            }
+            
+            const pageId = page.id;
+            const pageToken = page.access_token;
 
             // Simple check to determine if it's a video (can be improved)
             const endpointType = mediaUrl.match(/\.(mp4|mov|wmv|flv|avi)$/i) ? 'videos' : 'photos';
@@ -150,7 +187,7 @@ const worker = new Worker('CrossPostQueue', async (job) => {
 
             const payload = {
                 url: mediaUrl,
-                access_token: token
+                access_token: pageToken
             };
 
             if (endpointType === 'videos') {

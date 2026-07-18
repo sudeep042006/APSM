@@ -70,7 +70,7 @@ export default function LinkedInContent() {
   });
 
   return (
-    <div className="animate-fade-in p-6 space-y-6 bg-[#0B1121] min-h-screen text-white">
+    <div className="animate-fade-in p-6 space-y-6  text-white">
       {/* ── Tabs & Filter Bar ────────────────────────────────────────── */}
       <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
         <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-auto">
@@ -187,3 +187,4 @@ export default function LinkedInContent() {
     </div>
   );
 }
+

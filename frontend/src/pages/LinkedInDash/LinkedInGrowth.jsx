@@ -24,7 +24,7 @@ export default function LinkedInGrowth() {
       d.setDate(d.getDate() - (6 - i));
       return {
         day: d.toLocaleDateString('en-US', { month: 'short', day: '2-digit' }),
-        value: 0
+        value: metrics.followers || 0
       };
     });
   }
@@ -57,7 +57,7 @@ export default function LinkedInGrowth() {
   };
 
   return (
-    <div className="animate-fade-in p-6 space-y-6 bg-[#0B1121] min-h-screen text-white">
+    <div className="animate-fade-in p-6 space-y-6  text-white">
       {/* ── Section A: Highlights Grid ───────────────────────────────── */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-2">
         {[
@@ -100,7 +100,7 @@ export default function LinkedInGrowth() {
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
                   <XAxis dataKey="day" stroke="#6b7280" fontSize={11} tickLine={false} axisLine={false} />
-                  <YAxis stroke="#6b7280" fontSize={11} tickLine={false} axisLine={false} domain={['dataMin - 100', 'dataMax + 100']} />
+                  <YAxis stroke="#6b7280" fontSize={11} tickLine={false} axisLine={false} />
                   <Tooltip content={<CustomTooltip />} />
                   <Area type="monotone" dataKey="value" name="Total Followers" stroke="#0A66C2" fillOpacity={1} fill="url(#colorFollowers)" strokeWidth={2.5} />
                 </AreaChart>
@@ -117,3 +117,4 @@ export default function LinkedInGrowth() {
     </div>
   );
 }
+
