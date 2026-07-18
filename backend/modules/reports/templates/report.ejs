@@ -111,7 +111,7 @@
     <div class="charts-container">
         <h2>Growth Trends</h2>
         <div class="chart-box">
-            <canvas id="growthChart"></canvas>
+            <canvas id="growthChart" width="800" height="300"></canvas>
         </div>
     </div>
 
@@ -141,45 +141,54 @@
     </table>
 
     <script>
-        // Disable animations so puppeteer captures the fully rendered chart instantly
-        Chart.defaults.animation = false;
+        window.onload = function () {
+            try {
+                // Disable animations so puppeteer captures the fully rendered chart instantly
+                Chart.defaults.animation = false;
 
-        const ctx = document.getElementById('growthChart').getContext('2d');
-        new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: <%- chartLabels %>,
-                datasets: [
-                    {
-                        label: 'Followers',
-                        data: <%- chartDataFollowers %>,
-                        borderColor: '#007bff',
-                        backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.3
+                const canvas = document.getElementById('growthChart');
+                if (!canvas) return;
+                const ctx = canvas.getContext('2d');
+
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: <%- chartLabels %>,
+                        datasets: [
+                            {
+                                label: 'Followers',
+                                data: <%- chartDataFollowers %>,
+                                borderColor: '#007bff',
+                                backgroundColor: 'rgba(0, 123, 255, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.3
+                            },
+                            {
+                                label: 'Engagement',
+                                data: <%- chartDataEngagement %>,
+                                borderColor: '#28a745',
+                                backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                                borderWidth: 2,
+                                fill: true,
+                                tension: 0.3
+                            }
+                        ]
                     },
-                    {
-                        label: 'Engagement',
-                        data: <%- chartDataEngagement %>,
-                        borderColor: '#28a745',
-                        backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                        borderWidth: 2,
-                        fill: true,
-                        tension: 0.3
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
                     }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
+                });
+            } catch (e) {
+                console.error('Chart.js initialization failed:', e);
             }
-        });
+        };
     </script>
 </body>
 </html>

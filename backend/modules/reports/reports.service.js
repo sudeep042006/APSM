@@ -36,21 +36,30 @@ const generateCSV = async (snapshots, platform) => {
 
 const generatePDF = async (snapshots, platform, user) => {
   // Prepare data for the template
+  // Normalize latest metrics — guarantee all keys exist so EJS never crashes
+  const rawLatest = snapshots[snapshots.length - 1]?.metrics;
+  const latestMetrics = {
+    followers:       rawLatest?.followers       ?? 0,
+    reach:           rawLatest?.reach           ?? 0,
+    impressions:     rawLatest?.impressions     ?? 0,
+    totalEngagement: rawLatest?.totalEngagement ?? 0,
+  };
+
   const templateData = {
     platform: platform.charAt(0).toUpperCase() + platform.slice(1),
     user: user.name || 'User',
     dateRange: '',
     snapshots: snapshots.map(s => ({
-      date: new Date(s.snapshotDate).toLocaleDateString(),
-      followers: s.metrics?.followers || 0,
-      impressions: s.metrics?.impressions || 0,
-      reach: s.metrics?.reach || 0,
-      engagement: s.metrics?.totalEngagement || 0
+      date:        new Date(s.snapshotDate).toLocaleDateString(),
+      followers:   s.metrics?.followers       ?? 0,
+      impressions: s.metrics?.impressions     ?? 0,
+      reach:       s.metrics?.reach           ?? 0,
+      engagement:  s.metrics?.totalEngagement ?? 0,
     })),
-    latestMetrics: snapshots[snapshots.length - 1]?.metrics || {},
-    chartLabels: JSON.stringify(snapshots.map(s => new Date(s.snapshotDate).toLocaleDateString())),
-    chartDataFollowers: JSON.stringify(snapshots.map(s => s.metrics?.followers || 0)),
-    chartDataEngagement: JSON.stringify(snapshots.map(s => s.metrics?.totalEngagement || 0))
+    latestMetrics,
+    chartLabels:          JSON.stringify(snapshots.map(s => new Date(s.snapshotDate).toLocaleDateString())),
+    chartDataFollowers:   JSON.stringify(snapshots.map(s => s.metrics?.followers       ?? 0)),
+    chartDataEngagement:  JSON.stringify(snapshots.map(s => s.metrics?.totalEngagement ?? 0)),
   };
 
   if (snapshots.length > 0) {
@@ -64,18 +73,23 @@ const generatePDF = async (snapshots, platform, user) => {
   const html = await ejs.renderFile(templatePath, templateData);
 
   // Launch Puppeteer to create PDF
+  // NOTE: headless: "new" was removed in Puppeteer v22+; use headless: true
   const browser = await puppeteer.launch({
-    headless: "new",
+    headless: true,
     args: ['--no-sandbox', '--disable-setuid-sandbox']
   });
-  
+
   const page = await browser.newPage();
-  
-  // Set content and wait for network (so Chart.js CDN loads and renders)
-  await page.setContent(html, { waitUntil: 'networkidle0' });
-  
-  // A small delay to ensure chart animation finishes if any (though we disable animation in template)
-  await new Promise(resolve => setTimeout(resolve, 500));
+
+  // Set viewport so the chart renders at a sensible size
+  await page.setViewport({ width: 1200, height: 900 });
+
+  // 'load' waits for all sub-resources (including Chart.js CDN script) to finish
+  // timeout:0 disables the 30s default so slow CDNs don't crash the request
+  await page.setContent(html, { waitUntil: 'load', timeout: 60000 });
+
+  // Allow Chart.js time to paint after window.onload fires
+  await new Promise(resolve => setTimeout(resolve, 800));
 
   const pdfBuffer = await page.pdf({
     format: 'A4',
