@@ -185,19 +185,26 @@ const worker = new Worker('CrossPostQueue', async (job) => {
                 link
             ].filter(Boolean).join('\n\n');
 
-            const payload = {
-                url: mediaUrl,
-                access_token: pageToken
-            };
-
             if (endpointType === 'videos') {
-                if (title) payload.title = title;
-                payload.description = fullBody;
-            } else {
-                payload.message = [title, fullBody].filter(Boolean).join('\n\n');
-            }
+                const videoPayload = {
+                    file_url: mediaUrl,
+                    access_token: pageToken,
+                    description: fullBody
+                };
+                if (title) videoPayload.title = title;
 
-            return axios.post(`https://graph.facebook.com/v19.0/${pageId}/${endpointType}`, payload);
+                return axios.post(`https://graph-video.facebook.com/v19.0/${pageId}/videos`, videoPayload, {
+                    timeout: 240000
+                });
+            } else {
+                const photoPayload = {
+                    url: mediaUrl,
+                    access_token: pageToken,
+                    message: [title, fullBody].filter(Boolean).join('\n\n')
+                };
+
+                return axios.post(`https://graph.facebook.com/v19.0/${pageId}/photos`, photoPayload);
+            }
         })(), 'Facebook'));
     }
 

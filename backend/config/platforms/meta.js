@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 
 export default {
   facebook: {
@@ -20,6 +20,7 @@ export default {
       'pages_read_engagement',
       'pages_manage_posts',
       'business_management',
+      'read_insights',
     ],
 
     authParams: {},

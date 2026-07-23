@@ -1,4 +1,4 @@
-﻿import axios from 'axios';
+import axios from 'axios';
 import { getValidToken } from '../../utils/tokenManager.js';
 import { AnalyticsSnapshot } from './analytics.model.js';
 export const fetchAndSaveFacebookAnalytics = async (userId) => {
@@ -117,37 +117,41 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
         // 24-hour Stories. Facebook Page Story metrics (reach, taps, completion) are NOT
         // available through any public Graph API endpoint. Removed this incorrect fetch.
 
-        try {
-          console.log(`[meta.analytics] Fetching FB Page demographics for page ${pageId}...`);
-          const demoRes = await axios.get(`https://graph.facebook.com/v25.0/${pageId}/insights`, {
-            params: {
-              metric: 'page_fans_gender_age,page_fans_country',
-              period: 'lifetime',
-              access_token: pageToken
+        if (facebookData.fanCount >= 100) {
+          try {
+            console.log(`[meta.analytics] Fetching FB Page demographics for page ${pageId}...`);
+            const demoRes = await axios.get(`https://graph.facebook.com/v25.0/${pageId}/insights`, {
+              params: {
+                metric: 'page_fans_gender_age,page_fans_country',
+                period: 'lifetime',
+                access_token: pageToken
+              }
+            });
+            
+            console.log(`[DEBUG-FB] Demographics response data:`, JSON.stringify(demoRes.data, null, 2));
+
+            const countryMetric = demoRes.data?.data?.find(m => m.name === 'page_fans_country');
+            if (countryMetric?.values?.[0]?.value) {
+              const valObj = countryMetric.values[0].value;
+              topCountries = Object.entries(valObj).map(([name, count]) => ({
+                name,
+                count: parseInt(count) || 0
+              })).sort((a, b) => b.count - a.count).slice(0, 5);
             }
-          });
-          
-          console.log(`[DEBUG-FB] Demographics response data:`, JSON.stringify(demoRes.data, null, 2));
 
-          const countryMetric = demoRes.data?.data?.find(m => m.name === 'page_fans_country');
-          if (countryMetric?.values?.[0]?.value) {
-            const valObj = countryMetric.values[0].value;
-            topCountries = Object.entries(valObj).map(([name, count]) => ({
-              name,
-              count: parseInt(count) || 0
-            })).sort((a, b) => b.count - a.count).slice(0, 5);
+            const ageGenderMetric = demoRes.data?.data?.find(m => m.name === 'page_fans_gender_age');
+            if (ageGenderMetric?.values?.[0]?.value) {
+              const valObj = ageGenderMetric.values[0].value;
+              ageAndGender = Object.entries(valObj).map(([group, count]) => ({
+                group,
+                count: parseFloat(count) || 0
+              }));
+            }
+          } catch (demoErr) {
+            console.warn(`⚠️ [meta.analytics] Failed to fetch Page demographics:`, demoErr.message);
           }
-
-          const ageGenderMetric = demoRes.data?.data?.find(m => m.name === 'page_fans_gender_age');
-          if (ageGenderMetric?.values?.[0]?.value) {
-            const valObj = ageGenderMetric.values[0].value;
-            ageAndGender = Object.entries(valObj).map(([group, count]) => ({
-              group,
-              count: parseFloat(count) || 0
-            }));
-          }
-        } catch (demoErr) {
-          console.warn(`⚠️ [meta.analytics] Failed to fetch Page demographics:`, demoErr.message);
+        } else {
+          console.log(`[meta.analytics] Page ${pageId} has ${facebookData.fanCount} fans (< 100 requirement). Skipping demographic insights.`);
         }
       } else {
         console.warn(`[DEBUG-FB] ❌ No pages returned! Full response data:`, JSON.stringify(pagesRes.data, null, 2));
