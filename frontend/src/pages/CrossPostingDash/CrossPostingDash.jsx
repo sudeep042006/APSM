@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { Youtube, Linkedin, Facebook, Instagram } from "@/components/icons/BrandIcons";
 import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
 import api from "@/services/api";
+import AiReachPredictor from "@/components/AiReachPredictor";
 
 const SUPPORTED_PLATFORMS = [
   { id: "facebook", name: "Facebook", icon: Facebook, color: "text-blue-500", bg: "bg-blue-500/10", description: "Connect to cross-post to your pages and communities." },
@@ -131,6 +132,8 @@ export default function CrossPostingDash() {
         </Button>
       </div>
 
+      <AiReachPredictor />
+
       {isLoading ? (
         <div className="flex h-[40vh] items-center justify-center">
           <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
@@ -223,4 +226,3 @@ export default function CrossPostingDash() {
     </div>
   );
 }
-
