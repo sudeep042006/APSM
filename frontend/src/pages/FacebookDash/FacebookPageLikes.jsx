@@ -117,7 +117,8 @@ const FacebookPageLikes = () => {
     </div>
   );
 
-  // ── KPI definitions ────────────────────────────────────────────────────────
+  // ── KPI definitions ───────────────────────────────────────────────────
+  const currentFollowers = data?.kpis?.totalLikes ?? 0;
   const kpis = [
     { label: "Total Gained",  value: data?.gained, icon: ThumbsUp   },
     { label: "Total Lost",    value: data?.lost,   icon: UserMinus  },
@@ -163,7 +164,7 @@ const FacebookPageLikes = () => {
               <div className="flex flex-wrap gap-3 mb-6">
                 <div className="bg-white/[0.02] border border-white/5 px-3 py-1.5 rounded-lg flex items-center gap-2">
                   <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Total Page Likes</span>
-                  <span className="text-sm font-bold text-white">{isLoading ? <Skeleton className="h-4 w-12 bg-gray-700/50" /> : (data?.kpis?.totalLikes ?? 0)}</span>
+                  <span className="text-sm font-bold text-white">{isLoading ? <Skeleton className="h-4 w-12 bg-gray-700/50" /> : (currentFollowers ?? 0)}</span>
                 </div>
                 <div className="bg-white/[0.02] border border-white/5 px-3 py-1.5 rounded-lg flex items-center gap-2">
                   <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wide">Net Period Change</span>
@@ -215,7 +216,10 @@ const FacebookPageLikes = () => {
               
               <div className="mt-4 pt-3 border-t border-white/5 text-center">
                 <p className="text-[11px] text-slate-400 italic">
-                  <span className="font-semibold text-slate-300 not-italic">Baseline Active —</span> No growth activity recorded between Jun 28 and Jul 27
+                  {!isLoading && currentFollowers > 0
+                    ? <><span className="font-semibold text-emerald-400 not-italic">✓ Live Total: {currentFollowers} page likes</span> — Daily gain/loss requires Meta Business API advanced access.</>  
+                    : <><span className="font-semibold text-slate-300 not-italic">Baseline Active —</span> Daily follower gain/loss data requires Meta Business API advanced access.</>
+                  }
                 </p>
               </div>
             </div>

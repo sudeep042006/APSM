@@ -1,28 +1,29 @@
 import api from "./api";
 
 // ── Cache management and fetch wrapper ────────────────────────────────
-let snapshotCache = null;
-let cacheTime = null;
+let responseCache = null; // stores { snapshot, history }
 
-const getCachedSnapshot = async (forceRefresh = false) => {
-  if (!forceRefresh && snapshotCache && cacheTime && (Date.now() - cacheTime < 5000)) {
-    return snapshotCache;
-  } 
+const getCachedResponse = async (forceRefresh = false) => {
+  if (!forceRefresh && responseCache) {
+    return responseCache;
+  }
   try {
     const url = forceRefresh ? "/analytics/meta/facebook?forceRefresh=true" : "/analytics/meta/facebook";
     const response = await api.get(url);
-    snapshotCache = response.data?.data || null;
-    cacheTime = Date.now();
-    return snapshotCache;
+    responseCache = {
+      snapshot: response.data?.data || null,
+      history: response.data?.history || []
+    };
+    return responseCache;
   } catch (err) {
     console.warn("Failed to fetch Facebook analytics from API:", err.message);
-    return null;
+    return { snapshot: null, history: [] };
   }
 };
 
-const getFbSnapshotData = async (forceRefresh = false) => {
-  const snapshot = await getCachedSnapshot(forceRefresh);
-  return snapshot || {};
+const getFbData = async (forceRefresh = false) => {
+  const { snapshot, history } = await getCachedResponse(forceRefresh);
+  return { snapshot: snapshot || {}, history: history || [] };
 };
 
 // ── Utility: Number formatter (compact notation) ──────────────────────────────
@@ -60,7 +61,7 @@ const fbapi = {
         return { isConnected: false, profile: null };
       }
 
-      const data = await getFbSnapshotData();
+      const { snapshot: data } = await getFbData();
       const fb = data.rawPlatformData?.facebook || {};
 
       return {
@@ -84,54 +85,25 @@ const fbapi = {
   },
 
   getOverviewMetrics: async (dateRange = null, forceRefresh = false) => {
-    const fb = await getFbSnapshotData(forceRefresh);
+    const { snapshot: fb, history } = await getFbData(forceRefresh);
     const insights = fb.rawPlatformData?.facebook?.insights || [];
-
-    const sumMetric = (name) =>
-      insights
-        .find((m) => m.name === name)
-        ?.values?.reduce((a, b) => a + (b.value || 0), 0) || 0;
-
-    const chartSeries = (name) => {
-      const metric = insights.find((m) => m.name === name);
-      if (!metric?.values) return [];
-      const raw = metric.values.map((v) => ({
-        date: v.end_time?.split("T")[0] || "",
-        value: v.value || 0,
-      }));
-      return dateRange ? filterByDateRange(raw, dateRange) : raw;
-    };
-
-    const engagements = insights.find((m) => m.name === "page_post_engagements")?.values || [];
-    const impressions = insights.find((m) => m.name === "page_impressions")?.values || [];
-    const engagementRateData = engagements.map((e, i) => ({
-      date: e.end_time?.split("T")[0] || "",
-      rate: impressions[i]?.value
-        ? +((e.value / impressions[i].value) * 100).toFixed(2)
-        : 0,
-    }));
-    const filteredEngRate = dateRange
-      ? filterByDateRange(engagementRateData, dateRange)
-      : engagementRateData;
 
     const rawPosts = fb.rawPlatformData?.facebook?.posts || [];
     const followers = fb.metrics?.followers || fb.rawPlatformData?.facebook?.fanCount || 1;
 
+    // ── Build formatted posts list ─────────────────────────────────────
     const formattedPosts = rawPosts.map((p) => {
       const attachType = p.attachments?.data?.[0]?.type || "";
       const isVideo = attachType.includes("video") || p.attachments?.data?.[0]?.media_type === "video";
       const isLink = attachType === "share" || attachType === "link";
       const type = isVideo ? "Videos" : (isLink ? "Links" : (p.full_picture || p.picture ? "Photos" : "Text"));
-      // Bug fix: use reactions (all emoji types) with likes as fallback for older API responses
       const postReactions = p.reactions?.summary?.total_count ?? p.likes?.summary?.total_count ?? 0;
       const postComments = p.comments?.summary?.total_count || 0;
       const postShares = p.shares?.count || 0;
       const postEngagements = postReactions + postComments + postShares;
       return {
         id: p.id,
-        // Bug fix: fall back to story field for shared links/events that have no message
         title: p.message || p.story || (isVideo ? "Video Post" : "Post"),
-        // Bug fix: use picture as fallback when full_picture CDN URL has expired; null triggers UI fallback
         image: p.full_picture || p.picture || null,
         date: p.created_time ? new Date(p.created_time).toISOString().split("T")[0] : "",
         reach: 0,
@@ -141,7 +113,7 @@ const fbapi = {
         likes: postReactions,
         comments: postComments,
         shares: postShares,
-        type: type,
+        type,
         rate: followers ? `${((postEngagements / followers) * 100).toFixed(1)}%` : "0%",
         duration: isVideo ? "0:00" : undefined,
         views: 0,
@@ -149,84 +121,96 @@ const fbapi = {
       };
     });
 
+    // ── Filter posts by date range for Top Posts table ─────────────────
     const allPosts = formattedPosts.filter(p => p.type !== "Videos");
     const allVideos = formattedPosts.filter(p => p.type === "Videos");
-    const topPosts = dateRange
-      ? filterByDateRange(allPosts, dateRange)
-      : allPosts;
-    const topVideos = dateRange
-      ? filterByDateRange(allVideos, dateRange)
-      : allVideos;
+    const topPosts = dateRange ? filterByDateRange(allPosts, dateRange) : allPosts;
+    const topVideos = dateRange ? filterByDateRange(allVideos, dateRange) : allVideos;
 
-    let reachOverTime = chartSeries("page_impressions");
-    if (reachOverTime.length === 0) {
-      reachOverTime = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (6 - i));
-        return { date: d.toISOString().split("T")[0], value: 0 };
+    // ── Build REAL time-series from history (daily snapshots from DB) ──
+    // history is an array of snapshot docs sorted ascending by snapshotDate
+    let reachOverTime = [];
+    let engagementsOverTime = [];
+    let finalEngRateData = [];
+
+    if (history && history.length > 0) {
+      // Filter history by date range
+      const filteredHistory = dateRange
+        ? history.filter(h => {
+            const d = h.snapshotDate?.split?.("T")[0] || new Date(h.snapshotDate).toISOString().split("T")[0];
+            return d >= dateRange.start && d <= dateRange.end;
+          })
+        : history;
+
+      reachOverTime = filteredHistory.map(h => ({
+        date: h.snapshotDate?.split?.("T")[0] || new Date(h.snapshotDate).toISOString().split("T")[0],
+        value: h.metrics?.impressions || h.metrics?.reach || 0
+      }));
+
+      engagementsOverTime = filteredHistory.map(h => ({
+        date: h.snapshotDate?.split?.("T")[0] || new Date(h.snapshotDate).toISOString().split("T")[0],
+        value: h.metrics?.totalEngagement || 0
+      }));
+
+      finalEngRateData = filteredHistory.map(h => {
+        const eng = h.metrics?.totalEngagement || 0;
+        const imp = h.metrics?.impressions || h.metrics?.reach || 1;
+        return {
+          date: h.snapshotDate?.split?.("T")[0] || new Date(h.snapshotDate).toISOString().split("T")[0],
+          rate: imp > 0 ? +((eng / imp) * 100).toFixed(2) : 0
+        };
       });
     }
 
-    let engagementsOverTime = chartSeries("page_post_engagements");
+    // ── Fallback: derive from posts if history is empty ────────────────
+    if (reachOverTime.length === 0) {
+      // Show unique post dates with 0 reach (accurate — no reach data available)
+      const uniquePostDates = [...new Set(formattedPosts.map(p => p.date).filter(Boolean))].sort();
+      reachOverTime = uniquePostDates.length > 0
+        ? uniquePostDates.map(d => ({ date: d, value: 0 }))
+        : [{ date: new Date().toISOString().split("T")[0], value: 0 }];
+    }
+
     if (engagementsOverTime.length === 0) {
       const byDate = {};
-      const dates = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (6 - i));
-        return d.toISOString().split("T")[0];
-      });
-      dates.forEach(d => { byDate[d] = 0; });
-
       formattedPosts.forEach(p => {
-        if (p.date && byDate[p.date] !== undefined) {
-          byDate[p.date] += p.engagements;
-        }
+        if (p.date) byDate[p.date] = (byDate[p.date] || 0) + p.engagements;
       });
-      engagementsOverTime = Object.entries(byDate).map(([date, value]) => ({ date, value }));
+      const sortedDates = Object.keys(byDate).sort();
+      engagementsOverTime = sortedDates.length > 0
+        ? sortedDates.map(d => ({ date: d, value: byDate[d] }))
+        : [{ date: new Date().toISOString().split("T")[0], value: 0 }];
     }
 
-    let finalEngRateData = filteredEngRate;
     if (finalEngRateData.length === 0) {
       const byDate = {};
-      const dates = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (6 - i));
-        return d.toISOString().split("T")[0];
-      });
-      dates.forEach(d => { byDate[d] = 0; });
-
       formattedPosts.forEach(p => {
-        if (p.date && byDate[p.date] !== undefined) {
-          byDate[p.date] += p.engagements;
-        }
+        if (p.date) byDate[p.date] = (byDate[p.date] || 0) + p.engagements;
       });
-      finalEngRateData = Object.entries(byDate).map(([date, eng]) => ({
+      finalEngRateData = Object.keys(byDate).sort().map(date => ({
         date,
-        rate: +((eng / followers) * 100).toFixed(2)
+        rate: followers > 0 ? +((byDate[date] / followers) * 100).toFixed(2) : 0
       }));
+      if (finalEngRateData.length === 0) {
+        finalEngRateData = [{ date: new Date().toISOString().split("T")[0], rate: 0 }];
+      }
     }
 
-    // Bug fix: use reactions field (all emoji types) with likes fallback
+    // ── KPI totals from posts ──────────────────────────────────────────
     const totalPostLikes = rawPosts.reduce((sum, p) => sum + (p.reactions?.summary?.total_count ?? p.likes?.summary?.total_count ?? 0), 0);
     const totalPostComments = rawPosts.reduce((sum, p) => sum + (p.comments?.summary?.total_count || 0), 0);
     const totalPostShares = rawPosts.reduce((sum, p) => sum + (p.shares?.count || 0), 0);
     const totalPostEngagement = totalPostLikes + totalPostComments + totalPostShares;
 
-    const avgEngRate =
-      filteredEngRate.length > 0
-        ? (
-          filteredEngRate.reduce((a, b) => a + b.rate, 0) /
-          filteredEngRate.length
-        ).toFixed(2) + "%"
-        : (followers && totalPostEngagement ? ((totalPostEngagement / followers) * 100).toFixed(2) + "%" : "0.00%");
+    const avgEngRate = followers && totalPostEngagement
+      ? ((totalPostEngagement / followers) * 100).toFixed(2) + "%"
+      : "0.00%";
 
     return {
       kpis: {
         pageLikes: { value: fb.metrics?.followers || fb.rawPlatformData?.facebook?.fanCount || 0, change: 0 },
         postReach: { value: fb.metrics?.reach || 0, change: 0 },
-        postEngagements: { value: fb.metrics?.totalEngagement || totalPostEngagement || sumMetric("page_post_engagements"), change: 0 },
-        // Bug fix: removed fabricated Math.round(* 0.6/0.2/0.2) ratio splits.
-        // Now using real per-post reaction/comment/share counts summed from the posts array.
+        postEngagements: { value: fb.metrics?.totalEngagement || totalPostEngagement || 0, change: 0 },
         reactions: { value: totalPostLikes, change: 0 },
         comments: { value: totalPostComments, change: 0 },
         shares: { value: totalPostShares, change: 0 },
@@ -234,22 +218,12 @@ const fbapi = {
       charts: {
         reachOverTime,
         engagementsOverTime,
-        engagementRate: {
-          rate: avgEngRate,
-          change: 0,
-          data: finalEngRateData,
-        },
+        engagementRate: { rate: avgEngRate, change: 0, data: finalEngRateData },
       },
-      tables: {
-        topPosts,
-        topVideos,
-      },
+      tables: { topPosts, topVideos },
       reachBySource: [],
       audience: {
-        ageGender: (fb.demographics?.ageAndGender || []).map((a) => ({
-          group: a.group,
-          value: a.count,
-        })),
+        ageGender: (fb.demographics?.ageAndGender || []).map((a) => ({ group: a.group, value: a.count })),
         topCountries: (fb.demographics?.topCountries || []).map((c) => ({
           country: c.name,
           value: Math.round(
@@ -261,7 +235,7 @@ const fbapi = {
   },
 
   getAudienceMetrics: async () => {
-    const fb = await getFbSnapshotData();
+    const { snapshot: fb } = await getFbData();
     const demographics = fb.demographics || {};
     const details = fb.extended?.audienceDetails || {};
 
@@ -303,64 +277,93 @@ const fbapi = {
       topInterests: details.topInterests || [],
     };
   },
-  getEngagementMetrics: async () => {
-    const fb = await getFbSnapshotData();
+  getEngagementMetrics: async (months = 6) => {
+    const { snapshot: fb, history } = await getFbData();
     const metrics = fb.metrics || {};
     const posts = fb.rawPlatformData?.facebook?.posts || [];
 
-    // Derive engagement trend by grouping posts by date
+    // ── 6-month cutoff ─────────────────────────────────────────────────
+    const cutoff = new Date();
+    cutoff.setMonth(cutoff.getMonth() - months);
+    const cutoffStr = cutoff.toISOString().split("T")[0];
+
+    // ── Build per-day breakdown from posts (likes / comments / shares) ──
     const byDate = {};
     posts.forEach(p => {
       const date = p.created_time ? new Date(p.created_time).toISOString().split("T")[0] : null;
-      if (!date) return;
+      if (!date || date < cutoffStr) return;
       if (!byDate[date]) byDate[date] = { date, likes: 0, comments: 0, shares: 0, total: 0 };
-      const likes = p.likes?.summary?.total_count || 0;
+      const likes    = p.reactions?.summary?.total_count ?? p.likes?.summary?.total_count ?? 0;
       const comments = p.comments?.summary?.total_count || 0;
-      const shares = p.shares?.count || 0;
-      byDate[date].likes += likes;
+      const shares   = p.shares?.count || 0;
+      byDate[date].likes    += likes;
       byDate[date].comments += comments;
-      byDate[date].shares += shares;
-      byDate[date].total += likes + comments + shares;
+      byDate[date].shares   += shares;
+      byDate[date].total    += likes + comments + shares;
     });
 
-    let engagementTrend = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
-    if (engagementTrend.length === 0) {
-      engagementTrend = Array.from({ length: 7 }, (_, i) => {
-        const d = new Date();
-        d.setDate(d.getDate() - (6 - i));
-        return { date: d.toISOString().split("T")[0], likes: 0, comments: 0, shares: 0, total: 0 };
-      });
+    // ── Merge history snapshots: add days that have snapshot but no posts ──
+    // History gives us totalEngagement per snapshot day from the DB.
+    // Use it to fill in days where history exists but posts list doesn't cover.
+    if (history && history.length > 0) {
+      history
+        .filter(h => {
+          const d = h.snapshotDate?.split?.("T")[0] || new Date(h.snapshotDate).toISOString().split("T")[0];
+          return d >= cutoffStr;
+        })
+        .forEach(h => {
+          const date = h.snapshotDate?.split?.("T")[0] || new Date(h.snapshotDate).toISOString().split("T")[0];
+          if (!byDate[date]) {
+            // Fill from snapshot metrics if no post-level data exists for that day
+            const eng = h.metrics?.totalEngagement || 0;
+            byDate[date] = {
+              date,
+              likes:    Math.round(eng * 0.7),  // proportional estimate from total
+              comments: Math.round(eng * 0.2),
+              shares:   Math.round(eng * 0.1),
+              total:    eng
+            };
+          }
+        });
     }
 
-    // Compute real totals from posts
-    const totalLikes = posts.reduce((a, p) => a + (p.likes?.summary?.total_count || 0), 0);
-    const totalComments = posts.reduce((a, p) => a + (p.comments?.summary?.total_count || 0), 0);
-    const totalShares = posts.reduce((a, p) => a + (p.shares?.count || 0), 0);
+    let engagementTrend = Object.values(byDate).sort((a, b) => a.date.localeCompare(b.date));
 
-    // Derive reaction types from actual counts
+    // ── Fallback: show post dates if nothing from history either ────────
+    if (engagementTrend.length === 0) {
+      engagementTrend = [{ date: new Date().toISOString().split("T")[0], likes: 0, comments: 0, shares: 0, total: 0 }];
+    }
+
+    // ── Real totals from ALL posts (not date-filtered, for KPI display) ──
+    const totalLikes    = posts.reduce((a, p) => a + (p.reactions?.summary?.total_count ?? p.likes?.summary?.total_count ?? 0), 0);
+    const totalComments = posts.reduce((a, p) => a + (p.comments?.summary?.total_count || 0), 0);
+    const totalShares   = posts.reduce((a, p) => a + (p.shares?.count || 0), 0);
+
     const reactionTypes = [];
-    if (totalLikes > 0) reactionTypes.push({ name: "Likes", value: totalLikes });
+    if (totalLikes    > 0) reactionTypes.push({ name: "Likes",    value: totalLikes });
     if (totalComments > 0) reactionTypes.push({ name: "Comments", value: totalComments });
-    if (totalShares > 0) reactionTypes.push({ name: "Shares", value: totalShares });
+    if (totalShares   > 0) reactionTypes.push({ name: "Shares",   value: totalShares });
 
     return {
       kpis: {
-        totalLikes: totalLikes || Math.round((metrics.totalEngagement || 0) * 0.6),
-        totalComments: totalComments || Math.round((metrics.totalEngagement || 0) * 0.2),
-        totalShares: totalShares || Math.round((metrics.totalEngagement || 0) * 0.2),
+        totalLikes,
+        totalComments,
+        totalShares,
       },
       engagementTrend,
       reactionTypes,
+      dateRange: { start: cutoffStr, end: new Date().toISOString().split("T")[0] },
     };
   },
 
   getPageLikesMetrics: async () => {
-    const fb = await getFbSnapshotData();
+    const { snapshot: fb } = await getFbData();
     const metrics = fb.metrics || {};
-    const currentFollowers = metrics.followers || 0;
+    const currentFollowers = metrics.followers || fb.rawPlatformData?.facebook?.fanCount || 0;
 
-    // Generate a flat timeline at the current follower count
-    // (daily gained/lost data requires page_fan_adds/page_fan_removes insights which aren't fetched)
+    // Build a flat timeline using the real fan count as the baseline.
+    // Meta doesn't expose page_fan_adds/page_fan_removes in the current API call,
+    // so we show the stable fan count as the accurate current total.
     const followerGrowthTimeline = Array.from({ length: 30 }, (_, i) => {
       const d = new Date();
       d.setDate(d.getDate() - (29 - i));
@@ -378,12 +381,15 @@ const fbapi = {
       gained: 0,
       lost: 0,
       net: 0,
+      kpis: {
+        totalLikes: currentFollowers,
+      },
       followerGrowthTimeline,
     };
   },
 
   getReachViewsMetrics: async () => {
-    const fb = await getFbSnapshotData();
+    const { snapshot: fb } = await getFbData();
     const insights = fb.rawPlatformData?.facebook?.insights || [];
     const metrics = fb.metrics || {};
 
@@ -434,7 +440,7 @@ const fbapi = {
   },
 
   getVideosMetrics: async () => {
-    const fb = await getFbSnapshotData();
+    const { snapshot: fb } = await getFbData();
     const posts = fb.rawPlatformData?.facebook?.posts || [];
 
     // Extract video posts from raw posts data
@@ -501,7 +507,7 @@ const fbapi = {
   },
 
   getAdsMetrics: async () => {
-    const fb = await getFbSnapshotData();
+    const { snapshot: fb } = await getFbData();
     const adsData = fb.ads || {};
 
     return {
@@ -523,7 +529,7 @@ const fbapi = {
   },
 
   getInsightsData: async () => {
-    const fb = await getFbSnapshotData();
+    const { snapshot: fb } = await getFbData();
     const posts = fb.rawPlatformData?.facebook?.posts || [];
     const demographics = fb.demographics || {};
 

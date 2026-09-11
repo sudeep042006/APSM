@@ -70,10 +70,14 @@ const sanitizePieData = (dataArray, valueKey = 'value') => {
   return total > 0 ? sanitized : [];
 };
 
-// ── Check for All-Zero or Empty Data ──────────────────────────────────────────
+// ── Check for truly empty (no points) or all-zero data ───────────────────
 const isChartDataEmpty = (chartData, valueKey = 'value') => {
   if (!chartData || chartData.length === 0) return true;
-  return chartData.every(item => !item[valueKey] || Number(item[valueKey]) === 0);
+  // Only show empty state if ALL values are truly zero
+  return chartData.every(item => {
+    const v = item[valueKey];
+    return v === 0 || v === null || v === undefined;
+  });
 };
 
 // ── Safe Domain Calculator ────────────────────────────────────────────────────
@@ -227,10 +231,10 @@ const FacebookDash = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState(null);
 
-  // ── Default date range: last 7 days ───────────────────────────────────────
+  // ── Default date range: last 1 year (covers all historical posts) ────────
   const makeDefault = () => {
     const d = new Date();
-    d.setDate(d.getDate() - 7);
+    d.setFullYear(d.getFullYear() - 1);
     return { start: d.toISOString().split("T")[0], end: new Date().toISOString().split("T")[0] };
   };
   const [dateRange, setDateRange] = useState(makeDefault);
@@ -596,7 +600,7 @@ const FacebookDash = () => {
                     </div>
                     <h3 className="text-sm font-semibold text-white mb-2">No Posts Published in Selected Range</h3>
                     <div className="bg-white/5 border border-white/10 text-slate-300 text-[10px] font-semibold px-3 py-1 rounded-full mb-8">
-                      Jul 21 – Jul 27
+                      {dateRange.start} – {dateRange.end}
                     </div>
 
                     <div className="w-full bg-[#161B22]/50 border border-white/5 rounded-xl p-5 mt-auto">
