@@ -201,44 +201,8 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
     console.log(`✅ [meta.analytics] Successfully saved Facebook analytics for user ${userId}`);
     return snapshot;
   } else {
-    console.warn(`[meta.analytics] No valid Facebook connections found. Generating mock Facebook snapshot for user ${userId}...`);
-    const snapshot = await AnalyticsSnapshot.findOneAndUpdate(
-      {
-        incubationCenterId: userId,
-        platform: 'facebook',
-        snapshotDate: { $gte: startOfDay, $lte: endOfDay }
-      },
-      {
-        incubationCenterId: userId,
-        platform: 'facebook',
-        snapshotDate: new Date(),
-        metrics: {
-          followers: 0,
-          impressions: 0,
-          reach: 0,
-          profileViews: 0,
-          totalEngagement: 0
-        },
-        demographics: {
-          topCountries: [],
-          topCities: [],
-          ageAndGender: []
-        },
-        ads: {
-          activeCampaigns: 0,
-          totalSpend: 0,
-          currency: 'INR',
-          adImpressions: 0,
-          costPerClick: 0
-        },
-        rawPlatformData: {
-          mock: true,
-          facebook: { pageName: 'Not Connected / Data Unavailable', likes: 0 }
-        }
-      },
-      { upsert: true, new: true }
-    );
-    return snapshot;
+    console.warn(`[meta.analytics] No valid Facebook connections found. Returning null for user ${userId}.`);
+    return null;
   }
 };
 
@@ -275,13 +239,14 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
           console.log(`[meta.analytics] Fetching IG insights for Business Account ${igAccountId}...`);
 
           const profileRes = await axios.get(`https://graph.facebook.com/v25.0/${igAccountId}`, {
-            params: { fields: 'followers_count,media_count,username', access_token: igToken }
+            params: { fields: 'followers_count,media_count,username,profile_picture_url', access_token: igToken }
           });
 
           instagramData = {
             username: profileRes.data.username,
             followers: profileRes.data.followers_count || 0,
             mediaCount: profileRes.data.media_count || 0,
+            profilePicture: profileRes.data.profile_picture_url || "",
             insights: [],
             demographics: []
           };
@@ -292,7 +257,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
           try {
             const insightsRes = await axios.get(`https://graph.facebook.com/v25.0/${igAccountId}/insights`, {
               params: {
-                metric: 'impressions,reach,website_clicks,email_contacts,phone_call_clicks,get_directions_clicks',
+                metric: 'reach,profile_views',
                 period: 'day',
                 access_token: igToken
               }
@@ -303,18 +268,23 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
               const met = instagramData.insights.find(m => m.name === metricName);
               return met?.values?.reduce((acc, v) => acc + (v.value || 0), 0) || 0;
             };
-            impressions += getVal('impressions');
+            impressions += getVal('profile_views');
             reach += getVal('reach');
           } catch (insightsErr) {
             console.warn(`⚠️ [meta.analytics] Failed to fetch Instagram insights (metrics might be deprecated or empty):`, insightsErr.message);
+            if (insightsErr.response?.data) {
+              console.warn(`[DEBUG-IG] Insights error details:`, JSON.stringify(insightsErr.response.data, null, 2));
+            }
           }
 
           // Fetch demographics (non-blocking)
           try {
             const demoRes = await axios.get(`https://graph.facebook.com/v25.0/${igAccountId}/insights`, {
               params: {
-                metric: 'audience_country,audience_gender_age',
+                metric: 'follower_demographics',
                 period: 'lifetime',
+                breakdown: 'country,age,gender',
+                metric_type: 'total_value',
                 access_token: igToken
               }
             });
@@ -351,6 +321,11 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
               }
             });
             instagramData.media = mediaRes.data.data || [];
+            
+            // Calculate engagement from recent media
+            instagramData.media.forEach(m => {
+              totalEngagement += (m.like_count || 0) + (m.comments_count || 0);
+            });
           } catch (mediaErr) {
             console.warn(`⚠️ [meta.analytics] Failed to fetch Instagram media:`, mediaErr.message);
           }
@@ -396,45 +371,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
     console.log(`✅ [meta.analytics] Successfully saved Instagram analytics for user ${userId}`);
     return snapshot;
   } else {
-    console.warn(`[meta.analytics] No valid Instagram connections found. Generating mock Instagram snapshot for user ${userId}...`);
-    const snapshot = await AnalyticsSnapshot.findOneAndUpdate(
-      {
-        incubationCenterId: userId,
-        platform: 'instagram',
-        snapshotDate: { $gte: startOfDay, $lte: endOfDay }
-      },
-      {
-        incubationCenterId: userId,
-        platform: 'instagram',
-        snapshotDate: new Date(),
-        metrics: {
-          followers: Math.floor(Math.random() * 2000) + 500,
-          impressions: Math.floor(Math.random() * 15000) + 4000,
-          reach: Math.floor(Math.random() * 10000) + 3000,
-          profileViews: Math.floor(Math.random() * 500) + 100,
-          totalEngagement: Math.floor(Math.random() * 1000) + 150
-        },
-        demographics: {
-          topCountries: [
-            { name: 'IN', count: Math.floor(Math.random() * 1500) + 700 }
-          ],
-          topCities: [],
-          ageAndGender: []
-        },
-        ads: {
-          activeCampaigns: 1,
-          totalSpend: 4000,
-          currency: 'INR',
-          adImpressions: 11000,
-          costPerClick: 2.5
-        },
-        rawPlatformData: {
-          mock: true,
-          instagram: { username: 'mock_center_instagram', followers: 1650 }
-        }
-      },
-      { upsert: true, new: true }
-    );
-    return snapshot;
+    console.warn(`[meta.analytics] No valid Instagram connections found. Returning null for user ${userId}.`);
+    return null;
   }
 };

@@ -112,6 +112,18 @@ const getAnalyticsSummary = async (req, res, next) => {
           'facebook',
           fetchAndSaveFacebookAnalytics
         );
+        const historyQuery = { incubationCenterId: userId, platform: 'facebook', 'rawPlatformData.mock': { $ne: true } };
+        if (req.query.startDate || req.query.endDate) {
+          historyQuery.snapshotDate = {};
+          if (req.query.startDate) historyQuery.snapshotDate.$gte = new Date(req.query.startDate);
+          if (req.query.endDate) {
+            const end = new Date(req.query.endDate);
+            end.setHours(23, 59, 59, 999);
+            historyQuery.snapshotDate.$lte = end;
+          }
+        }
+        const history = await AnalyticsSnapshot.find(historyQuery).sort({ snapshotDate: 1 }).limit(100);
+
         return res.json({
           message: failedLiveFetch
             ? 'Retrieved latest cached Facebook analytics (live fetch failed)'
@@ -119,6 +131,7 @@ const getAnalyticsSummary = async (req, res, next) => {
               ? 'Facebook analytics retrieved from cache'
               : 'Facebook analytics retrieved successfully',
           data: snapshot,          // ← single object
+          history: history,
         });
       } catch (err) {
         return res.status(400).json({ error: err.message });
@@ -134,9 +147,18 @@ const getAnalyticsSummary = async (req, res, next) => {
           'instagram',
           fetchAndSaveInstagramAnalytics
         );
-        const history = await AnalyticsSnapshot.find({ incubationCenterId: userId, platform: 'instagram' })
-          .sort({ snapshotDate: 1 })
-          .limit(30);
+        const historyQuery = { incubationCenterId: userId, platform: 'instagram', 'rawPlatformData.mock': { $ne: true } };
+        if (req.query.startDate || req.query.endDate) {
+          historyQuery.snapshotDate = {};
+          if (req.query.startDate) historyQuery.snapshotDate.$gte = new Date(req.query.startDate);
+          if (req.query.endDate) {
+            const end = new Date(req.query.endDate);
+            end.setHours(23, 59, 59, 999);
+            historyQuery.snapshotDate.$lte = end;
+          }
+        }
+        const history = await AnalyticsSnapshot.find(historyQuery).sort({ snapshotDate: 1 }).limit(100);
+
         return res.json({
           message: failedLiveFetch
             ? 'Retrieved latest cached Instagram analytics (live fetch failed)'

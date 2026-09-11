@@ -111,9 +111,9 @@ const InstagramDash = () => {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const navigate = useNavigate();
 
-  // ── Default date range: last 7 days ────────────────────────────────
+  // ── Default date range: last 1 year ────────────────────────────────
   const d = new Date();
-  d.setDate(d.getDate() - 7);
+  d.setFullYear(d.getFullYear() - 1);
   const defaultStart = d.toISOString().split('T')[0];
   const defaultEnd = new Date().toISOString().split('T')[0];
   const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
@@ -122,7 +122,10 @@ const InstagramDash = () => {
   const fetchData = async (showRefresh = false) => {
     try {
       if (showRefresh) setIsRefreshing(true);
-      const overviewData = await igapi.getOverviewMetrics(showRefresh);
+      const overviewData = await igapi.getOverviewMetrics(showRefresh, {
+        from: new Date(dateRange.start),
+        to: new Date(dateRange.end)
+      });
       setData(overviewData);
     } catch (error) {
       console.error("Failed to fetch overview metrics:", error);
@@ -134,7 +137,7 @@ const InstagramDash = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [dateRange]);
 
   const totalImpressions = data?.reachTrend?.reduce((a, b) => a + b.impressions, 0) || 0;
   const currentER = data?.engagementTrend?.length ? data.engagementTrend[data.engagementTrend.length - 1].rate : null;
@@ -179,11 +182,17 @@ const InstagramDash = () => {
           ) : profile ? (
             <>
               {/* Profile Photo */}
-              <img 
-                src={profile.profilePicture} 
-                alt={profile.name}
-                className="w-14 h-14 rounded-full border-2 border-[#E1306C]/30 object-cover"
-              />
+              {profile.profilePicture ? (
+                <img 
+                  src={profile.profilePicture} 
+                  alt={profile.name}
+                  className="w-14 h-14 rounded-full border-2 border-[#E1306C]/30 object-cover"
+                />
+              ) : (
+                <div className="w-14 h-14 rounded-full border-2 border-[#E1306C]/30 bg-[#E1306C]/10 flex items-center justify-center text-white font-bold text-xl uppercase">
+                  {profile.name ? profile.name.charAt(0) : "I"}
+                </div>
+              )}
               {/* Profile Metadata */}
               <div>
                 <h1 className="text-xl font-bold text-white">{profile.name}</h1>
@@ -260,10 +269,10 @@ const InstagramDash = () => {
           <CardContent className="h-[280px]">
             {isLoading || !data ? (
               <Skeleton className="w-full h-full bg-gray-700/30 rounded-lg" />
-            ) : (
+            ) : data.reachTrend?.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart 
-                  data={(data?.reachTrend?.length > 0) ? data.reachTrend : [{ date: '', reach: 0 }]} 
+                  data={data.reachTrend} 
                   margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
                 >
                   <defs>
@@ -287,6 +296,11 @@ const InstagramDash = () => {
                   <Area type="monotone" dataKey="reach" stroke="#E1306C" strokeWidth={2.5} activeDot={{ r: 6, strokeWidth: 0, fill: "#E1306C" }} fillOpacity={1} fill="url(#colorReachOverview)" name="Reach" />
                 </AreaChart>
               </ResponsiveContainer>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-[#8B949E] text-sm">
+                <Target className="w-8 h-8 mb-2 opacity-20" />
+                No data available for this date range
+              </div>
             )}
           </CardContent>
         </Card>
@@ -302,10 +316,10 @@ const InstagramDash = () => {
           <CardContent className="h-[280px]">
             {isLoading || !data ? (
               <Skeleton className="w-full h-full bg-gray-700/30 rounded-lg" />
-            ) : (
+            ) : data.followerGrowth?.length > 0 ? (
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart 
-                  data={(data?.followerGrowth?.length > 0) ? data.followerGrowth : [{ date: '', gained: 0, lost: 0 }]} 
+                  data={data.followerGrowth} 
                   margin={{ top: 10, right: 10, left: -25, bottom: 0 }}
                 >
                   <CartesianGrid stroke="#ffffff10" strokeDasharray="3 3" vertical={false} />
@@ -325,6 +339,11 @@ const InstagramDash = () => {
                   <Bar dataKey="lost" fill="#ef4444" radius={[4, 4, 0, 0]} maxBarSize={20} name="Lost" />
                 </BarChart>
               </ResponsiveContainer>
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-[#8B949E] text-sm">
+                <Users className="w-8 h-8 mb-2 opacity-20" />
+                No data available for this date range
+              </div>
             )}
           </CardContent>
         </Card>

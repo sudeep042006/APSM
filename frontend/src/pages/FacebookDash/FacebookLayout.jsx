@@ -41,7 +41,6 @@ const FB_NAV_ITEMS = [
   { path: "/dashboard/facebook/stories", label: "Stories", icon: History },
   { path: "/dashboard/facebook/groups", label: "Groups", icon: Users },
   { path: "/dashboard/facebook/ads", label: "Ads", icon: Target },
-  { path: "/dashboard/facebook/insights", label: "Insights", icon: BarChart3 },
   { path: "/dashboard/facebook/reports", label: "Reports", icon: FileText },
 ];
 
@@ -289,25 +288,6 @@ const FacebookLayout = () => {
               brandBgClass="bg-[#1877F2]/10"
               brandTextClass="text-[#1877F2]"
             />
-            {/* Header Actions */}
-            <div className="flex items-center gap-2">
-              <DateRangePicker 
-                startDate={dateRange.start} 
-                endDate={dateRange.end} 
-                onChange={setDateRange} 
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.location.reload()}
-                disabled={isLayoutLoading}
-                className="text-xs text-gray-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-white h-9 px-3"
-                id="fb-refresh-btn"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 mr-2 ${isLayoutLoading ? "animate-spin" : ""}`} />
-                Refresh Data
-              </Button>
-            </div>
           </div>
         </div>
 

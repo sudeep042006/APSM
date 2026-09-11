@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { TrendingUp, UserPlus, UserMinus } from 'lucide-react';
 import igapi from '@/services/igapi';
+import DateRangePicker from '@/components/DateRangePicker';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer, Legend
 } from 'recharts';
@@ -38,11 +39,22 @@ const InstagramGrowth = () => {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // ── Default date range: last 1 year ────────────────────────────────
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 1);
+  const defaultStart = d.toISOString().split('T')[0];
+  const defaultEnd = new Date().toISOString().split('T')[0];
+  const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
+
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
       try {
-        const response = await igapi.getGrowth(); // Ensure we add getGrowth mock logic to igapi.js if missing
+        setIsLoading(true);
+        const response = await igapi.getGrowth({
+          from: new Date(dateRange.start),
+          to: new Date(dateRange.end)
+        });
         let history = response.history || [];
         if (isMounted) setData({ history });
       } catch (error) {
@@ -54,7 +66,7 @@ const InstagramGrowth = () => {
     if (isConnected) fetchData();
     else setIsLoading(false);
     return () => { isMounted = false; };
-  }, [isConnected]);
+  }, [isConnected, dateRange]);
 
   if (!isConnected) {
     return (
@@ -65,7 +77,7 @@ const InstagramGrowth = () => {
     );
   }
 
-  const hasSufficientData = data && data.history.length > 1;
+  const hasSufficientData = data && data.history.length > 0;
   const totalGained = hasSufficientData ? data.history.reduce((a, b) => a + b.gained, 0) : 0;
   const totalLost = hasSufficientData ? data.history.reduce((a, b) => a + b.lost, 0) : 0;
   const totalNet = totalGained - totalLost;
@@ -77,6 +89,13 @@ const InstagramGrowth = () => {
           <h1 className="text-3xl font-bold text-white">Follower Growth</h1>
           <p className="text-gray-400 mt-1">Track follower acquisition and retention over time</p>
         </div>
+        <div className="flex items-center gap-2">
+          <DateRangePicker 
+            startDate={dateRange.start} 
+            endDate={dateRange.end} 
+            onChange={setDateRange} 
+          />
+        </div>
       </div>
 
       {!hasSufficientData ? (
@@ -85,10 +104,9 @@ const InstagramGrowth = () => {
             <div className="w-16 h-16 rounded-full bg-gray-800 flex items-center justify-center mb-2">
               <TrendingUp className="w-8 h-8 text-gray-400" />
             </div>
-            <h3 className="text-xl font-semibold text-white">Tracking Started</h3>
+            <h3 className="text-xl font-semibold text-white">No Data Available</h3>
             <p className="text-gray-400 max-w-md text-sm leading-relaxed">
-              We need at least 2 days of historical data to accurately calculate your daily follower gains and losses. 
-              We've saved your first snapshot today—check back tomorrow to see your growth chart!
+              We need at least 2 days of historical data within this date range to accurately calculate your daily follower gains and losses. 
             </p>
           </CardContent>
         </Card>

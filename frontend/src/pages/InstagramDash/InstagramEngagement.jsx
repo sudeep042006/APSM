@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Heart, MessageCircle, Share2, Bookmark } from 'lucide-react';
 import igapi from '@/services/igapi';
+import DateRangePicker from '@/components/DateRangePicker';
 import { 
   AreaChart, Area, LineChart, Line, Legend, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer 
 } from 'recharts';
@@ -40,11 +41,22 @@ const InstagramEngagement = () => {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // ── Default date range: last 1 year ────────────────────────────────
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 1);
+  const defaultStart = d.toISOString().split('T')[0];
+  const defaultEnd = new Date().toISOString().split('T')[0];
+  const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
+
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
       try {
-        const response = await igapi.getEngagement();
+        setIsLoading(true);
+        const response = await igapi.getEngagement({
+          from: new Date(dateRange.start),
+          to: new Date(dateRange.end)
+        });
         if (isMounted) setData(response);
       } catch (error) {
         console.error("Failed to fetch engagement data:", error);
@@ -55,7 +67,7 @@ const InstagramEngagement = () => {
     if (isConnected) fetchData();
     else setIsLoading(false);
     return () => { isMounted = false; };
-  }, [isConnected]);
+  }, [isConnected, dateRange]);
 
   if (!isConnected) {
     return (
@@ -82,6 +94,13 @@ const InstagramEngagement = () => {
         <div>
           <h1 className="text-3xl font-bold text-white">Engagement Overview</h1>
           <p className="text-gray-400 mt-1">Aggregated interaction metrics over time</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <DateRangePicker 
+            startDate={dateRange.start} 
+            endDate={dateRange.end} 
+            onChange={setDateRange} 
+          />
         </div>
       </div>
 
@@ -122,10 +141,10 @@ const InstagramEngagement = () => {
         <CardContent className="h-[400px]">
           {isLoading || !data ? (
             <Skeleton className="w-full h-full bg-gray-700/30 rounded-lg" />
-          ) : (
+          ) : data.trend?.length > 1 ? (
             <ResponsiveContainer width="100%" height="100%">
               <LineChart 
-                data={(data?.trend?.length > 0) ? data.trend : [{ date: '', likes: 0, comments: 0 }]} 
+                data={data.trend} 
                 margin={{ top: 20, right: 20, left: -20, bottom: 0 }}
               >
                 <CartesianGrid stroke="#ffffff10" strokeDasharray="3 3" vertical={false} />
@@ -144,6 +163,11 @@ const InstagramEngagement = () => {
                 <Line type="monotone" dataKey="comments" name="Comments" stroke="#f59e0b" strokeWidth={2.5} activeDot={{ r: 6, strokeWidth: 0, fill: "#f59e0b" }} dot={false} />
               </LineChart>
             </ResponsiveContainer>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-[#8B949E] text-sm">
+              <Heart className="w-8 h-8 mb-2 opacity-20" />
+              No engagement data available for this date range
+            </div>
           )}
         </CardContent>
       </Card>

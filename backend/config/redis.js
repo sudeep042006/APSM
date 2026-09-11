@@ -3,14 +3,21 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+// Bypass Node TLS checks for local development with managed Redis (e.g., Upstash)
+if (process.env.NODE_ENV !== 'production') {
+    process.env.NODE_TLS_REJECT_UNAUTHORIZED = '0';
+}
+
 const redisUrl = process.env.REDIS_URL;
 
 export const redisConnectionOptions = {
     maxRetriesPerRequest: null,
     enableReadyCheck: false,
+    keepAlive: 10000,
     retryStrategy: (times) => {
         return Math.min(times * 100, 3000);
-    }
+    },
+    ...(redisUrl?.startsWith('rediss://') ? { tls: { rejectUnauthorized: false } } : {})
 };
 
 const redisClient = redisUrl ? new Redis(redisUrl, redisConnectionOptions) : null;

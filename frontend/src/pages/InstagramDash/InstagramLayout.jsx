@@ -27,7 +27,6 @@ const navItems = [
   { path: "/dashboard/instagram/reels", label: "Reels", icon: PlaySquare },
   { path: "/dashboard/instagram/growth", label: "Growth", icon: TrendingUp },
   { path: "/dashboard/instagram/hashtags", label: "Hashtags", icon: Hash },
-  { path: "/dashboard/instagram/insights", label: "Insights", icon: BarChart },
   { path: "/dashboard/instagram/reports", label: "Reports", icon: FileText },
 ];
 
@@ -268,25 +267,6 @@ const InstagramLayout = () => {
               brandBgClass="bg-pink-500/10"
               brandTextClass="text-pink-500"
             />
-            {/* Header Actions */}
-            <div className="flex items-center gap-2">
-              <DateRangePicker 
-                startDate={dateRange.start} 
-                endDate={dateRange.end} 
-                onChange={setDateRange} 
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => window.location.reload()}
-                disabled={isLoading}
-                className="text-xs text-gray-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-white h-9 px-3"
-                id="ig-refresh-btn"
-              >
-                <RefreshCw className={`h-3.5 w-3.5 mr-2 ${isLoading ? "animate-spin" : ""}`} />
-                Refresh Data
-              </Button>
-            </div>
           </div>
         </div>
 
