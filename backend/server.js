@@ -10,6 +10,8 @@ import { authRouter, userRouter } from './modules/auth/auth.routes.js';
 import analyticsRouter from './modules/analytics/analytics.routes.js';
 import automationRouter from './modules/automation/automation.routes.js';
 import mlChatbotRouter from './modules/mlChatbot/mlChatbot.routes.js';
+import reportsRouter from './modules/reports/reports.routes.js';
+import recommendationRouter from './modules/recommendations/recommendation.routes.js';
 import { errorHandler } from './middleware/errorHandler.js';
 import connectRedis from './config/redis.js';
 import './modules/automation/automation.worker.js'; // Start the cross-posting worker
@@ -19,11 +21,13 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
+const frontendOrigin = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: frontendOrigin,
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({ limit: '256kb' }));
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
@@ -31,7 +35,10 @@ app.use('/auth', authRouter);
 app.use('/user', userRouter);
 app.use('/analytics', analyticsRouter);
 app.use('/automation', automationRouter);
-app.use('/ml-chatbot', mlChatbotRouter);
+app.use('/chatbot', mlChatbotRouter);
+app.use('/reports', reportsRouter);
+// /api compatibility keeps the endpoint stable for existing frontend builds.
+app.use(['/recommendations', '/api/recommendations'], recommendationRouter);
 
 // Health check — visit http://localhost:5000/health to confirm server is alive
 app.get('/health', (req, res) => {

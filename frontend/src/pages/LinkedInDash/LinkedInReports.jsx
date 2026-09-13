@@ -46,7 +46,7 @@ export default function LinkedInReports() {
   };
 
   return (
-    <div className="animate-fade-in p-6 space-y-6 bg-[#0B1121] min-h-screen text-white">
+    <div className="animate-fade-in p-6 space-y-6  text-white">
       {/* Overview Intro */}
       <div className="flex items-center gap-3">
         <div className="p-3 bg-[#0A66C2]/10 text-[#0A66C2] rounded-full">
@@ -74,7 +74,7 @@ export default function LinkedInReports() {
                 <select
                   value={reportType}
                   onChange={(e) => setReportType(e.target.value)}
-                  className="w-full bg-[#0B1121] border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-[#0A66C2]/50 outline-none"
+                  className="w-full bg-background border border-white/10 rounded-lg p-2.5 text-xs text-white focus:outline-none focus:border-[#0A66C2]/50 outline-none"
                 >
                   <option value="comprehensive">Comprehensive Summary</option>
                   <option value="audience">Audience Demographics</option>
@@ -93,7 +93,7 @@ export default function LinkedInReports() {
                     className={`py-2 px-3 text-xs font-semibold rounded-lg border transition-all ${
                       reportFormat === "pdf"
                         ? "bg-[#0A66C2]/15 border-[#0A66C2] text-[#0A66C2]"
-                        : "border-white/10 bg-[#0b1121] text-gray-400 hover:text-white"
+                        : "border-white/10 bg-background text-gray-400 hover:text-white"
                     }`}
                   >
                     Adobe PDF (.pdf)
@@ -104,7 +104,7 @@ export default function LinkedInReports() {
                     className={`py-2 px-3 text-xs font-semibold rounded-lg border transition-all ${
                       reportFormat === "csv"
                         ? "bg-[#0A66C2]/15 border-[#0A66C2] text-[#0A66C2]"
-                        : "border-white/10 bg-[#0b1121] text-gray-400 hover:text-white"
+                        : "border-white/10 bg-background text-gray-400 hover:text-white"
                     }`}
                   >
                     CSV Sheet (.csv)
@@ -116,7 +116,7 @@ export default function LinkedInReports() {
               <div className="space-y-1.5">
                 <label className="text-[10px] uppercase tracking-wider text-gray-400 font-bold">Custom Date Range</label>
                 <div className="space-y-2">
-                  <div className="flex items-center gap-2 bg-[#0b1121] border border-white/10 rounded-lg px-2.5 py-2 w-full">
+                  <div className="flex items-center gap-2 bg-background border border-white/10 rounded-lg px-2.5 py-2 w-full">
                     <Calendar className="h-4 w-4 text-gray-500 shrink-0" />
                     <input
                       type="date"
@@ -126,7 +126,7 @@ export default function LinkedInReports() {
                       required
                     />
                   </div>
-                  <div className="flex items-center gap-2 bg-[#0b1121] border border-white/10 rounded-lg px-2.5 py-2 w-full">
+                  <div className="flex items-center gap-2 bg-background border border-white/10 rounded-lg px-2.5 py-2 w-full">
                     <Calendar className="h-4 w-4 text-gray-500 shrink-0" />
                     <input
                       type="date"
@@ -211,3 +211,5 @@ export default function LinkedInReports() {
     </div>
   );
 }
+
+

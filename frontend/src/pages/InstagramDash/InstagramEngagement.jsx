@@ -4,8 +4,9 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Heart, MessageCircle, Share2, Bookmark } from 'lucide-react';
 import igapi from '@/services/igapi';
+import DateRangePicker from '@/components/DateRangePicker';
 import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer 
+  AreaChart, Area, LineChart, Line, Legend, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer 
 } from 'recharts';
 
 const formatNumber = (num) => {
@@ -18,15 +19,7 @@ const formatNumber = (num) => {
 const CustomTooltip = ({ active, payload, label }) => {
   if (active && payload && payload.length) {
     return (
-      <div style={{
-        backgroundColor: 'rgba(22, 27, 34, 0.85)',
-        backdropFilter: 'blur(12px)',
-        borderColor: 'rgba(255,255,255,0.1)',
-        borderWidth: '1px',
-        color: '#fff',
-        borderRadius: '8px',
-        padding: '12px'
-      }}>
+      <div className="bg-[#161B22]/95 border border-white/10 backdrop-blur-md rounded-lg px-3 py-2 shadow-xl text-xs">
         <p className="font-semibold text-gray-200 mb-2">{label}</p>
         {payload.map((entry, index) => (
           <div key={index} className="flex items-center gap-2 text-sm mb-1 last:mb-0">
@@ -48,11 +41,22 @@ const InstagramEngagement = () => {
   const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // ── Default date range: last 1 year ────────────────────────────────
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 1);
+  const defaultStart = d.toISOString().split('T')[0];
+  const defaultEnd = new Date().toISOString().split('T')[0];
+  const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
+
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
       try {
-        const response = await igapi.getEngagement();
+        setIsLoading(true);
+        const response = await igapi.getEngagement({
+          from: new Date(dateRange.start),
+          to: new Date(dateRange.end)
+        });
         if (isMounted) setData(response);
       } catch (error) {
         console.error("Failed to fetch engagement data:", error);
@@ -63,7 +67,7 @@ const InstagramEngagement = () => {
     if (isConnected) fetchData();
     else setIsLoading(false);
     return () => { isMounted = false; };
-  }, [isConnected]);
+  }, [isConnected, dateRange]);
 
   if (!isConnected) {
     return (
@@ -90,6 +94,13 @@ const InstagramEngagement = () => {
         <div>
           <h1 className="text-3xl font-bold text-white">Engagement Overview</h1>
           <p className="text-gray-400 mt-1">Aggregated interaction metrics over time</p>
+        </div>
+        <div className="flex items-center gap-2">
+          <DateRangePicker 
+            startDate={dateRange.start} 
+            endDate={dateRange.end} 
+            onChange={setDateRange} 
+          />
         </div>
       </div>
 
@@ -125,27 +136,38 @@ const InstagramEngagement = () => {
 
       <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
         <CardHeader>
-          <CardTitle className="text-lg text-white">Engagement Rate Trend</CardTitle>
+          <CardTitle className="text-lg text-white">Engagement Trends</CardTitle>
         </CardHeader>
         <CardContent className="h-[400px]">
           {isLoading || !data ? (
             <Skeleton className="w-full h-full bg-gray-700/30 rounded-lg" />
-          ) : (
+          ) : data.trend?.length > 1 ? (
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={data.trend} margin={{ top: 20, right: 20, left: -20, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="colorRate" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#FCAF45" stopOpacity={0.4}/>
-                    <stop offset="95%" stopColor="#FCAF45" stopOpacity={0}/>
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                <XAxis dataKey="date" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
-                <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `${val}%`} />
-                <RechartsTooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(255,255,255,0.1)' }} />
-                <Area type="monotone" dataKey="rate" stroke="#FCAF45" strokeWidth={3} fillOpacity={1} fill="url(#colorRate)" name="Engagement Rate" />
-              </AreaChart>
+              <LineChart 
+                data={data.trend} 
+                margin={{ top: 20, right: 20, left: -20, bottom: 0 }}
+              >
+                <CartesianGrid stroke="#ffffff10" strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="date" stroke="#64748b" fontSize={10} tickLine={false} axisLine={false} dy={8} />
+                <YAxis 
+                  stroke="#64748b" 
+                  fontSize={10} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  allowDecimals={false}
+                  domain={([dataMin, dataMax]) => [0, isNaN(dataMax) || !isFinite(dataMax) || dataMax === 0 ? 2 : Math.ceil(dataMax * 1.2)]}
+                />
+                <RechartsTooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
+                <Legend iconType="circle" iconSize={8} wrapperStyle={{ paddingTop: "12px", fontSize: "12px", color: "#94a3b8" }} />
+                <Line type="monotone" dataKey="likes" name="Likes" stroke="#3B82F6" strokeWidth={2.5} activeDot={{ r: 6, strokeWidth: 0, fill: "#3B82F6" }} dot={false} />
+                <Line type="monotone" dataKey="comments" name="Comments" stroke="#f59e0b" strokeWidth={2.5} activeDot={{ r: 6, strokeWidth: 0, fill: "#f59e0b" }} dot={false} />
+              </LineChart>
             </ResponsiveContainer>
+          ) : (
+            <div className="w-full h-full flex flex-col items-center justify-center text-[#8B949E] text-sm">
+              <Heart className="w-8 h-8 mb-2 opacity-20" />
+              No engagement data available for this date range
+            </div>
           )}
         </CardContent>
       </Card>

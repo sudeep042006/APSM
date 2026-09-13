@@ -49,6 +49,7 @@ function publicUser(user) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 // REGISTER: POST /auth/register
+
 const register = async (req, res, next) => {
   try {
     const { name, email, password } = req.body;
@@ -155,20 +156,20 @@ const initiateOAuth = (req, res) => {
 const oauthCallback = async (req, res) => {
   const { platform }         = req.params;
   const { code, state, error } = req.query;
-  const frontendUrl          = process.env.FRONTEND_URL;
+  const frontendUrl          = (process.env.FRONTEND_URL || '').replace(/\/$/, '');
   const config               = platforms[platform];
 
   if (!config) {
     return res.redirect(`${frontendUrl}/settings?error=unknown_platform`);
   }
 
-  // User denied permission on the consent screen
+// User denied permission on the consent screen
   if (error) {
     console.warn(`[OAuth] ${platform} denied:`, error);
     return res.redirect(`${frontendUrl}/settings?error=${platform}_denied`);
   }
 
-  // Validate state (CSRF check)
+// Validate state (CSRF check)
   const pending = pendingStates.get(state);
   if (!pending || pending.platform !== platform) {
     return res.redirect(`${frontendUrl}/settings?error=invalid_state`);
@@ -228,7 +229,7 @@ const oauthCallback = async (req, res) => {
     res.redirect(`${frontendUrl}/settings?error=${platform}_failed&detail=${encodeURIComponent(err.message)}`);
   }
 };
-
+ 
 // DISCONNECT: DELETE /auth/:platform
 const disconnectPlatform = async (req, res, next) => {
   try {

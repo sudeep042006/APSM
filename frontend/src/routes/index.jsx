@@ -39,7 +39,6 @@ import FacebookStories from "@/pages/FacebookDash/FacebookStories";
 import FacebookGroups from "@/pages/FacebookDash/FacebookGroups";
 import FacebookAds from "@/pages/FacebookDash/FacebookAds";
 import FacebookReports from "@/pages/FacebookDash/FacebookReports";
-import FacebookInsights from "@/pages/FacebookDash/FacebookInsights";
 import FacebookSettings from "@/pages/FacebookDash/FacebookSettings";
 import FacebookHelp from "@/pages/FacebookDash/FacebookHelp";
 import InstagramDash from "@/pages/InstagramDash/InstagramDash";
@@ -56,11 +55,11 @@ import InstagramInsights from "@/pages/InstagramDash/InstagramInsights";
 import InstagramReports from "@/pages/InstagramDash/InstagramReports";
 import InstagramSettings from "@/pages/InstagramDash/InstagramSettings";
 import InstagramHelp from "@/pages/InstagramDash/InstagramHelp";
-import Placeholder from "@/components/Placeholder";
 import CrossPostingDash from "@/pages/CrossPostingDash/CrossPostingDash";
 import NewPostPage from "@/pages/CrossPostingDash/NewPostPage";
 import CrossPostHistory from "@/pages/CrossPostingDash/CrossPostHistory";
 import CrossPostLayout from "@/pages/CrossPostingDash/CrossPostLayout";
+import CombinedOverview from "@/pages/CombinedOverview/CombinedOverview";
 import NotFound from "@/pages/NotFound/NotFound";
 import Settings from "@/pages/Settings";
 
@@ -90,7 +89,8 @@ const router = createBrowserRouter([
     path: "/dashboard",
     element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
     children: [
-      { index: true, element: <Navigate to="/dashboard/youtube" replace /> },
+      { index: true, element: <Navigate to="/dashboard/combined" replace /> },
+      { path: "combined", element: <CombinedOverview /> },
       {
         path: "youtube",
         element: <YoutubeLayout />,
@@ -140,7 +140,6 @@ const router = createBrowserRouter([
           { path: "groups", element: <FacebookGroups /> },
           { path: "ads", element: <FacebookAds /> },
           { path: "reports", element: <FacebookReports /> },
-          { path: "insights", element: <FacebookInsights /> },
           { path: "settings", element: <FacebookSettings /> },
           { path: "help", element: <FacebookHelp /> },
         ]

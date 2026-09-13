@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Heart, MessageCircle, Bookmark, Share2 } from 'lucide-react';
 import igapi from '@/services/igapi';
+import DateRangePicker from '@/components/DateRangePicker';
 
 const formatNumber = (num) => {
   return new Intl.NumberFormat('en-US', {
@@ -18,11 +19,22 @@ const InstagramContent = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [filter, setFilter] = useState('All');
 
+  // ── Default date range: last 1 year ────────────────────────────────
+  const d = new Date();
+  d.setFullYear(d.getFullYear() - 1);
+  const defaultStart = d.toISOString().split('T')[0];
+  const defaultEnd = new Date().toISOString().split('T')[0];
+  const [dateRange, setDateRange] = useState({ start: defaultStart, end: defaultEnd });
+
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
       try {
-        const response = await igapi.getContent();
+        setIsLoading(true);
+        const response = await igapi.getContent({
+          from: new Date(dateRange.start),
+          to: new Date(dateRange.end)
+        });
         if (isMounted) setData(response);
       } catch (error) {
         console.error("Failed to fetch content performance:", error);
@@ -33,9 +45,16 @@ const InstagramContent = () => {
     if (isConnected) fetchData();
     else setIsLoading(false);
     return () => { isMounted = false; };
-  }, [isConnected]);
+  }, [isConnected, dateRange]);
 
-  const filters = ['All', 'Images', 'Carousels', 'Videos', 'Reels'];
+  const filters = ['All', 'Posts', 'Reels'];
+
+  const filteredPosts = data?.posts?.filter(p => {
+    if (filter === 'All') return true;
+    if (filter === 'Reels') return p.type === 'Reel' || p.type === 'VIDEO';
+    if (filter === 'Posts') return p.type === 'Post' || p.type === 'Carousel' || p.type === 'IMAGE' || p.type === 'CAROUSEL_ALBUM';
+    return true;
+  }) || [];
 
   if (!isConnected) {
     return (
@@ -54,8 +73,15 @@ const InstagramContent = () => {
           <p className="text-gray-400 mt-1">Analyze your posts, reels, and carousels</p>
         </div>
         
-        {/* Filters */}
-        <div className="flex bg-[#161B22]/90 backdrop-blur-md rounded-xl p-1 rounded-lg border border-white/5 overflow-x-auto custom-scrollbar">
+        <div className="flex flex-col sm:flex-row items-center gap-4">
+          <DateRangePicker 
+            startDate={dateRange.start} 
+            endDate={dateRange.end} 
+            onChange={setDateRange} 
+          />
+          
+          {/* Filters */}
+          <div className="flex bg-[#161B22]/90 backdrop-blur-md p-1 rounded-lg border border-white/5 overflow-x-auto custom-scrollbar">
           {filters.map((f) => (
             <button
               key={f}
@@ -67,6 +93,7 @@ const InstagramContent = () => {
               {f}
             </button>
           ))}
+          </div>
         </div>
       </div>
 
@@ -84,13 +111,13 @@ const InstagramContent = () => {
             </Card>
           ))}
         </div>
-      ) : data.posts.length === 0 ? (
+      ) : filteredPosts.length === 0 ? (
         <div className="p-12 text-center border border-white/5 rounded-xl bg-[#161B22]/90 backdrop-blur-md rounded-xl">
           <p className="text-gray-400">Not enough data available yet.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {data.posts.map((post) => (
+          {filteredPosts.map((post) => (
             <Card key={post.id} className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5 overflow-hidden hover:border-white/10 transition-colors">
               <div className="relative h-48">
                 <img src={post.image} alt={post.type} className="w-full h-full object-cover" />

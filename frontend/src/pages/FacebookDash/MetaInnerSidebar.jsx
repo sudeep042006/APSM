@@ -35,8 +35,8 @@ export const FB_NAV = [
   { id: "stories",     label: "Stories",      icon: History     },
   { id: "groups",      label: "Groups",       icon: Users       },
   { id: "ads",         label: "Ads",          icon: Target      },
-  { id: "reports",     label: "Reports",      icon: FileText    },
   { id: "insights",    label: "Insights",     icon: BarChart3   },
+  { id: "reports",     label: "Reports",      icon: FileText    },
   { id: "settings",    label: "Settings",     icon: Settings    },
   { id: "help",        label: "Help",         icon: HelpCircle  },
 ];
@@ -93,7 +93,7 @@ export default function MetaInnerSidebar({
     <aside
       className={`
         flex-shrink-0 flex flex-col h-full
-        overflow-y-auto bg-[#0B1121]/95 backdrop-blur-xl
+        overflow-y-auto bg-background/95 backdrop-blur-xl
         transition-all duration-300 z-40 custom-scrollbar
         ${isSlim ? "w-20" : "w-64"}
       `}
@@ -113,7 +113,7 @@ export default function MetaInnerSidebar({
         {isConnected && (
           <button
             onClick={() => setCollapsedByUser(!collapsedByUser)}
-            className="p-2 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors"
+            className="p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors shrink-0"
             title={collapsedByUser ? "Expand sidebar" : "Collapse sidebar"}
           >
             {collapsedByUser
@@ -254,3 +254,4 @@ export default function MetaInnerSidebar({
     </aside>
   );
 }
+

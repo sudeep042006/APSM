@@ -19,6 +19,7 @@ export default defineConfig({
   // ── Dev Server Configuration ────────────────────────────────────────
   server: {
     strictPort: true,
+    allowedHosts:true,
     proxy: {
       // Proxy /auth requests to the Express backend during development
       "/auth": {
@@ -40,6 +41,12 @@ export default defineConfig({
       },
       // Proxy /automation requests to the Express backend during development
       "/automation": {
+        target: "http://localhost:5000",
+        changeOrigin: true,
+        secure: false,
+      },
+      // Proxy /reports requests to the Express backend
+      "/reports": {
         target: "http://localhost:5000",
         changeOrigin: true,
         secure: false,

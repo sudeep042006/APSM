@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { getValidToken } from '../../utils/tokenManager.js';
 import { AnalyticsSnapshot } from './analytics.model.js';
-
 export const fetchAndSaveFacebookAnalytics = async (userId) => {
   let facebookData = null;
   let hasRealData = false;
@@ -10,6 +9,8 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
   let reach = 0;
   let profileViews = 0;
   let totalEngagement = 0;
+  let topCountries = [];
+  let ageAndGender = [];
 
   try {
     console.log(`[meta.analytics] Checking Facebook connection for user ${userId}...`);
@@ -20,7 +21,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
     if (fbToken) {
       // DEBUG: Check what permissions the token actually has
       try {
-        const permRes = await axios.get('https://graph.facebook.com/v18.0/me/permissions', {
+        const permRes = await axios.get('https://graph.facebook.com/v25.0/me/permissions', {
           params: { access_token: fbToken }
         });
         console.log(`[DEBUG-FB] Token permissions:`, JSON.stringify(permRes.data, null, 2));
@@ -30,7 +31,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
 
       // DEBUG: Check who this token belongs to
       try {
-        const meRes = await axios.get('https://graph.facebook.com/v18.0/me', {
+        const meRes = await axios.get('https://graph.facebook.com/v25.0/me', {
           params: { fields: 'id,name', access_token: fbToken }
         });
         console.log(`[DEBUG-FB] Token belongs to:`, JSON.stringify(meRes.data, null, 2));
@@ -39,7 +40,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
       }
 
       console.log(`[meta.analytics] Fetching Facebook Pages for user ${userId}...`);
-      const pagesRes = await axios.get('https://graph.facebook.com/v18.0/me/accounts', {
+      const pagesRes = await axios.get('https://graph.facebook.com/v25.0/me/accounts', {
         params: { access_token: fbToken }
       });
 
@@ -52,7 +53,7 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
         console.log(`[meta.analytics] Fetching FB Page stats for page ${page.name} (${pageId})...`);
         console.log(`[DEBUG-FB] Page token received: ${pageToken ? 'YES' : 'NO'}`);
 
-        const detailRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}`, {
+        const detailRes = await axios.get(`https://graph.facebook.com/v25.0/${pageId}`, {
           params: { fields: 'fan_count,name', access_token: pageToken }
         });
 
@@ -68,9 +69,10 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
         followers += facebookData.fanCount;
 
         try {
-          const insightsRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/insights`, {
+          // Bug fix: replaced deprecated page_views_total with page_impressions_unique (actual reach).
+          const insightsRes = await axios.get(`https://graph.facebook.com/v25.0/${pageId}/insights`, {
             params: {
-              metric: 'page_impressions,page_post_engagements,page_views_total',
+              metric: 'page_impressions,page_impressions_unique,page_post_engagements',
               period: 'day',
               access_token: pageToken
             }
@@ -85,24 +87,71 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
           };
           impressions += getVal('page_impressions');
           totalEngagement += getVal('page_post_engagements');
-          profileViews += getVal('page_views_total');
-          reach += Math.round(getVal('page_impressions') * 0.75);
+          // Bug fix: reach is now page_impressions_unique (unique users who saw content),
+          // not a fabricated 75% ratio of total impressions.
+          reach += getVal('page_impressions_unique');
         } catch (insightsErr) {
           console.warn(`⚠️ [meta.analytics] Failed to fetch Page Insights (metrics might be deprecated or empty):`, insightsErr.message);
           // Non-blocking: keep metrics as 0
         }
 
         try {
-          const postsRes = await axios.get(`https://graph.facebook.com/v18.0/${pageId}/published_posts`, {
+          // Bug fix: Use comments.limit(0).summary(true) and reactions.limit(0).summary(true).
+          // Using comments.summary(total_count) caused Facebook to reorder posts by cursor
+          // when new comments arrived, making posts disappear from page 1 entirely.
+          // Using reactions instead of likes captures all emoji reactions (👍❤️😂😮😢😡).
+          // Added story + picture fields for posts with no message or expired full_picture.
+          const postsRes = await axios.get(`https://graph.facebook.com/v25.0/${pageId}/published_posts`, {
             params: {
-              fields: 'id,message,created_time,full_picture,attachments,shares,comments.summary(total_count),likes.summary(total_count)',
-              limit: 20,
+              fields: 'id,message,story,created_time,full_picture,picture,attachments{type,media_type,media,url},shares,comments.limit(0).summary(true),reactions.limit(0).summary(true)',
+              limit: 25,
               access_token: pageToken
             }
           });
           facebookData.posts = postsRes.data.data || [];
         } catch (postsErr) {
           console.warn(`⚠️ [meta.analytics] Failed to fetch Page Posts:`, postsErr.message);
+        }
+
+        // Note: /{page-id}/stories returns page TEXT-MENTION stories, not ephemeral
+        // 24-hour Stories. Facebook Page Story metrics (reach, taps, completion) are NOT
+        // available through any public Graph API endpoint. Removed this incorrect fetch.
+
+        if (facebookData.fanCount >= 100) {
+          try {
+            console.log(`[meta.analytics] Fetching FB Page demographics for page ${pageId}...`);
+            const demoRes = await axios.get(`https://graph.facebook.com/v25.0/${pageId}/insights`, {
+              params: {
+                metric: 'page_fans_gender_age,page_fans_country',
+                period: 'lifetime',
+                access_token: pageToken
+              }
+            });
+            
+            console.log(`[DEBUG-FB] Demographics response data:`, JSON.stringify(demoRes.data, null, 2));
+
+            const countryMetric = demoRes.data?.data?.find(m => m.name === 'page_fans_country');
+            if (countryMetric?.values?.[0]?.value) {
+              const valObj = countryMetric.values[0].value;
+              topCountries = Object.entries(valObj).map(([name, count]) => ({
+                name,
+                count: parseInt(count) || 0
+              })).sort((a, b) => b.count - a.count).slice(0, 5);
+            }
+
+            const ageGenderMetric = demoRes.data?.data?.find(m => m.name === 'page_fans_gender_age');
+            if (ageGenderMetric?.values?.[0]?.value) {
+              const valObj = ageGenderMetric.values[0].value;
+              ageAndGender = Object.entries(valObj).map(([group, count]) => ({
+                group,
+                count: parseFloat(count) || 0
+              }));
+            }
+          } catch (demoErr) {
+            console.warn(`⚠️ [meta.analytics] Failed to fetch Page demographics:`, demoErr.message);
+          }
+        } else {
+          console.log(`[meta.analytics] Page ${pageId} has ${facebookData.fanCount} fans (< 100 requirement). Skipping demographic insights.`);
         }
       } else {
         console.warn(`[DEBUG-FB] ❌ No pages returned! Full response data:`, JSON.stringify(pagesRes.data, null, 2));
@@ -141,9 +190,9 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
           totalEngagement
         },
         demographics: {
-          topCountries: [],
+          topCountries,
           topCities: [],
-          ageAndGender: []
+          ageAndGender
         },
         rawPlatformData: { facebook: facebookData }
       },
@@ -152,46 +201,8 @@ export const fetchAndSaveFacebookAnalytics = async (userId) => {
     console.log(`✅ [meta.analytics] Successfully saved Facebook analytics for user ${userId}`);
     return snapshot;
   } else {
-    console.warn(`[meta.analytics] No valid Facebook connections found. Generating mock Facebook snapshot for user ${userId}...`);
-    const snapshot = await AnalyticsSnapshot.findOneAndUpdate(
-      {
-        incubationCenterId: userId,
-        platform: 'facebook',
-        snapshotDate: { $gte: startOfDay, $lte: endOfDay }
-      },
-      {
-        incubationCenterId: userId,
-        platform: 'facebook',
-        snapshotDate: new Date(),
-        metrics: {
-          followers: Math.floor(Math.random() * 2000) + 1000,
-          impressions: Math.floor(Math.random() * 15000) + 4000,
-          reach: Math.floor(Math.random() * 10000) + 2000,
-          profileViews: Math.floor(Math.random() * 500) + 100,
-          totalEngagement: Math.floor(Math.random() * 1000) + 150
-        },
-        demographics: {
-          topCountries: [
-            { name: 'IN', count: Math.floor(Math.random() * 1000) + 500 }
-          ],
-          topCities: [],
-          ageAndGender: []
-        },
-        ads: {
-          activeCampaigns: 0,
-          totalSpend: 0,
-          currency: 'INR',
-          adImpressions: 0,
-          costPerClick: 0
-        },
-        rawPlatformData: {
-          mock: true,
-          facebook: { pageName: 'Mock Center FB Page', likes: 1500 }
-        }
-      },
-      { upsert: true, new: true }
-    );
-    return snapshot;
+    console.warn(`[meta.analytics] No valid Facebook connections found. Returning null for user ${userId}.`);
+    return null;
   }
 };
 
@@ -212,14 +223,14 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
 
     if (igToken) {
       console.log(`[meta.analytics] Fetching FB Page linked to Instagram for user ${userId}...`);
-      const pagesRes = await axios.get('https://graph.facebook.com/v18.0/me/accounts', {
+      const pagesRes = await axios.get('https://graph.facebook.com/v25.0/me/accounts', {
         params: { access_token: igToken }
       });
 
       const page = pagesRes.data.data?.[0];
       if (page) {
         console.log(`[meta.analytics] Fetching IG Business Account linked to FB Page ${page.id}...`);
-        const igAccountRes = await axios.get(`https://graph.facebook.com/v18.0/${page.id}`, {
+        const igAccountRes = await axios.get(`https://graph.facebook.com/v25.0/${page.id}`, {
           params: { fields: 'instagram_business_account', access_token: igToken }
         });
 
@@ -227,14 +238,15 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
         if (igAccountId) {
           console.log(`[meta.analytics] Fetching IG insights for Business Account ${igAccountId}...`);
 
-          const profileRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}`, {
-            params: { fields: 'followers_count,media_count,username', access_token: igToken }
+          const profileRes = await axios.get(`https://graph.facebook.com/v25.0/${igAccountId}`, {
+            params: { fields: 'followers_count,media_count,username,profile_picture_url', access_token: igToken }
           });
 
           instagramData = {
             username: profileRes.data.username,
             followers: profileRes.data.followers_count || 0,
             mediaCount: profileRes.data.media_count || 0,
+            profilePicture: profileRes.data.profile_picture_url || "",
             insights: [],
             demographics: []
           };
@@ -243,9 +255,9 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
 
           // Fetch insights (non-blocking)
           try {
-            const insightsRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/insights`, {
+            const insightsRes = await axios.get(`https://graph.facebook.com/v25.0/${igAccountId}/insights`, {
               params: {
-                metric: 'impressions,reach', // profile_views is deprecated
+                metric: 'reach,profile_views',
                 period: 'day',
                 access_token: igToken
               }
@@ -256,18 +268,23 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
               const met = instagramData.insights.find(m => m.name === metricName);
               return met?.values?.reduce((acc, v) => acc + (v.value || 0), 0) || 0;
             };
-            impressions += getVal('impressions');
+            impressions += getVal('profile_views');
             reach += getVal('reach');
           } catch (insightsErr) {
             console.warn(`⚠️ [meta.analytics] Failed to fetch Instagram insights (metrics might be deprecated or empty):`, insightsErr.message);
+            if (insightsErr.response?.data) {
+              console.warn(`[DEBUG-IG] Insights error details:`, JSON.stringify(insightsErr.response.data, null, 2));
+            }
           }
 
           // Fetch demographics (non-blocking)
           try {
-            const demoRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/insights`, {
+            const demoRes = await axios.get(`https://graph.facebook.com/v25.0/${igAccountId}/insights`, {
               params: {
-                metric: 'audience_country,audience_gender_age',
+                metric: 'follower_demographics',
                 period: 'lifetime',
+                breakdown: 'country,age,gender',
+                metric_type: 'total_value',
                 access_token: igToken
               }
             });
@@ -296,7 +313,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
 
           // Fetch media (posts, reels, etc.)
           try {
-            const mediaRes = await axios.get(`https://graph.facebook.com/v18.0/${igAccountId}/media`, {
+            const mediaRes = await axios.get(`https://graph.facebook.com/v25.0/${igAccountId}/media`, {
               params: {
                 fields: 'id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,like_count,comments_count',
                 limit: 30,
@@ -304,6 +321,11 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
               }
             });
             instagramData.media = mediaRes.data.data || [];
+            
+            // Calculate engagement from recent media
+            instagramData.media.forEach(m => {
+              totalEngagement += (m.like_count || 0) + (m.comments_count || 0);
+            });
           } catch (mediaErr) {
             console.warn(`⚠️ [meta.analytics] Failed to fetch Instagram media:`, mediaErr.message);
           }
@@ -349,45 +371,7 @@ export const fetchAndSaveInstagramAnalytics = async (userId) => {
     console.log(`✅ [meta.analytics] Successfully saved Instagram analytics for user ${userId}`);
     return snapshot;
   } else {
-    console.warn(`[meta.analytics] No valid Instagram connections found. Generating mock Instagram snapshot for user ${userId}...`);
-    const snapshot = await AnalyticsSnapshot.findOneAndUpdate(
-      {
-        incubationCenterId: userId,
-        platform: 'instagram',
-        snapshotDate: { $gte: startOfDay, $lte: endOfDay }
-      },
-      {
-        incubationCenterId: userId,
-        platform: 'instagram',
-        snapshotDate: new Date(),
-        metrics: {
-          followers: Math.floor(Math.random() * 2000) + 500,
-          impressions: Math.floor(Math.random() * 15000) + 4000,
-          reach: Math.floor(Math.random() * 10000) + 3000,
-          profileViews: Math.floor(Math.random() * 500) + 100,
-          totalEngagement: Math.floor(Math.random() * 1000) + 150
-        },
-        demographics: {
-          topCountries: [
-            { name: 'IN', count: Math.floor(Math.random() * 1500) + 700 }
-          ],
-          topCities: [],
-          ageAndGender: []
-        },
-        ads: {
-          activeCampaigns: 1,
-          totalSpend: 4000,
-          currency: 'INR',
-          adImpressions: 11000,
-          costPerClick: 2.5
-        },
-        rawPlatformData: {
-          mock: true,
-          instagram: { username: 'mock_center_instagram', followers: 1650 }
-        }
-      },
-      { upsert: true, new: true }
-    );
-    return snapshot;
+    console.warn(`[meta.analytics] No valid Instagram connections found. Returning null for user ${userId}.`);
+    return null;
   }
 };

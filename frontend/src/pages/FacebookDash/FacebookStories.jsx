@@ -1,13 +1,14 @@
-// ── Facebook Stories Page ─────────────────────────────────────────────────────
+﻿// ── Facebook Stories Page ─────────────────────────────────────────────────────
 // Fetches data independently via fbapi.getStoriesMetrics() on mount.
 // Shows 4 KPI cards + stories table.
 
 import { useState, useEffect } from "react";
-import { useOutletContext } from "react-router-dom";
+import { useOutletContext, useNavigate } from "react-router-dom";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import fbapi from "@/services/fbapi";
+import { KpiCard } from "./MetaSharedComponents";
 import { History, Eye, TrendingUp, MessageCircle, TrendingDown } from "lucide-react";
 
 const fmt = (n) => n == null ? "—" : new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 1 }).format(n);

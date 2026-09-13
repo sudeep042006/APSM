@@ -166,8 +166,11 @@ export default function LinkedInLayout() {
   // ── Loading state (checking connection) ───────────────────────────
   if (loading) {
     return (
-      <div className="flex min-h-[60vh] items-center justify-center bg-[#0B1121] text-white">
-        <div className="relative w-12 h-12">
+      <div className="flex min-h-[60vh] items-center justify-center bg-background text-white relative overflow-hidden">
+        {/* ── Background Gradient Orbs ──────────────────────────────────── */}
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
+        <div className="relative w-12 h-12 z-10">
           <div className="absolute top-0 left-0 w-full h-full border-4 border-[#0A66C2]/20 rounded-full" />
           <div className="absolute top-0 left-0 w-full h-full border-4 border-t-[#0A66C2] rounded-full animate-spin" />
         </div>
@@ -177,8 +180,12 @@ export default function LinkedInLayout() {
 
   if (!isConnected) {
     return (
-      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-[#0B1121] -m-6 text-white p-6">
-        <ConnectCard
+      <div className="flex items-center justify-center min-h-[calc(100vh-4rem)] bg-background -m-6 text-white p-6 relative overflow-hidden">
+        {/* ── Background Gradient Orbs ──────────────────────────────────── */}
+        <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
+        <div className="z-10 relative">
+          <ConnectCard
           icon={<Linkedin className="h-8 w-8 text-[#0A66C2]" />}
           cardTitle="Connect LinkedIn Profile"
           cardDescription="Connect your LinkedIn account to view followers, post impressions, engagement rates, and detailed demographic metrics."
@@ -188,12 +195,16 @@ export default function LinkedInLayout() {
           brandTextClass="text-[#0A66C2]"
           brandButtonClass="bg-[#0A66C2] hover:bg-[#0A66C2]/90 text-white font-semibold shadow-md shadow-[#0A66C2]/10"
         />
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="flex gap-0 -m-6 h-[calc(100vh-4rem)] bg-[#0B1121] text-white overflow-hidden relative">
+    <div className="flex gap-0 -m-6 h-[calc(100vh-4rem)] bg-background text-white overflow-hidden relative">
+      {/* ── Background Gradient Orbs ──────────────────────────────────── */}
+      <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-violet-600/10 blur-3xl pointer-events-none z-0" />
+      <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none z-0" />
       {/* ── Mobile Backdrop ───────────────────────────────────────────────── */}
       {isMobileOpen && (
         <div
@@ -206,7 +217,7 @@ export default function LinkedInLayout() {
       <aside
         className={`
           fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/10
-          bg-[#0B1121]/95 backdrop-blur-xl lg:bg-[#0B1121] lg:backdrop-blur-none
+          bg-background/95 backdrop-blur-xl lg:bg-background lg:backdrop-blur-none
           transition-all duration-300 ease-in-out
           lg:static lg:translate-x-0
           ${isMobileOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"}
@@ -221,8 +232,8 @@ export default function LinkedInLayout() {
         </div>
 
         {/* Brand Header */}
-        <div className={`border-b border-white/10 p-3 ${isCollapsed ? 'text-center' : ''}`}>
-          <div className="flex items-center gap-2">
+        <div className={`border-b border-white/10 p-3 h-16 flex items-center justify-between`}>
+          <div className={`flex items-center gap-2 overflow-hidden transition-opacity ${isCollapsed ? "opacity-0 w-0" : "opacity-100"}`}>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0A66C2]/10">
               <Linkedin className="h-4 w-4 text-[#0A66C2]" />
             </div>
@@ -241,27 +252,17 @@ export default function LinkedInLayout() {
               </p>
             </div>
           </div>
-        </div>
-
-        {/* Desktop Collapse Toggle */}
-        <div className="hidden lg:block p-2 border-b border-white/10">
+          {/* Desktop Collapse Toggle Beside Branding */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className={`flex w-full items-center gap-2.5 rounded-lg px-2.5 py-2 text-xs font-medium text-gray-400 hover:bg-white/10 hover:text-white transition-all duration-200 ${
-              isCollapsed ? 'justify-center' : ''
-            }`}
+            className="hidden lg:flex p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors shrink-0"
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
-            {isCollapsed ? (
-              <ChevronRight className="h-4 w-4 shrink-0" />
-            ) : (
-              <>
-                <ChevronLeft className="h-4 w-4 shrink-0" />
-                <span>Collapse</span>
-              </>
-            )}
+            {isCollapsed ? <PanelLeft className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
           </button>
         </div>
+
+        {/* Desktop Collapse Toggle (moved to bottom) */}
 
         {/* Navigation Links */}
         <nav className="flex-1 py-2 px-1.5 space-y-0.5 overflow-y-auto">
@@ -296,7 +297,7 @@ export default function LinkedInLayout() {
       {/* ── Main Content Area ──────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Mobile Header Toggle */}
-        <div className="lg:hidden flex items-center p-4 border-b border-white/10 bg-[#0B1121]">
+        <div className="lg:hidden flex items-center p-4 border-b border-white/10 bg-background/80 backdrop-blur-md relative z-10">
           <button onClick={() => setIsMobileOpen(true)} className="text-gray-400 hover:text-[#0A66C2] transition-colors">
             <Menu className="w-6 h-6" />
           </button>
@@ -305,7 +306,7 @@ export default function LinkedInLayout() {
 
         {/* Top Controls Bar (Header controls and Date Range) */}
         {isConnected && !loading && !error && (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 bg-[#0B1121]/60 px-6 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/5 bg-background/60 px-6 py-4">
             <div>
               <h1 className="text-lg font-bold text-white flex items-center gap-2">
                 LinkedIn Insights
@@ -333,7 +334,7 @@ export default function LinkedInLayout() {
         )}
 
         {/* Scrollable Main Area */}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto relative z-10">
           {loading ? (
             renderLoading()
           ) : error ? (

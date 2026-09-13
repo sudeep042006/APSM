@@ -168,7 +168,10 @@ export default function LinkedInDash() {
   );
 
   return (
-    <div className="min-h-screen bg-[#0B1121] text-white p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8 relative">
+    <div className="min-h-screen bg-background text-white p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8 relative overflow-hidden">
+      {/* ── Background Gradient Orbs ──────────────────────────────────── */}
+      <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-violet-600/10 blur-3xl pointer-events-none z-0" />
+      <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none z-0" />
       <ConfirmDisconnectModal 
         isOpen={showDisconnectModal} 
         onClose={() => setShowDisconnectModal(false)} 

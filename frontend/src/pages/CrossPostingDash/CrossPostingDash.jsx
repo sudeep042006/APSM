@@ -9,6 +9,7 @@ import { useNavigate } from "react-router-dom";
 import { Youtube, Linkedin, Facebook, Instagram } from "@/components/icons/BrandIcons";
 import ConfirmDisconnectModal from "@/components/ConfirmDisconnectModal";
 import api from "@/services/api";
+import AiReachPredictor from "@/components/AiReachPredictor";
 
 const SUPPORTED_PLATFORMS = [
   { id: "facebook", name: "Facebook", icon: Facebook, color: "text-blue-500", bg: "bg-blue-500/10", description: "Connect to cross-post to your pages and communities." },
@@ -95,7 +96,11 @@ export default function CrossPostingDash() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0B1121] text-slate-100 p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8 relative">
+    <div className="min-h-screen bg-background text-slate-100 p-2 md:p-6 space-y-6 animate-fade-in -m-6 sm:-m-8 relative overflow-hidden">
+      {/* ── Background Gradient Orbs ──────────────────────────────────── */}
+      <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-violet-600/10 blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none" />
+      
       <ConfirmDisconnectModal 
         isOpen={!!disconnectTarget} 
         onClose={() => setDisconnectTarget(null)} 
@@ -126,6 +131,8 @@ export default function CrossPostingDash() {
           <Plus className="h-4 w-4" /> New Post
         </Button>
       </div>
+
+      <AiReachPredictor />
 
       {isLoading ? (
         <div className="flex h-[40vh] items-center justify-center">
@@ -219,4 +226,3 @@ export default function CrossPostingDash() {
     </div>
   );
 }
-

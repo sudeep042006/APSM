@@ -245,7 +245,10 @@ export default function YoutubeDash() {
   };
 
   return (
-    <div className="flex gap-0 -m-6 min-h-[calc(100vh-4rem)] bg-[#0B1121] text-slate-100">
+    <div className="flex gap-0 -m-6 min-h-[calc(100vh-4rem)] bg-background text-slate-100 relative overflow-hidden">
+      {/* ── Background Gradient Orbs ──────────────────────────────────── */}
+      <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-violet-600/10 blur-3xl pointer-events-none z-0" />
+      <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none z-0" />
       {/* ── YouTube Sub-Navigation Sidebar ────────────────────────────── */}
       <aside
         className={`shrink-0 border-r border-gray-200 dark:border-white/10 bg-white dark:bg-white/5 backdrop-blur-sm transition-all duration-300 ${
@@ -329,7 +332,7 @@ export default function YoutubeDash() {
           }} 
         />
         {/* ── Page Header ──────────────────────────────────────────────── */}
-        <div className="sticky top-0 z-10 border-b border-white/10 bg-[#0B1121]/80 backdrop-blur-md px-6 py-3">
+        <div className="sticky top-0 z-10 border-b border-white/10 bg-background/80 backdrop-blur-md px-6 py-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-red-500/10">

@@ -17,6 +17,7 @@ import logging
 import os
 import pickle
 import re
+import warnings
 from datetime import datetime
 from typing import Any, Dict, Iterable, List, Optional, Tuple
 
@@ -273,9 +274,9 @@ def build_performance_score(df: pd.DataFrame, targets: List[str]) -> Tuple[pd.Da
         "shares": 0.15,
         "totalengagement": 0.25,
         "subscribersgained": 0.2,
+
     }
 
-    score_parts = []
     for column in targets:
         lowered = re.sub(r"[^a-z0-9]", "", column.lower())
         weight = next((w for hint, w in weighted_hints.items() if hint in lowered), None)

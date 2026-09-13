@@ -461,9 +461,9 @@ export default function NewPostPage() {
                 </div>
                 {postHistory.length > 6 && (
                   <div className="bg-[#1e2230] border-t border-white/5 p-3 flex justify-center">
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       onClick={() => navigate("/dashboard/crosspost/history")}
                       className="text-xs text-[#6366f1] hover:text-[#4f46e5] hover:bg-transparent"
                     >
