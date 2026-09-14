@@ -1,194 +1,979 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title><%= platform %> Analytics Report</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <title>
+        <%= report.platform.charAt(0).toUpperCase() + report.platform.slice(1) %>
+            Analytics Report
+    </title>
+
+
     <style>
+        * {
+            box-sizing: border-box;
+        }
+
         body {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            color: #333;
+            font-family: Arial, Helvetica, sans-serif;
+            color: #222;
             margin: 0;
-            padding: 20px;
-            background-color: #fff;
+            padding: 32px;
+            background: #ffffff;
+            font-size: 12px;
+            line-height: 1.5;
         }
+
+        /* -------------------------------------------------- */
+        /* Header */
+        /* -------------------------------------------------- */
+
         .header {
-            text-align: center;
-            border-bottom: 2px solid #eee;
+            border-bottom: 2px solid #222;
             padding-bottom: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 28px;
         }
+
         .header h1 {
-            margin: 0;
-            color: #1a1a1a;
+            margin: 0 0 8px;
             font-size: 28px;
+            color: #111;
         }
-        .header p {
-            margin: 5px 0 0;
+
+        .header .subtitle {
             color: #666;
+            font-size: 13px;
         }
-        .kpi-container {
-            display: flex;
-            justify-content: space-between;
-            margin-bottom: 40px;
+
+        .report-meta {
+            margin-top: 15px;
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
         }
-        .kpi-card {
-            background-color: #f8f9fa;
-            border-radius: 8px;
-            padding: 20px;
-            width: 22%;
-            text-align: center;
-            border: 1px solid #e9ecef;
+
+        .meta-item {
+            background: #f6f6f6;
+            padding: 10px;
+            border-radius: 5px;
         }
-        .kpi-card h3 {
-            margin: 0 0 10px;
+
+        .meta-label {
+            display: block;
+            font-size: 9px;
+            color: #777;
+            text-transform: uppercase;
+            margin-bottom: 3px;
+        }
+
+        .meta-value {
+            font-weight: bold;
+            font-size: 11px;
+        }
+
+        /* -------------------------------------------------- */
+        /* Sections */
+        /* -------------------------------------------------- */
+
+        .section {
+            margin-top: 30px;
+            page-break-inside: avoid;
+        }
+
+        .section-title {
+            font-size: 18px;
+            margin: 0 0 15px;
+            padding-bottom: 7px;
+            border-bottom: 1px solid #ddd;
+            color: #111;
+        }
+
+        .sub-title {
             font-size: 14px;
-            color: #6c757d;
+            margin: 20px 0 10px;
+            color: #333;
+        }
+
+        /* -------------------------------------------------- */
+        /* Account */
+        /* -------------------------------------------------- */
+
+        .account-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .account-item {
+            border: 1px solid #ddd;
+            padding: 12px;
+            border-radius: 5px;
+        }
+
+        .account-item .label {
+            color: #777;
+            font-size: 9px;
             text-transform: uppercase;
         }
-        .kpi-card .value {
-            font-size: 24px;
+
+        .account-item .value {
+            margin-top: 4px;
+            font-size: 13px;
             font-weight: bold;
-            color: #212529;
         }
-        .charts-container {
-            margin-bottom: 40px;
+
+        /* -------------------------------------------------- */
+        /* KPI Cards */
+        /* -------------------------------------------------- */
+
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
         }
-        .chart-box {
+
+        .kpi-card {
+            background: #f6f6f6;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 15px;
+            text-align: center;
+        }
+
+        .kpi-card .label {
+            font-size: 9px;
+            color: #777;
+            text-transform: uppercase;
+            margin-bottom: 7px;
+        }
+
+        .kpi-card .value {
+            font-size: 21px;
+            font-weight: bold;
+            color: #111;
+        }
+
+        /* -------------------------------------------------- */
+        /* Charts */
+        /* -------------------------------------------------- */
+
+        .chart-wrapper {
             width: 100%;
-            height: 300px;
-            margin-bottom: 30px;
+            margin-top: 10px;
+            padding: 10px 0;
         }
+
+        .chart-wrapper svg {
+            display: block;
+            width: 100%;
+            height: auto;
+        }
+
+        .chart-legend {
+            display: flex;
+            gap: 18px;
+            margin-bottom: 8px;
+            font-size: 10px;
+            color: #555;
+        }
+
+        .chart-legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .chart-legend-line {
+            width: 18px;
+            height: 2px;
+            background: #111827;
+            display: inline-block;
+        }
+
+        /* -------------------------------------------------- */
+        /* Tables */
+        /* -------------------------------------------------- */
+
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
+            margin-top: 10px;
         }
-        th, td {
-            padding: 12px 15px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
+
         th {
-            background-color: #f8f9fa;
-            font-weight: 600;
-            color: #495057;
+            background: #f2f2f2;
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+            font-size: 10px;
         }
-        tr:nth-child(even) {
-            background-color: #fcfcfc;
+
+        td {
+            border: 1px solid #ddd;
+            padding: 7px;
+            vertical-align: top;
+            font-size: 10px;
+        }
+
+        tr {
+            page-break-inside: avoid;
+        }
+
+        /* -------------------------------------------------- */
+        /* Audience */
+        /* -------------------------------------------------- */
+
+        .audience-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 20px;
+        }
+
+        .audience-box {
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 12px;
+        }
+
+        .audience-box h3 {
+            margin: 0 0 10px;
+            font-size: 13px;
+        }
+
+        /* -------------------------------------------------- */
+        /* Empty State */
+        /* -------------------------------------------------- */
+
+        .empty {
+            padding: 15px;
+            background: #f8f8f8;
+            color: #777;
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        /* -------------------------------------------------- */
+        /* Footer */
+        /* -------------------------------------------------- */
+
+        .footer {
+            margin-top: 40px;
+            padding-top: 12px;
+            border-top: 1px solid #ddd;
+            color: #777;
+            font-size: 9px;
+            text-align: center;
+        }
+
+        /* -------------------------------------------------- */
+        /* Print */
+        /* -------------------------------------------------- */
+
+        @media print {
+            body {
+                padding: 20px;
+            }
+
+            .section {
+                page-break-inside: avoid;
+            }
+
+            table {
+                page-break-inside: auto;
+            }
+
+            tr {
+                page-break-inside: avoid;
+                page-break-after: auto;
+            }
+        }
+
+        .content-table {
+            table-layout: fixed;
+            width: 100%;
+            font-size: 9px;
+        }
+
+        .content-table th,
+        .content-table td {
+            padding: 6px 7px;
+            word-break: break-word;
+            overflow-wrap: anywhere;
         }
     </style>
 </head>
+
 <body>
 
-    <div class="header">
-        <h1><%= platform %> Analytics Report</h1>
-        <p>Generated for <%= user %></p>
-        <p><strong>Period:</strong> <%= dateRange %></p>
-    </div>
+    <% const truncateText=(value, maxLength=120)=> {
+        if (value === null || value === undefined) {
+        return 'N/A';
+        }
 
-    <!-- KPIs -->
-    <div class="kpi-container">
-        <div class="kpi-card">
-            <h3>Total Followers</h3>
-            <div class="value"><%= latestMetrics.followers || 0 %></div>
-        </div>
-        <div class="kpi-card">
-            <h3>Total Reach</h3>
-            <div class="value"><%= latestMetrics.reach || 0 %></div>
-        </div>
-        <div class="kpi-card">
-            <h3>Impressions</h3>
-            <div class="value"><%= latestMetrics.impressions || 0 %></div>
-        </div>
-        <div class="kpi-card">
-            <h3>Engagement</h3>
-            <div class="value"><%= latestMetrics.totalEngagement || 0 %></div>
-        </div>
-    </div>
+        const text = String(value);
 
-    <!-- Charts -->
-    <div class="charts-container">
-        <h2>Growth Trends</h2>
-        <div class="chart-box">
-            <canvas id="growthChart" width="800" height="300"></canvas>
-        </div>
-    </div>
+        if (text.length <= maxLength) { return text; } return text.substring(0, maxLength) + '...' ; }; %>
 
-    <!-- Tabular Data -->
-    <h2>Daily Breakdown</h2>
-    <table>
-        <thead>
-            <tr>
-                <th>Date</th>
-                <th>Followers</th>
-                <th>Reach</th>
-                <th>Impressions</th>
-                <th>Engagement</th>
-            </tr>
-        </thead>
-        <tbody>
-            <% snapshots.forEach(function(snap) { %>
-                <tr>
-                    <td><%= snap.date %></td>
-                    <td><%= snap.followers %></td>
-                    <td><%= snap.reach %></td>
-                    <td><%= snap.impressions %></td>
-                    <td><%= snap.engagement %></td>
-                </tr>
-            <% }); %>
-        </tbody>
-    </table>
+            <% const platformName=report.platform.charAt(0).toUpperCase() + report.platform.slice(1); const
+                summary=report.summary || {}; const account=report.account || {}; const performance=report.performance
+                || {}; const audience=report.audience || {}; %>
 
-    <script>
-        window.onload = function () {
-            try {
-                // Disable animations so puppeteer captures the fully rendered chart instantly
-                Chart.defaults.animation = false;
+                <!-- ====================================================== -->
+                <!-- HEADER -->
+                <!-- ====================================================== -->
 
-                const canvas = document.getElementById('growthChart');
-                if (!canvas) return;
-                const ctx = canvas.getContext('2d');
+                <div class="header">
 
-                new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: <%- chartLabels %>,
-                        datasets: [
-                            {
-                                label: 'Followers',
-                                data: <%- chartDataFollowers %>,
-                                borderColor: '#007bff',
-                                backgroundColor: 'rgba(0, 123, 255, 0.1)',
-                                borderWidth: 2,
-                                fill: true,
-                                tension: 0.3
-                            },
-                            {
-                                label: 'Engagement',
-                                data: <%- chartDataEngagement %>,
-                                borderColor: '#28a745',
-                                backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                                borderWidth: 2,
-                                fill: true,
-                                tension: 0.3
-                            }
-                        ]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-            } catch (e) {
-                console.error('Chart.js initialization failed:', e);
-            }
-        };
-    </script>
+                    <h1>
+                        <%= platformName %> Analytics Report
+                    </h1>
+
+                    <div class="subtitle">
+                        Comprehensive platform performance report
+                    </div>
+
+                    <div class="report-meta">
+
+                        <div class="meta-item">
+                            <span class="meta-label">
+                                Platform
+                            </span>
+
+                            <span class="meta-value">
+                                <%= platformName %>
+                            </span>
+                        </div>
+
+                        <div class="meta-item">
+                            <span class="meta-label">
+                                Reporting Period
+                            </span>
+
+                            <span class="meta-value">
+                                <%= report.reportInfo?.startDate || 'N/A' %>
+                                    -
+                                    <%= report.reportInfo?.endDate || 'N/A' %>
+                            </span>
+                        </div>
+
+                        <div class="meta-item">
+                            <span class="meta-label">
+                                Generated
+                            </span>
+
+                            <span class="meta-value">
+                                <%= report.reportInfo?.generatedAt ? new
+                                    Date(report.reportInfo.generatedAt).toLocaleString() : 'N/A' %>
+                            </span>
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ====================================================== -->
+                <!-- ACCOUNT / CHANNEL INFORMATION -->
+                <!-- ====================================================== -->
+
+                <div class="section">
+
+                    <h2 class="section-title">
+                        Account / Channel Information
+                    </h2>
+
+                    <div class="account-grid">
+
+                        <% Object.entries(account).forEach(([key, value])=> { %>
+
+                            <% if ( value !==null && value !==undefined && typeof value !=='object' && value !=='' ) {
+                                %>
+
+                                <div class="account-item">
+
+                                    <div class="label">
+                                        <%= key .replace(/([A-Z])/g, ' $1' ) .replace(/^./, str=> str.toUpperCase())
+                                            %>
+                                    </div>
+
+                                    <div class="value">
+                                        <%= value %>
+                                    </div>
+
+                                </div>
+
+                                <% } %>
+
+                                    <% }); %>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ====================================================== -->
+                <!-- SUMMARY -->
+                <!-- ====================================================== -->
+
+                <div class="section">
+
+                    <h2 class="section-title">
+                        Performance Summary
+                    </h2>
+
+                    <div class="kpi-grid">
+
+                        <% Object.entries(summary).forEach(([key, value])=> { %>
+
+                            <div class="kpi-card">
+
+                                <div class="label">
+                                    <%= key .replace(/([A-Z])/g, ' $1' ) .replace(/^./, str=> str.toUpperCase())
+                                        %>
+                                </div>
+
+                                <div class="value">
+                                    <%= key==='caption' || key==='description' ? truncateText(value, 120) : ( value
+                                        !==undefined && value !==null && value !=='' ? value : 'N/A' ) %>
+                                </div>
+
+                            </div>
+
+                            <% }); %>
+
+                    </div>
+
+                </div>
+
+
+                <!-- ====================================================== -->
+                <!-- DAILY PERFORMANCE -->
+                <!-- ====================================================== -->
+
+                <div class="section">
+
+                    <h2 class="section-title">
+                        Performance Trends
+                    </h2>
+
+                    <%- chartSvg %>
+
+                </div>
+
+
+                <!-- ====================================================== -->
+                <!-- DAILY DATA TABLE -->
+                <!-- ====================================================== -->
+
+                <div class="section">
+
+                    <h2 class="section-title">
+                        Daily Performance Details
+                    </h2>
+
+                    <% if ( performance.daily && performance.daily.length> 0
+                        ) { %>
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+
+                                    <% Object.keys(performance.daily[0]).forEach(key=> { %>
+
+                                        <th>
+                                            <%= key .replace(/([A-Z])/g, ' $1' ) .replace(/^./, str=> str.toUpperCase())
+                                                %>
+                                        </th>
+
+                                        <% }); %>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                <% performance.daily.forEach(day=> { %>
+
+                                    <tr>
+
+                                        <% Object.entries(day).forEach(([key, value])=> { %>
+
+                                            <td>
+                                                <%= key==='caption' || key==='description' ? truncateText(value, 120) :
+                                                    ( value !==undefined && value !==null && value !=='' ? value : 'N/A'
+                                                    ) %>
+                                            </td>
+
+                                            <% }); %>
+
+                                    </tr>
+
+                                    <% }); %>
+
+                            </tbody>
+
+                        </table>
+
+                        <% } else { %>
+
+                            <div class="empty">
+                                No daily performance records available.
+                            </div>
+
+                            <% } %>
+
+                </div>
+
+
+                <!-- ====================================================== -->
+                <!-- CONTENT PERFORMANCE -->
+                <!-- ====================================================== -->
+
+                <div class="section">
+
+                    <h2 class="section-title">
+                        Content Performance
+                    </h2>
+
+                    <% if ( report.content && report.content.length> 0
+                        ) { %>
+
+                        <table class="content-table">
+
+                            <thead>
+
+                                <tr>
+
+                                    <% Object.keys(report.content[0]).forEach(key=> { %>
+
+                                        <% if ( key !=='mediaUrl' && key !=='thumbnailUrl' && key !=='image' ) { %>
+
+                                            <th>
+                                                <%= key .replace(/([A-Z])/g, ' $1' ) .replace(/^./, str=>
+                                                    str.toUpperCase())
+                                                    %>
+                                            </th>
+
+                                            <% } %>
+
+                                                <% }); %>
+
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                <% report.content.forEach(item=> { %>
+
+                                    <tr>
+
+                                        <% Object.entries(item).forEach(([key, value])=> { %>
+
+                                            <% if ( key !=='mediaUrl' && key !=='thumbnailUrl' && key !=='image' ) { %>
+
+                                                <td>
+
+                                                    <%= key==='caption' || key==='description' ? truncateText(value,
+                                                        120) : ( value !==undefined && value !==null && value !=='' ?
+                                                        value : 'N/A' ) %>
+
+                                                </td>
+
+                                                <% } %>
+
+                                                    <% }); %>
+
+                                    </tr>
+
+                                    <% }); %>
+
+                            </tbody>
+
+                        </table>
+
+                        <% } else { %>
+
+                            <div class="empty">
+                                No content performance data is available.
+                            </div>
+
+                            <% } %>
+
+                </div>
+
+
+                <!-- ====================================================== -->
+                <!-- YOUTUBE PLAYLISTS -->
+                <!-- ====================================================== -->
+
+                <% if ( report.platform==='youtube' && report.playlists && report.playlists.length> 0
+                    ) { %>
+
+                    <div class="section">
+
+                        <h2 class="section-title">
+                            Playlists
+                        </h2>
+
+                        <table>
+
+                            <thead>
+
+                                <tr>
+                                    <th>ID</th>
+                                    <th>Title</th>
+                                    <th>Description</th>
+                                    <th>Published</th>
+                                    <th>Items</th>
+                                </tr>
+
+                            </thead>
+
+                            <tbody>
+
+                                <% report.playlists.forEach(playlist=> { %>
+
+                                    <tr>
+
+                                        <td>
+                                            <%= playlist.id || 'N/A' %>
+                                        </td>
+
+                                        <td>
+                                            <%= playlist.title || 'N/A' %>
+                                        </td>
+
+                                        <td>
+                                            <%= playlist.description || 'N/A' %>
+                                        </td>
+
+                                        <td>
+                                            <%= playlist.publishedAt || 'N/A' %>
+                                        </td>
+
+                                        <td>
+                                            <%= playlist.itemCount ?? 'N/A' %>
+                                        </td>
+
+                                    </tr>
+
+                                    <% }); %>
+
+                            </tbody>
+
+                        </table>
+
+                    </div>
+
+                    <% } %>
+
+
+                        <!-- ====================================================== -->
+                        <!-- AUDIENCE -->
+                        <!-- ====================================================== -->
+
+                        <div class="section">
+
+                            <h2 class="section-title">
+                                Audience
+                            </h2>
+
+                            <div class="audience-grid">
+
+                                <!-- Countries -->
+
+                                <div class="audience-box">
+
+                                    <h3>
+                                        Top Countries
+                                    </h3>
+
+                                    <% if ( audience.countries && audience.countries.length> 0
+                                        ) { %>
+
+                                        <table>
+
+                                            <thead>
+                                                <tr>
+                                                    <th>Country</th>
+                                                    <th>Count</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+
+                                                <% audience.countries.forEach(country=> { %>
+
+                                                    <tr>
+                                                        <td>
+                                                            <%= country.name || 'N/A' %>
+                                                        </td>
+
+                                                        <td>
+                                                            <%= country.count ?? 'N/A' %>
+                                                        </td>
+                                                    </tr>
+
+                                                    <% }); %>
+
+                                            </tbody>
+
+                                        </table>
+
+                                        <% } else { %>
+
+                                            <div class="empty">
+                                                No country data available.
+                                            </div>
+
+                                            <% } %>
+
+                                </div>
+
+
+                                <!-- Cities -->
+
+                                <div class="audience-box">
+
+                                    <h3>
+                                        Top Cities
+                                    </h3>
+
+                                    <% if ( audience.cities && audience.cities.length> 0
+                                        ) { %>
+
+                                        <table>
+
+                                            <thead>
+                                                <tr>
+                                                    <th>City</th>
+                                                    <th>Count</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+
+                                                <% audience.cities.forEach(city=> { %>
+
+                                                    <tr>
+                                                        <td>
+                                                            <%= city.name || 'N/A' %>
+                                                        </td>
+
+                                                        <td>
+                                                            <%= city.count ?? 'N/A' %>
+                                                        </td>
+                                                    </tr>
+
+                                                    <% }); %>
+
+                                            </tbody>
+
+                                        </table>
+
+                                        <% } else { %>
+
+                                            <div class="empty">
+                                                No city data available.
+                                            </div>
+
+                                            <% } %>
+
+                                </div>
+
+
+                                <!-- Age / Gender -->
+
+                                <div class="audience-box">
+
+                                    <h3>
+                                        Age & Gender
+                                    </h3>
+
+                                    <% if ( audience.ageAndGender && audience.ageAndGender.length> 0
+                                        ) { %>
+
+                                        <table>
+
+                                            <thead>
+                                                <tr>
+                                                    <th>Group</th>
+                                                    <th>Count</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+
+                                                <% audience.ageAndGender.forEach(group=> { %>
+
+                                                    <tr>
+
+                                                        <td>
+                                                            <%= group.group || 'N/A' %>
+                                                        </td>
+
+                                                        <td>
+                                                            <%= group.count ?? 'N/A' %>
+                                                        </td>
+
+                                                    </tr>
+
+                                                    <% }); %>
+
+                                            </tbody>
+
+                                        </table>
+
+                                        <% } else { %>
+
+                                            <div class="empty">
+                                                No age/gender data available.
+                                            </div>
+
+                                            <% } %>
+
+                                </div>
+
+
+                                <!-- Devices -->
+
+                                <div class="audience-box">
+
+                                    <h3>
+                                        Devices
+                                    </h3>
+
+                                    <% if ( audience.devices && audience.devices.length> 0
+                                        ) { %>
+
+                                        <table>
+
+                                            <thead>
+                                                <tr>
+                                                    <th>Device</th>
+                                                    <th>Count</th>
+                                                </tr>
+                                            </thead>
+
+                                            <tbody>
+
+                                                <% audience.devices.forEach(device=> { %>
+
+                                                    <tr>
+
+                                                        <td>
+                                                            <%= device.name || device.type || 'N/A' %>
+                                                        </td>
+
+                                                        <td>
+                                                            <%= device.count ?? 'N/A' %>
+                                                        </td>
+
+                                                    </tr>
+
+                                                    <% }); %>
+
+                                            </tbody>
+
+                                        </table>
+
+                                        <% } else { %>
+
+                                            <div class="empty">
+                                                No device data available.
+                                            </div>
+
+                                            <% } %>
+
+                                </div>
+
+                            </div>
+
+                        </div>
+
+
+                        <!-- ====================================================== -->
+                        <!-- ADVERTISING -->
+                        <!-- ====================================================== -->
+
+                        <% if (report.advertising) { %>
+
+                            <div class="section">
+
+                                <h2 class="section-title">
+                                    Advertising
+                                </h2>
+
+                                <table>
+
+                                    <thead>
+
+                                        <tr>
+                                            <th>Metric</th>
+                                            <th>Value</th>
+                                        </tr>
+
+                                    </thead>
+
+                                    <tbody>
+
+                                        <% Object.entries(report.advertising).forEach(([key, value])=> { %>
+
+                                            <tr>
+
+                                                <td>
+                                                    <%= key .replace(/([A-Z])/g, ' $1' ) .replace(/^./, str=>
+                                                        str.toUpperCase())
+                                                        %>
+                                                </td>
+
+                                                <td>
+                                                    <%= value ?? 'N/A' %>
+                                                </td>
+
+                                            </tr>
+
+                                            <% }); %>
+
+                                    </tbody>
+
+                                </table>
+
+                            </div>
+
+                            <% } %>
+
+
+                                <!-- ====================================================== -->
+                                <!-- FOOTER -->
+                                <!-- ====================================================== -->
+
+                                <div class="footer">
+
+                                    <div>
+                                        <strong>
+                                            <%= platformName %> Analytics Report
+                                        </strong>
+                                    </div>
+
+                                    <div>
+                                        Generated for
+                                        <%= report.generatedFor?.name || 'User' %>
+                                    </div>
+
+                                    <div>
+                                        This report contains analytics data available
+                                        for the selected reporting period.
+                                    </div>
+
+                                </div>
+
+
 </body>
+
 </html>
