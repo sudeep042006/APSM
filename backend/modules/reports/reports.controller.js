@@ -104,12 +104,22 @@ const exportAnalytics = async (req, res, next) => {
     // Build canonical report data
     // ---------------------------------------------------------
 
+    const isOverallReport = !startDate && !endDate;
+
+    const reportStartDate = isOverallReport
+      ? snapshots[0].snapshotDate
+      : startDate;
+
+    const reportEndDate = isOverallReport
+      ? snapshots[snapshots.length - 1].snapshotDate
+      : endDate;
+
     const reportData = reportsService.buildReportData(
       snapshots,
       normalizedPlatform,
       req.user,
-      startDate,
-      endDate
+      reportStartDate,
+      reportEndDate
     );
 
     // ---------------------------------------------------------
