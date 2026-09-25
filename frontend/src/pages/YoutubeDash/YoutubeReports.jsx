@@ -1,127 +1,145 @@
-// ── YouTube Reports Page ────────────────────────────────────────────
-// Professional empty state for report downloads and exports.
-// CSV/PDF export functionality is not yet implemented on the backend.
-// Shows a polished placeholder with upcoming feature descriptions.
-
 import { Card, CardContent } from "@/components/ui/card";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  Download,
-  FileText,
-  Calendar,
-  BarChart3,
-  FileSpreadsheet,
-  FilePieChart,
-} from "lucide-react";
+import { FileSpreadsheet, FilePieChart } from "lucide-react";
+import { useState } from "react";
+import { useOutletContext } from "react-router-dom";
+import reportApi from "@/services/reportApi";
+import DateRangePicker from "@/components/DateRangePicker";
 
-// ── Skeleton loading state ──────────────────────────────────────────
-function ReportsSkeleton() {
-  return (
-    <div className="space-y-6 animate-fade-in">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {[1, 2, 3].map((i) => (
-          <Card key={i} className="border-white/10">
-            <CardContent className="p-5">
-              <Skeleton className="h-12 w-12 rounded-xl mb-3" />
-              <Skeleton className="h-4 w-3/4 mb-2" />
-              <Skeleton className="h-3 w-full" />
-              <Skeleton className="h-3 w-2/3 mt-1" />
-            </CardContent>
-          </Card>
-        ))}
+export default function YoutubeReports() {
+  const { isConnected } = useOutletContext();
+
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [exporting, setExporting] = useState(false);
+  const [exportFormat, setExportFormat] = useState(null);
+
+  const handleDateChange = ({ start, end }) => {
+    setStartDate(start || null);
+    setEndDate(end || null);
+  };
+
+  const handleExport = async (format) => {
+    try {
+      setExporting(true);
+      setExportFormat(format);
+
+      await reportApi.exportAnalytics(
+        "youtube",
+        format,
+        startDate,
+        endDate
+      );
+    } catch (error) {
+      console.error("Report export failed:", error);
+      alert("Failed to generate the report. Please try again.");
+    } finally {
+      setExporting(false);
+      setExportFormat(null);
+    }
+  };
+
+  if (!isConnected) {
+    return (
+      <div className="p-4 md:p-8 flex flex-col items-center justify-center min-h-[50vh]">
+        <h2 className="text-xl text-white font-semibold mb-2">
+          Account Disconnected
+        </h2>
+        <p className="text-gray-400">
+          Please connect your YouTube account to access reports.
+        </p>
       </div>
-    </div>
-  );
-}
-
-// ── Main Reports Component ──────────────────────────────────────────
-export default function YoutubeReports({ loading }) {
-  // ── Loading state ─────────────────────────────────────────────────
-  if (loading) return <ReportsSkeleton />;
-
-  // ── Report type preview cards ─────────────────────────────────────
-  const reportTypes = [
-    {
-      icon: FileSpreadsheet,
-      title: "CSV Export",
-      description: "Download raw analytics data as CSV files for custom analysis in spreadsheets.",
-      color: "text-emerald-400",
-      bg: "bg-emerald-500/10",
-    },
-    {
-      icon: FilePieChart,
-      title: "PDF Reports",
-      description: "Generate beautifully formatted PDF reports with charts and summaries.",
-      color: "text-blue-400",
-      bg: "bg-blue-500/10",
-    },
-    {
-      icon: Calendar,
-      title: "Date Range Filtering",
-      description: "Select custom date ranges to generate reports for specific time periods.",
-      color: "text-amber-400",
-      bg: "bg-amber-500/10",
-    },
-    {
-      icon: BarChart3,
-      title: "Historical Reports",
-      description: "Access historical analytics snapshots and compare performance over time.",
-      color: "text-violet-400",
-      bg: "bg-violet-500/10",
-    },
-    {
-      icon: FileText,
-      title: "Scheduled Reports",
-      description: "Set up automated weekly or monthly report generation delivered to your inbox.",
-      color: "text-red-400",
-      bg: "bg-red-500/10",
-    },
-    {
-      icon: Download,
-      title: "Bulk Downloads",
-      description: "Download all analytics data for multiple platforms in a single archive.",
-      color: "text-cyan-400",
-      bg: "bg-cyan-500/10",
-    },
-  ];
+    );
+  }
 
   return (
-    <div className="space-y-8 animate-fade-in">
-      {/* ── Reports Hero Section ──────────────────────────────────────── */}
-      <div className="flex flex-col items-center justify-center text-center py-12">
-        {/* Icon */}
-        <div className="relative mb-6">
-          <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-blue-500/10 ring-1 ring-blue-500/20">
-            <Download className="h-10 w-10 text-blue-400" />
-          </div>
-          <div className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-blue-500/30 animate-pulse" />
-        </div>
-        <h2 className="text-xl font-bold">Reports & Exports</h2>
-        <p className="mt-2 text-sm text-slate-400 max-w-md leading-relaxed">
-          Report export functionality is currently initializing. You will soon be able to download detailed analytics
-          reports as CSV or PDF files, with custom date ranges and historical data.
+    <div className="space-y-6 animate-fade-in p-4 md:p-6 max-w-7xl mx-auto">
+      <div>
+        <h2 className="text-xl font-semibold text-white">
+          YouTube Reports
+        </h2>
+        <p className="mt-1 text-sm text-gray-400">
+          Generate a detailed report for your YouTube analytics.
         </p>
       </div>
 
-      {/* ── Report Type Preview Cards ─────────────────────────────────── */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {reportTypes.map((report) => (
-          <Card
-            key={report.title}
-            className="border-white/10 bg-white/5 dark:backdrop-blur-sm shadow-sm shadow-none opacity-60 hover:opacity-80 transition-all duration-300 hover:shadow-lg hover:shadow-black/5"
-          >
-            <CardContent className="p-5">
-              <div className={`flex h-12 w-12 items-center justify-center rounded-xl ${report.bg} mb-4`}>
-                <report.icon className={`h-6 w-6 ${report.color}`} />
-              </div>
-              <h3 className="text-sm font-semibold">{report.title}</h3>
-              <p className="mt-1.5 text-xs text-slate-400 leading-relaxed">
-                {report.description}
+      <Card className="border-white/5 bg-[#161B22]/90 backdrop-blur-md">
+        <CardContent className="p-6">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <h3 className="text-base font-semibold text-white">
+                Report Period
+              </h3>
+              <p className="mt-1 text-sm text-gray-400">
+                Select a date range or leave it unchanged for the overall
+                analysis.
               </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </div>
+
+            <DateRangePicker
+              startDate={startDate}
+              endDate={endDate}
+              onChange={handleDateChange}
+            />
+          </div>
+
+          <div className="mt-6 rounded-lg border border-white/5 bg-[#0D1117] p-4">
+            {startDate && endDate ? (
+              <div>
+                <p className="text-xs uppercase tracking-wider text-gray-500">
+                  Selected Report Period
+                </p>
+
+                <p className="mt-1 text-sm font-medium text-white">
+                  {startDate} → {endDate}
+                </p>
+              </div>
+            ) : (
+              <div>
+                <p className="text-xs uppercase tracking-wider text-gray-500">
+                  Report Period
+                </p>
+
+                <p className="mt-1 text-sm font-medium text-white">
+                  Overall Analysis
+                </p>
+
+                <p className="mt-1 text-xs text-gray-500">
+                  No date range selected. The report will contain the overall
+                  available YouTube analytics.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="mt-6 flex flex-wrap gap-3">
+            <button
+              type="button"
+              onClick={() => handleExport("pdf")}
+              disabled={exporting}
+              className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-medium text-white transition hover:bg-red-500 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FilePieChart className="h-4 w-4" />
+
+              {exporting && exportFormat === "pdf"
+                ? "Generating PDF..."
+                : "Download PDF"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => handleExport("csv")}
+              disabled={exporting}
+              className="inline-flex items-center gap-2 rounded-lg border border-white/10 bg-[#0D1117] px-4 py-2.5 text-sm font-medium text-white transition hover:bg-white/5 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <FileSpreadsheet className="h-4 w-4" />
+
+              {exporting && exportFormat === "csv"
+                ? "Generating CSV..."
+                : "Download CSV"}
+            </button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
