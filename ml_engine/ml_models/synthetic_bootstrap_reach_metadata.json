@@ -1,0 +1,28 @@
+{
+  "artifact": "synthetic_bootstrap_reach_random_forest.pkl",
+  "training_data": "SYNTHETIC_ONLY",
+  "rows": 50000,
+  "features": [
+    "platform_index",
+    "posting_hour",
+    "hashtag_count",
+    "caption_length",
+    "media_type_index",
+    "follower_count"
+  ],
+  "targets": [
+    "synthetic_reach",
+    "synthetic_engagement"
+  ],
+  "validation": {
+    "mae": [
+      26723.515288341652,
+      840.5151696487069
+    ],
+    "r2": [
+      0.7256445390999052,
+      0.6592828392617511
+    ]
+  },
+  "warning": "Synthetic metrics validate code behavior only. Do not report them as expected real-world reach or accuracy."
+}

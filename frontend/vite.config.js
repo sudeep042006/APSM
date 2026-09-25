@@ -18,45 +18,13 @@ export default defineConfig({
 
   // ── Dev Server Configuration ────────────────────────────────────────
   server: {
-    strictPort: true,
-    allowedHosts:true,
+    port: 3000,
     proxy: {
-      // Proxy /auth requests to the Express backend during development
-      "/auth": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-        secure: false,
-      },
-      // Proxy /analytics requests to the Express backend during development
-      "/analytics": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-        secure: false,
-      },
-      // Proxy /user requests to the Express backend during development
-      "/user": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-        secure: false,
-      },
-      // Proxy /automation requests to the Express backend during development
-      "/automation": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-        secure: false,
-      },
-      // Proxy /reports requests to the Express backend
-      "/reports": {
-        target: "http://localhost:5000",
-        changeOrigin: true,
-        secure: false,
-      },
-      // Proxy /api catch-all requests to the Express backend during development
+      // Proxy API requests to the Express backend during development
       "/api": {
         target: "http://localhost:5000",
         changeOrigin: true,
         secure: false,
-        rewrite: (path) => path.replace(/^\/api/, ""),
       },
     },
   },

@@ -6,6 +6,10 @@ node_modules/
 .env.local
 .env.*.local
 *.env
+.venv/
+ml_engine/ml_models/*.pkl
+__pycache__/
+*.py[cod]
 
 # Vite cache and build outputs
 .vite/

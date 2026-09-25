@@ -1,7 +1,7 @@
 // modules/automation/automation.routes.js
 
 import express from 'express';
-import { createAutomationJob, getAutomationJobs } from './automation.controller.js';
+import { createAutomationJob, getAutomationJobs, getPendingApprovals, reviewApproval } from './automation.controller.js';
 import { requireAuth } from '../../middleware/auth.js';
 import multer from 'multer';
 
@@ -15,5 +15,7 @@ router.post('/jobs', requireAuth, upload.single('mediaFile'), createAutomationJo
 
 // Fetch automation history
 router.get('/jobs', requireAuth, getAutomationJobs);
+router.get('/approvals/pending', requireAuth, getPendingApprovals);
+router.post('/approvals/:id/review', requireAuth, reviewApproval);
 
 export default router;

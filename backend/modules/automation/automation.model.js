@@ -15,6 +15,16 @@ const automationSchema = new mongoose.Schema({
         enum: ['PENDING', 'PROCESSING', 'COMPLETED', 'PARTIAL_SUCCESS', 'FAILED'], 
         default: 'PENDING' 
     },
+    approvalStatus: {
+        type: String,
+        enum: ['NOT_REQUIRED', 'PENDING_APPROVAL', 'APPROVED', 'DECLINED'],
+        default: 'NOT_REQUIRED',
+        index: true,
+    },
+    submittedByName: { type: String, default: '' },
+    reviewedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    reviewedAt: { type: Date, default: null },
+    declineReason: { type: String, maxlength: 500, default: '' },
     scheduledDate: { type: Date, required: false }, // Optional for immediate posts
     jobId: { type: String }
 }, { timestamps: true });

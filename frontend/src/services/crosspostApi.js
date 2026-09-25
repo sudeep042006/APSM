@@ -39,6 +39,8 @@ const crosspostApi = {
     const response = await api.get('/automation/jobs');
     return response.data;
   },
+  getPendingApprovals: async () => (await api.get('/automation/approvals/pending')).data,
+  reviewApproval: async (id, decision, declineReason = '') => (await api.post(`/automation/approvals/${id}/review`, { decision, declineReason })).data,
 
   /**
    * Revoke access for a specific platform.

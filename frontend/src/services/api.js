@@ -34,7 +34,10 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
 
-    if (status === 401 || status === 403) {
+    // A 401 means the login token is missing, invalid, or expired. A 403 is
+    // an authenticated user lacking permission (for example, a member reading
+    // the admin-only approval queue) and must not log that user out.
+    if (status === 401) {
       console.warn(`[api] ${status} detected — dispatching sessionExpired event.`);
 
       // ── Dispatch global event to trigger AuthContext modal ───────────
