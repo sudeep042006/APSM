@@ -58,16 +58,23 @@ const SidebarLink = ({ to, icon: Icon, label, end, onClick, isCollapsed }) => {
       end={end}
       onClick={onClick}
       className={({ isActive }) =>
-        `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ${isCollapsed ? 'justify-center' : ''
+        `group relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-300 ease-smooth ${isCollapsed ? 'justify-center' : ''
         } ${isActive
-          ? 'bg-[#1877F2]/10 text-[#1877F2] shadow-sm'
-          : 'text-gray-400 hover:text-white hover:bg-white/5'
+          ? 'border border-[#1877F2]/25 bg-[#1877F2]/10 text-white shadow-[0_6px_20px_-8px_rgba(24,119,242,0.55)]'
+          : 'border border-transparent text-muted-foreground hover:translate-x-0.5 hover:bg-white/[0.05] hover:text-white'
         }`
       }
       title={isCollapsed ? label : undefined}
     >
-      <Icon className="w-4 h-4 shrink-0" />
-      {!isCollapsed && <span className="truncate">{label}</span>}
+      {({ isActive }) => (
+        <>
+          {isActive && (
+            <span className="absolute inset-y-1/2 left-0 h-5 w-[2px] -translate-y-1/2 rounded-r-full bg-[#1877F2] shadow-[0_0_10px_rgba(24,119,242,0.9)]" />
+          )}
+          <Icon className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:scale-110" />
+          {!isCollapsed && <span className="truncate">{label}</span>}
+        </>
+      )}
     </NavLink>
   );
 };
@@ -160,15 +167,15 @@ const FacebookLayout = () => {
   }
 
   return (
-    <div className="flex gap-0 -m-6 h-[calc(100vh-4rem)] bg-background text-white overflow-hidden relative">
-      {/* ── Background Gradient Orbs ──────────────────────────────────── */}
-      <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-violet-600/10 blur-3xl pointer-events-none z-0" />
-      <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none z-0" />
+    <div className="relative -m-6 flex h-[calc(100vh-4rem)] gap-0 overflow-hidden bg-background text-white">
+      {/* ── Ambient brand washes ───────────────────────────────────────── */}
+      <div className="pointer-events-none absolute -right-40 -top-40 z-0 h-96 w-96 animate-aurora rounded-full bg-[radial-gradient(circle,hsl(var(--brand-violet)/0.16),transparent_65%)] blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -left-40 z-0 h-96 w-96 animate-aurora rounded-full bg-[radial-gradient(circle,hsl(var(--brand-blue)/0.13),transparent_65%)] blur-3xl [animation-delay:-10s]" />
 
       {/* ── Mobile Backdrop ───────────────────────────────────────────────── */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
           onClick={closeMobile}
         />
       )}
@@ -178,8 +185,8 @@ const FacebookLayout = () => {
       {/* ═══════════════════════════════════════════════════════════════════ */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/10
-          bg-background/95 backdrop-blur-xl lg:bg-background lg:backdrop-blur-none
+          fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/[0.07]
+          bg-surface/80 backdrop-blur-2xl lg:bg-surface lg:backdrop-blur-none
           transition-all duration-300 ease-in-out
           lg:static lg:translate-x-0
           ${isMobileOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"}
@@ -190,14 +197,14 @@ const FacebookLayout = () => {
         <div className="lg:hidden flex justify-end p-4 border-b border-white/5">
           <button
             onClick={closeMobile}
-            className="text-gray-400 hover:text-[#1877F2] transition-colors"
+            className="text-muted-foreground hover:text-[#1877F2] transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* ── Brand Header ─────────────────────────────────────────────── */}
-        <div className={`border-b border-white/10 p-3 h-16 flex items-center justify-between`}>
+        <div className={`border-b border-white/[0.07] p-3 h-16 flex items-center justify-between`}>
           <div className={`flex items-center gap-2 overflow-hidden transition-opacity ${isCollapsed ? "opacity-0 w-0" : "opacity-100"}`}>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#1877F2]/10">
               <svg className="h-4 w-4 text-[#1877F2]" viewBox="0 0 24 24" fill="currentColor">
@@ -207,7 +214,7 @@ const FacebookLayout = () => {
             {!isCollapsed && (
               <div className="min-w-0 flex-1 hidden lg:block">
                 <p className="text-xs font-semibold truncate text-white">Facebook</p>
-                <p className="text-[10px] text-gray-400 truncate">
+                <p className="text-[10px] text-muted-foreground truncate">
                   {isLayoutLoading ? "Loading..." : profile?.name || (isConnected ? "Connected" : "Not Connected")}
                 </p>
               </div>
@@ -215,7 +222,7 @@ const FacebookLayout = () => {
             {/* Always show text on mobile overlay */}
             <div className="min-w-0 flex-1 lg:hidden">
               <p className="text-xs font-semibold truncate text-white">Facebook</p>
-              <p className="text-[10px] text-gray-400 truncate">
+              <p className="text-[10px] text-muted-foreground truncate">
                 {isLayoutLoading ? "Loading..." : profile?.name || (isConnected ? "Connected" : "Not Connected")}
               </p>
             </div>
@@ -223,7 +230,7 @@ const FacebookLayout = () => {
           {/* Desktop Collapse Toggle Beside Branding */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors shrink-0"
+            className="hidden lg:flex p-1.5 text-muted-foreground hover:text-white rounded-lg hover:bg-white/5 transition-colors shrink-0"
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isCollapsed ? <PanelLeft className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
@@ -268,10 +275,10 @@ const FacebookLayout = () => {
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
 
         {/* ── Mobile Header Toggle ───────────────────────────────────── */}
-        <div className="lg:hidden flex items-center p-4 border-b border-white/10 bg-background/80 backdrop-blur-md relative z-10">
+        <div className="lg:hidden flex items-center p-4 border-b border-white/[0.07] bg-surface/70 backdrop-blur-2xl relative z-10">
           <button
             onClick={() => setIsMobileOpen(true)}
-            className="text-gray-400 hover:text-[#1877F2] transition-colors"
+            className="text-muted-foreground hover:text-[#1877F2] transition-colors"
           >
             <Menu className="w-6 h-6" />
           </button>
@@ -279,7 +286,7 @@ const FacebookLayout = () => {
         </div>
 
         {/* ── Page Header ──────────────────────────────────────────────── */}
-        <div className="sticky top-0 z-10 border-b border-white/10 bg-background/80 backdrop-blur-md px-6 py-3">
+        <div className="sticky top-0 z-10 border-b border-white/[0.07] bg-surface/70 backdrop-blur-2xl px-6 py-3">
           <div className="flex items-center justify-between">
             <DashboardHeader
               title="Facebook Analytics"
@@ -293,7 +300,8 @@ const FacebookLayout = () => {
 
         {/* ── Scrollable Outlet Area ────────────────────────────────────── */}
         {/* Passes layout context to all child pages via Outlet context */}
-        <main className="flex-1 overflow-y-auto relative z-10">
+<main className="relative z-10 flex-1 overflow-y-auto">
+
           <Outlet
             context={{
               profile,

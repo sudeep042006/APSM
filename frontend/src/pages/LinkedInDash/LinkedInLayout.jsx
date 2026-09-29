@@ -147,7 +147,7 @@ export default function LinkedInLayout() {
       <div className="w-full max-w-md bg-white/5 backdrop-blur-lg border border-red-500/30 rounded-xl p-8 text-center">
         <AlertCircle className="h-12 w-12 text-red-500 mb-4 mx-auto" />
         <h3 className="text-lg font-bold text-white mb-2">Data Load Failed</h3>
-        <p className="text-sm text-gray-400 mb-6">{error}</p>
+        <p className="text-sm text-muted-foreground mb-6">{error}</p>
         <Button onClick={fetchData} variant="outline" className="border-white/10 text-white hover:bg-white/10">
           Try Again
         </Button>
@@ -208,14 +208,14 @@ export default function LinkedInLayout() {
   }
 
   return (
-    <div className="flex gap-0 -m-6 h-[calc(100vh-4rem)] bg-background text-white overflow-hidden relative">
-      {/* ── Background Gradient Orbs ──────────────────────────────────── */}
-      <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-violet-600/10 blur-3xl pointer-events-none z-0" />
-      <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none z-0" />
+    <div className="relative -m-6 flex h-[calc(100vh-4rem)] gap-0 overflow-hidden bg-background text-white">
+      {/* ── Ambient brand washes ───────────────────────────────────────── */}
+      <div className="pointer-events-none absolute -right-40 -top-40 z-0 h-96 w-96 animate-aurora rounded-full bg-[radial-gradient(circle,hsl(var(--brand-violet)/0.16),transparent_65%)] blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -left-40 z-0 h-96 w-96 animate-aurora rounded-full bg-[radial-gradient(circle,hsl(var(--brand-blue)/0.13),transparent_65%)] blur-3xl [animation-delay:-10s]" />
       {/* ── Mobile Backdrop ───────────────────────────────────────────────── */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
           onClick={closeMobile}
         />
       )}
@@ -223,8 +223,8 @@ export default function LinkedInLayout() {
       {/* ── LinkedIn Sidebar Shell ────────────────────────────────────────── */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/10
-          bg-background/95 backdrop-blur-xl lg:bg-background lg:backdrop-blur-none
+          fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/[0.07]
+          bg-surface/80 backdrop-blur-2xl lg:bg-surface lg:backdrop-blur-none
           transition-all duration-300 ease-in-out
           lg:static lg:translate-x-0
           ${isMobileOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"}
@@ -233,13 +233,13 @@ export default function LinkedInLayout() {
       >
         {/* Mobile Close Button */}
         <div className="lg:hidden flex justify-end p-4 border-b border-white/5">
-          <button onClick={closeMobile} className="text-gray-400 hover:text-[#0A66C2] transition-colors">
+          <button onClick={closeMobile} className="text-muted-foreground hover:text-[#0A66C2] transition-colors">
             <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* Brand Header */}
-        <div className={`border-b border-white/10 p-3 h-16 flex items-center justify-between`}>
+        <div className={`border-b border-white/[0.07] p-3 h-16 flex items-center justify-between`}>
           <div className={`flex items-center gap-2 overflow-hidden transition-opacity ${isCollapsed ? "opacity-0 w-0" : "opacity-100"}`}>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#0A66C2]/10">
               <Linkedin className="h-4 w-4 text-[#0A66C2]" />
@@ -247,14 +247,14 @@ export default function LinkedInLayout() {
             {!isCollapsed && (
               <div className="min-w-0 flex-1 hidden lg:block">
                 <p className="text-xs font-semibold truncate text-white">LinkedIn</p>
-                <p className="text-[10px] text-gray-400 truncate">
+                <p className="text-[10px] text-muted-foreground truncate">
                   {loading ? "Loading..." : username || (isConnected ? "Connected" : "Not Connected")}
                 </p>
               </div>
             )}
             <div className="min-w-0 flex-1 lg:hidden">
               <p className="text-xs font-semibold truncate text-white">LinkedIn</p>
-              <p className="text-[10px] text-gray-400 truncate">
+              <p className="text-[10px] text-muted-foreground truncate">
                 {loading ? "Loading..." : username || (isConnected ? "Connected" : "Not Connected")}
               </p>
             </div>
@@ -262,7 +262,7 @@ export default function LinkedInLayout() {
           {/* Desktop Collapse Toggle Beside Branding */}
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
-            className="hidden lg:flex p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors shrink-0"
+            className="hidden lg:flex p-1.5 text-muted-foreground hover:text-white rounded-lg hover:bg-white/5 transition-colors shrink-0"
             title={isCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {isCollapsed ? <PanelLeft className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
@@ -304,8 +304,8 @@ export default function LinkedInLayout() {
       {/* ── Main Content Area ──────────────────────────────────────────────── */}
       <div className="flex-1 flex flex-col min-w-0 h-full overflow-hidden">
         {/* Mobile Header Toggle */}
-        <div className="lg:hidden flex items-center p-4 border-b border-white/10 bg-background/80 backdrop-blur-md relative z-10">
-          <button onClick={() => setIsMobileOpen(true)} className="text-gray-400 hover:text-[#0A66C2] transition-colors">
+        <div className="lg:hidden flex items-center p-4 border-b border-white/[0.07] bg-surface/70 backdrop-blur-2xl relative z-10">
+          <button onClick={() => setIsMobileOpen(true)} className="text-muted-foreground hover:text-[#0A66C2] transition-colors">
             <Menu className="w-6 h-6" />
           </button>
           <span className="ml-4 font-semibold text-white">LinkedIn Dashboard</span>
@@ -318,7 +318,7 @@ export default function LinkedInLayout() {
               <h1 className="text-lg font-bold text-white flex items-center gap-2">
                 LinkedIn Insights
               </h1>
-              <p className="text-xs text-gray-400">Professional B2B Network Analytics</p>
+              <p className="text-xs text-muted-foreground">Professional B2B Network Analytics</p>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
               <DateRangePicker 
@@ -331,7 +331,7 @@ export default function LinkedInLayout() {
                 size="sm"
                 onClick={handleRefresh}
                 disabled={loading}
-                className="text-xs text-slate-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-white h-9 px-3"
+                className="text-xs text-muted-foreground border-white/10 bg-white/5 hover:bg-white/10 hover:text-white h-9 px-3"
               >
                 <RefreshCw className={`h-3.5 w-3.5 mr-2 ${loading ? "animate-spin" : ""}`} />
                 Refresh Data
@@ -341,7 +341,8 @@ export default function LinkedInLayout() {
         )}
 
         {/* Scrollable Main Area */}
-        <main className="flex-1 overflow-y-auto relative z-10">
+<main className="relative z-10 flex-1 overflow-y-auto">
+
           {loading ? (
             renderLoading()
           ) : error ? (

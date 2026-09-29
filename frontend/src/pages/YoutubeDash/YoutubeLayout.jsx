@@ -389,7 +389,8 @@ export default function YoutubeLayout() {
       </aside>
 
       {/* ── Main Content Area ────────────────────────────────────────── */}
-      <div className="relative flex-1 min-w-0 overflow-y-auto">
+<div className="relative flex-1 min-w-0 overflow-y-auto">
+
         <ConfirmDisconnectModal
           isOpen={showDisconnectModal}
           onClose={() => setShowDisconnectModal(false)}
