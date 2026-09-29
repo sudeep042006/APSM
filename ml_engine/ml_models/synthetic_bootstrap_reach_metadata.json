@@ -16,12 +16,12 @@
   ],
   "validation": {
     "mae": [
-      26723.515288341652,
-      840.5151696487069
+      25679.58220107618,
+      817.9497168972312
     ],
     "r2": [
-      0.7256445390999052,
-      0.6592828392617511
+      0.7469398383688697,
+      0.6770405887899039
     ]
   },
   "warning": "Synthetic metrics validate code behavior only. Do not report them as expected real-world reach or accuracy."
