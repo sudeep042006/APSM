@@ -5,28 +5,30 @@ export default function ConfirmDisconnectModal({ isOpen, onClose, onConfirm }) {
   if (!isOpen) return null;
   
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-[#0B1121] border border-white/10 text-slate-100 rounded-xl p-6 shadow-2xl max-w-sm w-full mx-4 animate-in zoom-in-95 duration-200">
-        <div className="flex flex-col items-center text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-full bg-red-500/10 mb-4">
-            <AlertTriangle className="h-6 w-6 text-red-500" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-md animate-fade-in">
+      <div className="glass mx-4 w-full max-w-sm rounded-2xl p-7 text-center animate-in zoom-in-95 duration-200">
+        <div className="flex flex-col items-center">
+          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-destructive/30 bg-destructive/10 shadow-[0_10px_30px_-10px_hsl(var(--destructive)/0.6)]">
+            <AlertTriangle className="h-6 w-6 text-destructive" />
           </div>
-          <h3 className="text-xl font-bold mb-2">Disconnect Account</h3>
-          <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+          <h3 className="mb-2 font-display text-xl font-bold tracking-tight text-foreground">
+            Disconnect Account
+          </h3>
+          <p className="mb-7 text-sm leading-relaxed text-muted-foreground">
             Are you sure you want to disconnect this account? You will lose access to real-time analytics.
           </p>
-          <div className="flex gap-3 w-full">
-            <Button 
-              variant="ghost" 
-              onClick={onClose} 
-              className="flex-1 text-slate-300 hover:text-white hover:bg-white/10 border border-white/10"
+          <div className="flex w-full gap-3">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
             >
               Cancel
             </Button>
-            <Button 
-              variant="destructive" 
-              onClick={onConfirm} 
-              className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+            <Button
+              variant="destructive"
+              onClick={onConfirm}
+              className="flex-1"
             >
               Yes, Disconnect
             </Button>

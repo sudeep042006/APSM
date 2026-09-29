@@ -67,16 +67,23 @@ const SidebarLink = ({ to, icon: Icon, label, end, onClick, isCollapsed }) => {
       end={end}
       onClick={onClick}
       className={({ isActive }) =>
-        `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ${isCollapsed ? 'justify-center' : ''
+        `group relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-300 ease-smooth ${isCollapsed ? 'justify-center' : ''
         } ${isActive
-          ? 'bg-[#FF0000]/10 text-[#FF0000] shadow-sm'
-          : 'text-gray-400 hover:text-white hover:bg-white/5'
+          ? 'border border-[#FF0000]/25 bg-[#FF0000]/10 text-white shadow-[0_6px_20px_-8px_rgba(255,0,0,0.5)]'
+          : 'border border-transparent text-muted-foreground hover:translate-x-0.5 hover:bg-white/[0.05] hover:text-white'
         }`
       }
       title={isCollapsed ? label : undefined}
     >
-      <Icon className="w-4 h-4 shrink-0" />
-      {!isCollapsed && <span className="truncate">{label}</span>}
+      {({ isActive }) => (
+        <>
+          {isActive && (
+            <span className="absolute inset-y-1/2 left-0 h-5 w-[2px] -translate-y-1/2 rounded-r-full bg-[#FF0000] shadow-[0_0_10px_rgba(255,0,0,0.9)]" />
+          )}
+          <Icon className={`w-4 h-4 shrink-0 transition-transform duration-300 ${isActive ? '' : 'group-hover:scale-110'}`} />
+          {!isCollapsed && <span className="truncate">{label}</span>}
+        </>
+      )}
     </NavLink>
   );
 };
@@ -282,15 +289,15 @@ export default function YoutubeLayout() {
   const closeMobile = () => setIsMobileOpen(false);
 
   return (
-    <div className="flex gap-0 -m-6 h-[calc(100vh-4rem)] bg-background text-white overflow-hidden relative transition-colors duration-200">
-      {/* ── Background Gradient Orbs ──────────────────────────────────── */}
-      <div className="absolute -top-40 -right-40 h-80 w-80 rounded-full bg-violet-600/10 blur-3xl pointer-events-none z-0" />
-      <div className="absolute -bottom-40 -left-40 h-80 w-80 rounded-full bg-indigo-600/10 blur-3xl pointer-events-none z-0" />
+    <div className="relative -m-6 flex h-[calc(100vh-4rem)] gap-0 overflow-hidden bg-background text-white transition-colors duration-200">
+      {/* ── Ambient brand washes ───────────────────────────────────────── */}
+      <div className="pointer-events-none absolute -right-40 -top-40 z-0 h-96 w-96 animate-aurora rounded-full bg-[radial-gradient(circle,hsl(var(--brand-violet)/0.16),transparent_65%)] blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-40 -left-40 z-0 h-96 w-96 animate-aurora rounded-full bg-[radial-gradient(circle,hsl(var(--brand-blue)/0.13),transparent_65%)] blur-3xl [animation-delay:-10s]" />
 
       {/* ── Mobile Backdrop ───────────────────────────────────────────────── */}
       {isMobileOpen && (
         <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm lg:hidden"
           onClick={closeMobile}
         />
       )}
@@ -298,8 +305,8 @@ export default function YoutubeLayout() {
       {/* ── YouTube Sub-Navigation Sidebar ────────────────────────────── */}
       <aside
         className={`
-          fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/10
-          bg-background/95 backdrop-blur-xl lg:bg-background lg:backdrop-blur-none
+          fixed inset-y-0 left-0 z-50 flex flex-col border-r border-white/[0.07]
+          bg-surface/80 backdrop-blur-2xl lg:bg-surface lg:backdrop-blur-none
           transition-all duration-300 ease-in-out
           lg:static lg:translate-x-0
           ${isMobileOpen ? "translate-x-0 w-64" : "-translate-x-full w-64"}
@@ -310,14 +317,14 @@ export default function YoutubeLayout() {
         <div className="lg:hidden flex justify-end p-4 border-b border-white/5">
           <button
             onClick={closeMobile}
-            className="text-gray-400 hover:text-[#FF0000] transition-colors"
+            className="text-muted-foreground hover:text-[#FF0000] transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
         </div>
 
         {/* ── Brand Header ─────────────────────────────────────────────── */}
-        <div className={`border-b border-white/10 p-3 h-16 flex items-center justify-between`}>
+        <div className={`border-b border-white/[0.07] p-3 h-16 flex items-center justify-between`}>
           <div className={`flex items-center gap-2 overflow-hidden transition-opacity ${subNavCollapsed ? "opacity-0 w-0" : "opacity-100"}`}>
             <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-[#FF0000]/10">
               <Youtube className="h-4 w-4 text-[#FF0000]" />
@@ -325,7 +332,7 @@ export default function YoutubeLayout() {
             {!subNavCollapsed && (
               <div className="min-w-0 flex-1 hidden lg:block">
                 <p className="text-xs font-semibold truncate text-white">YouTube</p>
-                <p className="text-[10px] text-gray-400 truncate">
+                <p className="text-[10px] text-muted-foreground truncate">
                   {connectionLoading ? "Loading..." : username || "Connected"}
                 </p>
               </div>
@@ -333,7 +340,7 @@ export default function YoutubeLayout() {
             {/* Always show text on mobile overlay */}
             <div className="min-w-0 flex-1 lg:hidden">
               <p className="text-xs font-semibold truncate text-white">YouTube</p>
-              <p className="text-[10px] text-gray-400 truncate">
+              <p className="text-[10px] text-muted-foreground truncate">
                 {connectionLoading ? "Loading..." : username || "Connected"}
               </p>
             </div>
@@ -341,7 +348,7 @@ export default function YoutubeLayout() {
           {/* Desktop Collapse Toggle Beside Branding */}
           <button
             onClick={() => setSubNavCollapsed(!subNavCollapsed)}
-            className="hidden lg:flex p-1.5 text-slate-400 hover:text-white rounded-lg hover:bg-white/5 transition-colors shrink-0"
+            className="hidden lg:flex p-1.5 text-muted-foreground hover:text-white rounded-lg hover:bg-white/5 transition-colors shrink-0"
             title={subNavCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
           >
             {subNavCollapsed ? <PanelLeft className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
@@ -382,7 +389,7 @@ export default function YoutubeLayout() {
       </aside>
 
       {/* ── Main Content Area ────────────────────────────────────────── */}
-      <div className="flex-1 min-w-0 overflow-y-auto relative">
+      <div className="relative flex-1 min-w-0 overflow-y-auto">
         <ConfirmDisconnectModal
           isOpen={showDisconnectModal}
           onClose={() => setShowDisconnectModal(false)}
@@ -392,10 +399,10 @@ export default function YoutubeLayout() {
           }}
         />
         {/* ── Mobile Header Toggle ───────────────────────────────────── */}
-        <div className="lg:hidden flex items-center p-4 border-b border-white/10 bg-background/80 backdrop-blur-md relative z-10">
+        <div className="lg:hidden flex items-center p-4 border-b border-white/[0.07] bg-surface/70 backdrop-blur-2xl relative z-10">
           <button
             onClick={() => setIsMobileOpen(true)}
-            className="text-gray-400 hover:text-[#FF0000] transition-colors"
+            className="text-muted-foreground hover:text-[#FF0000] transition-colors"
           >
             <Menu className="w-6 h-6" />
           </button>
@@ -403,7 +410,7 @@ export default function YoutubeLayout() {
         </div>
 
         {/* ── Page Header ──────────────────────────────────────────────── */}
-        <div className="sticky top-0 z-10 border-b border-white/10 bg-background/80 backdrop-blur-md px-6 py-3">
+        <div className="sticky top-0 z-10 border-b border-white/[0.07] bg-surface/70 backdrop-blur-2xl px-6 py-3">
           <div className="flex items-center justify-between">
             <DashboardHeader
               title="YouTube Analytics"
@@ -424,7 +431,7 @@ export default function YoutubeLayout() {
                 size="sm"
                 onClick={() => loadAnalytics(true)}
                 disabled={analyticsLoading}
-                className="text-xs text-gray-400 border-white/10 bg-white/5 hover:bg-white/10 hover:text-white h-9 px-3"
+                className="text-xs text-muted-foreground border-white/[0.07] bg-white/[0.03] hover:border-primary/35 hover:bg-white/[0.07] hover:text-white h-9 px-3"
                 id="yt-refresh-btn-new"
               >
                 <RefreshCw className={`h-3.5 w-3.5 mr-2 ${analyticsLoading ? "animate-spin" : ""}`} />

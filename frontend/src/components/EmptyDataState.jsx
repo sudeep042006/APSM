@@ -3,17 +3,22 @@ import { DatabaseZap } from 'lucide-react';
 
 const EmptyDataState = ({ message = "Gathering Data..." }) => {
   return (
-    <div className="flex flex-col items-center justify-center h-full min-h-[250px] bg-slate-900/50 rounded-xl border border-slate-800/50 p-6">
-      <div className="relative mb-4">
-        <div className="absolute inset-0 bg-indigo-500/20 blur-xl rounded-full"></div>
-        <div className="relative bg-slate-800 p-4 rounded-full border border-slate-700/50 shadow-inner">
-          <DatabaseZap className="w-8 h-8 text-indigo-400 opacity-80" />
+    <div className="surface-card flex h-full min-h-[250px] flex-col items-center justify-center p-6">
+      <div className="relative mb-5">
+        <div className="absolute inset-0 animate-pulse rounded-full bg-primary/25 blur-xl" />
+        <div className="relative flex rounded-full border border-primary/25 bg-primary/10 p-4 shadow-inner-glow">
+          <DatabaseZap className="h-8 w-8 text-primary" />
         </div>
       </div>
-      <h3 className="text-slate-300 font-medium mb-2">{message}</h3>
-      <p className="text-slate-500 text-sm text-center max-w-xs">
+      <h3 className="mb-2 font-display text-base font-semibold text-foreground">{message}</h3>
+      <p className="max-w-xs text-center text-sm leading-relaxed text-muted-foreground">
         Not enough historical data yet to generate this chart. Check back later!
       </p>
+
+      {/* Indeterminate progress rail */}
+      <div className="relative mt-6 h-1 w-40 overflow-hidden rounded-full bg-white/[0.06]">
+        <div className="absolute inset-y-0 left-0 w-1/3 rounded-full bg-[linear-gradient(90deg,transparent,hsl(var(--brand-violet)),hsl(var(--brand-cyan)),transparent)] animate-beam-sweep" />
+      </div>
     </div>
   );
 };

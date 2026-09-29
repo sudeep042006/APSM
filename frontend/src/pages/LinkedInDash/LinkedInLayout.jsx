@@ -37,18 +37,25 @@ const SidebarLink = ({ to, icon: Icon, label, end, onClick, isCollapsed }) => {
       end={end}
       onClick={onClick}
       className={({ isActive }) =>
-        `flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] font-medium transition-all duration-200 ${
+        `group relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-semibold tracking-[-0.01em] transition-all duration-300 ease-smooth ${
           isCollapsed ? 'justify-center' : ''
         } ${
           isActive
-            ? 'bg-[#0A66C2]/10 text-[#0A66C2] shadow-sm'
-            : 'text-gray-400 hover:text-white hover:bg-white/5'
+            ? 'border border-[#0A66C2]/25 bg-[#0A66C2]/10 text-white shadow-[0_6px_20px_-8px_rgba(10,102,194,0.55)]'
+            : 'border border-transparent text-muted-foreground hover:translate-x-0.5 hover:bg-white/[0.05] hover:text-white'
         }`
       }
       title={isCollapsed ? label : undefined}
     >
-      <Icon className="w-4.5 h-4.5 shrink-0" />
-      {!isCollapsed && <span className="truncate">{label}</span>}
+      {({ isActive }) => (
+        <>
+          {isActive && (
+            <span className="absolute inset-y-1/2 left-0 h-5 w-[2px] -translate-y-1/2 rounded-r-full bg-[#0A66C2] shadow-[0_0_10px_rgba(10,102,194,0.9)]" />
+          )}
+          <Icon className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:scale-110" />
+          {!isCollapsed && <span className="truncate">{label}</span>}
+        </>
+      )}
     </NavLink>
   );
 };

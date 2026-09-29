@@ -42,24 +42,23 @@ export default function AuthErrorModal({ onDismiss }) {
     // z-[9999] ensures this modal sits above all dashboard content,
     // sidebars, headers, and any other UI elements.
     <div
-      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+      className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/80 backdrop-blur-md"
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-error-title"
     >
       {/* ── Modal card ─────────────────────────────────────────────── */}
-      {/* Glassmorphism style: semi-transparent dark card with a subtle border */}
-      <div className="relative mx-4 w-full max-w-md rounded-2xl border border-white/10 bg-[#161B22] p-8 shadow-2xl">
+      {/* Layered glass surface with an ambient bloom behind the icon */}
+      <div className="glass relative mx-4 w-full max-w-md rounded-2xl p-8 shadow-2xl">
 
         {/* ── Decorative glow background ───────────────────────────── */}
-        {/* Adds a subtle amber bloom behind the warning icon for visual emphasis */}
-        <div className="absolute inset-0 rounded-2xl overflow-hidden pointer-events-none">
-          <div className="absolute -top-16 left-1/2 -translate-x-1/2 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl" />
+        <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-2xl">
+          <div className="absolute -top-16 left-1/2 h-48 w-48 -translate-x-1/2 rounded-full bg-amber-500/10 blur-3xl" />
         </div>
 
         {/* ── Warning icon ─────────────────────────────────────────── */}
-        <div className="relative flex justify-center mb-6">
-          <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-500/10 border border-amber-500/20">
+        <div className="relative mb-6 flex justify-center">
+          <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-amber-500/25 bg-amber-500/10 shadow-[0_10px_30px_-10px_rgba(245,158,11,0.6)]">
             <ShieldAlert className="h-8 w-8 text-amber-400" />
           </div>
         </div>
@@ -67,26 +66,26 @@ export default function AuthErrorModal({ onDismiss }) {
         {/* ── Title ────────────────────────────────────────────────── */}
         <h2
           id="auth-error-title"
-          className="relative text-center text-xl font-bold text-white tracking-tight"
+          className="relative text-center font-display text-xl font-bold tracking-tight text-foreground"
         >
           Connection Expired
         </h2>
 
         {/* ── Description ──────────────────────────────────────────── */}
-        <p className="relative mt-3 text-center text-sm leading-relaxed text-slate-400">
+        <p className="relative mt-3 text-center text-sm leading-relaxed text-muted-foreground">
           For your security, your connection to the social platform has expired.
           Please reconnect your account to continue viewing your live analytics.
         </p>
 
         {/* ── Divider ──────────────────────────────────────────────── */}
-        <div className="relative my-6 h-px bg-white/10" />
+        <div className="relative my-6 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
         {/* ── Primary action: go to Settings ───────────────────────── */}
         {/* This is the main CTA — navigates to the Settings page where
             the user can trigger each platform's OAuth re-authentication flow */}
         <button
           onClick={handleReconnect}
-          className="relative w-full flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 px-6 py-3 text-sm font-semibold text-white shadow-lg hover:from-amber-400 hover:to-orange-400 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-amber-500/50"
+          className="shine relative flex w-full items-center justify-center gap-2 rounded-xl bg-[linear-gradient(120deg,#F59E0B,#F97316)] px-6 py-3 text-sm font-semibold text-white shadow-lg transition-all duration-300 ease-smooth hover:brightness-110 hover:shadow-xl focus:outline-none focus:ring-2 focus:ring-amber-500/50 active:scale-[0.98]"
         >
           <RefreshCw className="h-4 w-4" />
           Reconnect Account
@@ -100,7 +99,7 @@ export default function AuthErrorModal({ onDismiss }) {
             <button
               key={label}
               onClick={handleReconnect}
-              className={`flex-1 rounded-lg ${color} px-2 py-1.5 text-xs font-medium text-white transition-colors focus:outline-none focus:ring-2 ${ring}`}
+              className={`lift flex-1 rounded-lg ${color} px-2 py-1.5 text-xs font-semibold text-white focus:outline-none focus:ring-2 ${ring}`}
             >
               {label}
             </button>
@@ -108,7 +107,7 @@ export default function AuthErrorModal({ onDismiss }) {
         </div>
 
         {/* ── Footer note ──────────────────────────────────────────── */}
-        <p className="relative mt-4 text-center text-xs text-slate-600">
+        <p className="relative mt-5 text-center text-xs text-muted-foreground/60">
           Your data is safe. This is a routine security expiry.
         </p>
       </div>

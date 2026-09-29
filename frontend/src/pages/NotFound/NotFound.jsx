@@ -3,35 +3,41 @@
 
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Home, AlertTriangle } from "lucide-react";
+import { Home, AlertTriangle, Compass } from "lucide-react";
 
 export default function NotFound() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="text-center">
-        {/* ── Icon ────────────────────────────────────────────────────── */}
-        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-2xl bg-destructive/10">
-          <AlertTriangle className="h-10 w-10 text-destructive" />
+    <div className="aurora-bg relative flex min-h-screen items-center justify-center overflow-hidden bg-background px-4">
+      <div className="noise-overlay" />
+
+      <div className="relative z-10 text-center">
+        {/* ── Icon ────────────────────────────────────────────────── */}
+        <div className="mx-auto mb-8 flex h-20 w-20 items-center justify-center rounded-3xl border border-primary/25 bg-primary/10 shadow-glow-sm">
+          <AlertTriangle className="h-9 w-9 text-primary" />
         </div>
 
-        {/* ── Error Text ─────────────────────────────────────────────── */}
-        <h1 className="mb-2 text-6xl font-extrabold tracking-tighter text-foreground">
+        {/* ── Error Text ──────────────────────────────────────────── */}
+        <p className="mb-2 font-display text-7xl font-extrabold tracking-tightest text-gradient sm:text-8xl">
           404
+        </p>
+        <h1 className="mb-3 font-display text-2xl font-bold tracking-tight text-white">
+          This route went off-script
         </h1>
-        <p className="mb-6 text-lg text-muted-foreground">
-          Page not found. The route you're looking for doesn't exist.
+        <p className="mx-auto mb-9 max-w-md text-base leading-relaxed text-muted-foreground">
+          Page not found. The route you're looking for doesn't exist — but your
+          analytics are still right where you left them.
         </p>
 
-        {/* ── Action Buttons ─────────────────────────────────────────── */}
-        <div className="flex items-center justify-center gap-3">
+        {/* ── Action Buttons ──────────────────────────────────────── */}
+        <div className="flex flex-wrap items-center justify-center gap-3">
           <Link to="/">
-            <Button className="gap-2" id="notfound-home-btn">
+            <Button size="lg" className="gap-2" id="notfound-home-btn">
               <Home className="h-4 w-4" /> Back to Home
             </Button>
           </Link>
           <Link to="/dashboard/youtube">
-            <Button variant="outline" id="notfound-dashboard-btn">
-              Go to Dashboard
+            <Button variant="outline" size="lg" id="notfound-dashboard-btn" className="gap-2">
+              <Compass className="h-4 w-4" /> Go to Dashboard
             </Button>
           </Link>
         </div>

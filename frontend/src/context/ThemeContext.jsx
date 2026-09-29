@@ -1,43 +1,26 @@
 // ── Theme Context Provider ──────────────────────────────────────────
-// Manages dark/light mode state and syncs it with the HTML class toggle
-// and localStorage for persistence across sessions.
+// APSM ships a single, dark-only theme. The provider is retained so the
+// existing `useTheme` contract stays intact for consumers, but the
+// resolved theme is always "dark" — the `.dark` class is pinned to
+// <html> and any previously persisted light preference is discarded.
 
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext } from "react";
 
 // ── Create the Theme Context ────────────────────────────────────────
 const ThemeContext = createContext(null);
 
 // ── Theme Provider Component ────────────────────────────────────────
 export function ThemeProvider({ children }) {
-  // ── State: Current theme (defaults to dark) ─────────────────────────
-  const [theme, setTheme] = useState(() => {
-    const saved = localStorage.getItem("incubein_theme");
-    return saved || "dark";
-  });
+  // ── Keep the document pinned to the dark class ────────────────────
+  if (typeof document !== "undefined") {
+    document.documentElement.classList.add("dark");
+  }
 
-  // ── Sync theme class on the <html> element ──────────────────────────
-  useEffect(() => {
-    const root = document.documentElement;
-
-    if (theme === "dark") {
-      root.classList.add("dark");
-    } else {
-      root.classList.remove("dark");
-    }
-
-    localStorage.setItem("incubein_theme", theme);
-  }, [theme]);
-
-  // ── Action: Toggle between dark and light mode ──────────────────────
-  const toggleTheme = () => {
-    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
-  };
-
-  // ── Context value exposed to consumers ────────────────────────────────
+  // ── Context value exposed to consumers ────────────────────────────
   const value = {
-    theme,
-    isDark: theme === "dark",
-    toggleTheme,
+    theme: "dark",
+    isDark: true,
+    toggleTheme: () => {},
   };
 
   return (

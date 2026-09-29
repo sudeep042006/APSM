@@ -1,6 +1,6 @@
 // ── Connect Card Component ───────────────────────────────────────────
-// A standardized, theme-aware connection prompt card.
-// Renders when a platform account is disconnected. Supports Light/Dark modes.
+// A standardized, brand-aware connection prompt card.
+// Renders when a platform account is disconnected.
 
 import React from "react";
 
@@ -15,29 +15,30 @@ export default function ConnectCard({
   brandButtonClass,
 }) {
   return (
-    <div className="flex min-h-[50vh] items-center justify-center py-6 w-full">
+    <div className="flex w-full min-h-[50vh] items-center justify-center py-6">
       {/* ── Card Container ────────────────────────────────────────────── */}
-      <div className="bg-white dark:bg-[#161B22] border border-slate-200 dark:border-white/5 rounded-2xl p-10 max-w-[440px] w-full text-center shadow-lg dark:shadow-2xl flex flex-col items-center transition-colors duration-200">
-        
+      <div className="border-gradient surface-card flex w-full max-w-[440px] flex-col items-center rounded-2xl p-10 text-center">
         {/* ── Card Icon Box ────────────────────────────────────────────── */}
-        <div className={`p-4 rounded-2xl mb-6 flex items-center justify-center shrink-0 ${brandBgClass} ${brandTextClass}`}>
+        <div
+          className={`mb-6 flex shrink-0 items-center justify-center rounded-2xl border border-white/[0.07] p-4 shadow-inner-glow ${brandBgClass} ${brandTextClass}`}
+        >
           {icon}
         </div>
 
         {/* ── Card Title ────────────────────────────────────────────────── */}
-        <h2 className="text-2xl font-bold text-slate-900 dark:text-white mb-4">
+        <h2 className="mb-3 font-display text-2xl font-bold tracking-tight text-foreground">
           {cardTitle}
         </h2>
 
         {/* ── Card Description ──────────────────────────────────────────── */}
-        <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 leading-relaxed px-4">
+        <p className="mb-8 px-4 text-sm leading-relaxed text-muted-foreground">
           {cardDescription}
         </p>
 
         {/* ── CTA Button ────────────────────────────────────────────────── */}
         <button
           onClick={onConnect}
-          className={`w-full py-3 px-4 rounded-xl font-semibold text-white transition-all duration-200 shadow-md ${brandButtonClass}`}
+          className={`shine w-full rounded-xl px-4 py-3 font-semibold text-white shadow-lg transition-all duration-300 ease-smooth hover:brightness-110 hover:shadow-xl active:scale-[0.98] ${brandButtonClass}`}
         >
           {buttonText}
         </button>

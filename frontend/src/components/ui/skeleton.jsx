@@ -1,5 +1,6 @@
 // ── Shadcn UI: Skeleton Loader Component ────────────────────────────
 // Animated placeholder for content loading states.
+// Uses the brand shimmer sweep rather than a flat opacity pulse.
 
 import { cn } from "@/lib/utils";
 
@@ -7,7 +8,7 @@ import { cn } from "@/lib/utils";
 function Skeleton({ className, ...props }) {
   return (
     <div
-      className={cn("animate-pulse rounded-md bg-muted", className)}
+      className={cn("shimmer rounded-xl border border-white/[0.05]", className)}
       {...props}
     />
   );

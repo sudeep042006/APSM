@@ -1,95 +1,465 @@
-/* ── Tailwind CSS Base Imports ──────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════
+   APSM — "Aurora" Design System
+   A deep indigo/violet professional theme: Supabase-grade dark surfaces
+   paired with MongoDB purple accents. Every token below drives Tailwind
+   utilities, so the entire app inherits the palette from one place.
+   ══════════════════════════════════════════════════════════════════════ */
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* ── Shadcn UI CSS Variable System (Slate Dark Theme) ────────────── */
-/* These variables drive the entire Shadcn color system via Tailwind.  */
+/* ── Design Tokens ──────────────────────────────────────────────────── */
 @layer base {
-  /* ── Light Mode (Slate Base) ───────────────────────────────────── */
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-    --radius: 0.5rem;
-  }
+  /* ── Dark Mode (Sole Theme) ───────────────────────────────────────
+     APSM is dark-only by design. Tokens live on :root so the palette
+     applies unconditionally, and are mirrored onto .dark so any theme
+     class toggling is a no-op rather than a visual regression.
 
-  /* ── Dark Mode (Slate Dark) ────────────────────────────────────── */
+     Canvas #08080F → surfaces #0F0F1F → raised #15152A.
+     Primary violet #8558F4 with an indigo ring for focus states.      */
+  :root,
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 210 40% 98%;
-    --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
-    --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 212.7 26.8% 83.9%;
+    --background: 240 30% 4%;          /* #08080F  app canvas           */
+    --foreground: 240 24% 95%;         /* #F4F3FB  primary text         */
+
+    --card: 240 27% 8%;                /* #0F0F1F  base surface        */
+    --card-foreground: 240 24% 95%;
+
+    --popover: 240 28% 9%;
+    --popover-foreground: 240 24% 95%;
+
+    --primary: 258 82% 65%;            /* #8558F4  brand violet        */
+    --primary-foreground: 260 60% 98%;
+
+    --secondary: 240 22% 14%;          /* #1D1D30  raised fill          */
+    --secondary-foreground: 240 24% 95%;
+
+    --muted: 240 20% 13%;
+    --muted-foreground: 240 14% 66%;   /* #A3A2BE  secondary text       */
+
+    --accent: 240 24% 16%;
+    --accent-foreground: 245 40% 88%;
+
+    --destructive: 351 74% 58%;        /* #E23B62  alert rose           */
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 240 20% 16%;             /* #202036  hairline             */
+    --input: 240 20% 18%;
+    --ring: 251 84% 68%;                /* #7C6CF5  focus ring           */
+
+    /* ── Extended surface layers ───────────────────────────────────── */
+    --surface: 240 27% 8%;
+    --surface-raised: 240 24% 11.5%;   /* #15152A  cards, panels        */
+    --surface-sunken: 240 32% 5.5%;    /* #0A0A14  wells, inputs        */
+    --surface-overlay: 240 26% 13%;    /* #1A1A31  popovers, menus      */
+    --hairline: 240 20% 16%;
+
+    --shadow-color: 245 60% 3%;        /* deep violet-black for depth   */
+
+    /* ── Signature brand stops (for gradients & charts) ────────────── */
+    --brand-violet: 258 82% 65%;
+    --brand-purple: 276 76% 62%;
+    --brand-indigo: 249 84% 68%;
+    --brand-blue: 217 91% 60%;
+    --brand-cyan: 189 94% 43%;
+    --brand-pink: 330 81% 60%;
+
+    --radius: 0.75rem;
   }
 }
 
-/* ── Global Base Styles ──────────────────────────────────────────── */
+/* ── Global Base Styles ────────────────────────────────────────────── */
 @layer base {
   * {
     @apply border-border;
   }
 
-  body {
-    @apply bg-slate-50 text-foreground dark:bg-background;
-    font-family: "Inter", system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+  html {
+    -webkit-tap-highlight-color: transparent;
   }
 
-  /* ── Custom Scrollbar (Dark Mode Friendly) ─────────────────────── */
+  body {
+    @apply bg-background text-foreground;
+    font-family: theme("fontFamily.sans");
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    /* Smooth, momentum-free scrolling across the whole app */
+    scroll-behavior: smooth;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: theme("fontFamily.display");
+    letter-spacing: -0.02em;
+  }
+
+  /* ── Selection ─────────────────────────────────────────────────── */
+  ::selection {
+    background-color: hsl(var(--primary) / 0.32);
+    color: hsl(var(--foreground));
+  }
+
+  /* ── Focus visibility ──────────────────────────────────────────── */
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* ── Custom Scrollbar (Brand-tinted) ──────────────────────────── */
   ::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+    width: 10px;
+    height: 10px;
   }
 
   ::-webkit-scrollbar-track {
-    background: hsl(var(--muted));
+    background: transparent;
   }
 
   ::-webkit-scrollbar-thumb {
-    background: hsl(var(--muted-foreground) / 0.3);
-    border-radius: 4px;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary) / 0.45),
+      hsl(var(--brand-blue) / 0.35)
+    );
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: content-box;
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: hsl(var(--muted-foreground) / 0.5);
+    background: linear-gradient(
+      180deg,
+      hsl(var(--primary) / 0.75),
+      hsl(var(--brand-blue) / 0.6)
+    );
+    background-clip: content-box;
+  }
+
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  /* Firefox */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--primary) / 0.45) transparent;
+  }
+
+  /* ── Autofill styling so dark inputs don't flash white ─────────── */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: hsl(var(--foreground));
+    -webkit-box-shadow: 0 0 0 1000px hsl(var(--surface-sunken)) inset;
+    caret-color: hsl(var(--foreground));
+    transition: background-color 9999s ease-out;
+  }
+
+  /* ── Recharts polish (smooth curves, no default focus rings) ───── */
+  .recharts-wrapper:focus,
+  .recharts-surface:focus {
+    outline: none;
+  }
+  .recharts-cartesian-axis-tick-value {
+    font-family: theme("fontFamily.sans");
+    font-size: 11px;
+    font-weight: 500;
   }
 }
 
-/* ── Utility Animations ──────────────────────────────────────────── */
+/* ══════════════════════════════════════════════════════════════════════
+   Component Primitives
+   ══════════════════════════════════════════════════════════════════════ */
+@layer components {
+  /* ── Glass Panel ─────────────────────────────────────────────────
+     Frosted, layered surface used for overlays and floating cards.     */
+  .glass {
+    @apply border border-white/10 backdrop-blur-2xl;
+    background: linear-gradient(
+      145deg,
+      hsl(var(--surface-raised) / 0.85),
+      hsl(var(--surface) / 0.6)
+    );
+    box-shadow:
+      0 1px 0 0 hsl(var(--foreground) / 0.06) inset,
+      0 20px 48px -16px hsl(var(--shadow-color) / 0.7);
+  }
+
+  .dark .glass {
+    @apply border-white/[0.08];
+  }
+
+  /* ── Premium Card Surface ───────────────────────────────────────
+     Elevated panel with a hairline top highlight — the workhorse
+     surface for metrics, charts and settings blocks.                  */
+  .surface-card {
+    @apply relative rounded-2xl border border-white/[0.07];
+    background:
+      linear-gradient(
+        180deg,
+        hsl(var(--surface-raised)) 0%,
+        hsl(var(--surface)) 100%
+      );
+    box-shadow:
+      0 1px 0 0 hsl(var(--foreground) / 0.05) inset,
+      0 12px 32px -12px hsl(var(--shadow-color) / 0.62),
+      0 2px 8px -4px hsl(var(--shadow-color) / 0.5);
+    transition:
+      box-shadow 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* Hover lift — opt-in via group */
+  .surface-card-hover:hover {
+    @apply border-primary/30;
+    transform: translateY(-2px);
+    box-shadow:
+      0 1px 0 0 hsl(var(--foreground) / 0.07) inset,
+      0 24px 56px -16px hsl(var(--shadow-color) / 0.78),
+      0 0 0 1px hsl(var(--primary) / 0.16),
+      0 0 44px -10px hsl(var(--primary) / 0.32);
+  }
+
+  /* ── Gradient Hairline Border ───────────────────────────────────
+     Gradient ring drawn with a masked pseudo-element so any element
+     can carry a violet→blue→cyan edge.                              */
+  .border-gradient {
+    position: relative;
+  }
+
+  .border-gradient::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(
+      135deg,
+      hsl(var(--brand-violet) / 0.7),
+      hsl(var(--brand-blue) / 0.45) 45%,
+      transparent 75%
+    );
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* ── Animated Gradient Ring (slower, ambient) ─────────────────── */
+  .border-gradient-animated {
+    background-image: linear-gradient(
+      100deg,
+      hsl(var(--brand-violet)),
+      hsl(var(--brand-blue)),
+      hsl(var(--brand-cyan)),
+      hsl(var(--brand-violet))
+    );
+    background-size: 300% 300%;
+  }
+
+  /* ── Brand Gradient Text ───────────────────────────────────────── */
+  .text-gradient {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      110deg,
+      hsl(var(--brand-violet)) 0%,
+      hsl(var(--brand-indigo)) 45%,
+      hsl(var(--brand-blue)) 100%
+    );
+  }
+
+  .text-gradient-animated {
+    @apply bg-clip-text text-transparent;
+    background-image: linear-gradient(
+      100deg,
+      hsl(var(--brand-violet)),
+      hsl(var(--brand-blue)),
+      hsl(var(--brand-cyan)),
+      hsl(var(--brand-violet))
+    );
+    background-size: 300% 300%;
+    animation: gradient-x 7s ease infinite;
+  }
+
+  /* ── Aurora Mesh Backdrop ────────────────────────────────────────
+     Layered radial blooms + a fine engineering grid. Used behind
+     heroes and empty states for depth without any image payload.      */
+  .aurora-bg {
+    position: relative;
+    isolation: isolate;
+    background-color: hsl(var(--background));
+  }
+
+  .aurora-bg::before {
+    content: "";
+    position: absolute;
+    inset: -25%;
+    z-index: -2;
+    background:
+      radial-gradient(38% 42% at 18% 12%, hsl(var(--brand-violet) / 0.32) 0%, transparent 62%),
+      radial-gradient(34% 38% at 82% 8%, hsl(var(--brand-blue) / 0.26) 0%, transparent 60%),
+      radial-gradient(40% 44% at 62% 88%, hsl(var(--brand-purple) / 0.24) 0%, transparent 62%),
+      radial-gradient(30% 34% at 6% 78%, hsl(var(--brand-cyan) / 0.14) 0%, transparent 60%);
+    filter: blur(28px);
+    animation: aurora 24s ease-in-out infinite;
+  }
+
+  .aurora-bg::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    background-image:
+      linear-gradient(to right, hsl(var(--foreground) / 0.045) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--foreground) / 0.045) 1px, transparent 1px);
+    background-size: 56px 56px;
+    mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, #000 30%, transparent 78%);
+    -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 40%, #000 30%, transparent 78%);
+  }
+
+  /* ── Fine Grid Only ─────────────────────────────────────────────── */
+  .grid-bg {
+    background-image:
+      linear-gradient(to right, hsl(var(--foreground) / 0.035) 1px, transparent 1px),
+      linear-gradient(to bottom, hsl(var(--foreground) / 0.035) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* ── Dot Matrix ─────────────────────────────────────────────────── */
+  .dots-bg {
+    background-image: radial-gradient(
+      hsl(var(--primary) / 0.16) 1px,
+      transparent 1px
+    );
+    background-size: 22px 22px;
+  }
+
+  /* ── Film Grain Noise (kills gradient banding) ─────────────────── */
+  .noise-overlay {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    opacity: 0.16;
+    mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+  }
+
+  /* ── Skeleton Shimmer ───────────────────────────────────────────
+     Replaces the flat pulsing blocks with a travelling highlight.     */
+  .shimmer {
+    background-image: linear-gradient(
+      100deg,
+      hsl(var(--surface-raised)) 20%,
+      hsl(var(--muted-foreground) / 0.16) 40%,
+      hsl(var(--surface-raised)) 60%
+    );
+    background-size: 200% 100%;
+    animation: shimmer 2.2s linear infinite;
+  }
+
+  /* ── Status Dot ─────────────────────────────────────────────────── */
+  .status-dot {
+    @apply relative inline-flex h-2 w-2 rounded-full;
+  }
+
+  .status-dot::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 999px;
+    background: inherit;
+    animation: pulse-ring 2.4s cubic-bezier(0.24, 0, 0.38, 1) infinite;
+  }
+
+  /* ── Interactive Lift ───────────────────────────────────────────── */
+  .lift {
+    transition:
+      transform 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      box-shadow 0.3s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  .lift:hover {
+    transform: translateY(-2px);
+  }
+
+  .lift:active {
+    transform: translateY(0) scale(0.99);
+  }
+
+  /* ── Light Sweep (button shine) ────────────────────────────────── */
+  .shine {
+    position: relative;
+    overflow: hidden;
+    isolation: isolate;
+  }
+
+  .shine::after {
+    content: "";
+    position: absolute;
+    top: -50%;
+    left: 0;
+    width: 45%;
+    height: 200%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(0 0% 100% / 0.28),
+      transparent
+    );
+    transform: translateX(-120%) skewX(-18deg);
+    pointer-events: none;
+  }
+
+  .shine:hover::after {
+    animation: beam-sweep 1.1s cubic-bezier(0.22, 1, 0.36, 1);
+  }
+
+  /* ── Sidebar / Nav Active Rail ─────────────────────────────────── */
+  .nav-rail {
+    @apply relative;
+  }
+
+  .nav-rail::before {
+    content: "";
+    position: absolute;
+    left: -1px;
+    top: 50%;
+    height: 0;
+    width: 2px;
+    border-radius: 999px;
+    background: linear-gradient(
+      180deg,
+      hsl(var(--brand-violet)),
+      hsl(var(--brand-blue))
+    );
+    transform: translateY(-50%);
+    transition: height 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+    box-shadow: 0 0 12px hsl(var(--primary) / 0.8);
+  }
+
+  .nav-rail[data-active="true"]::before {
+    height: 60%;
+  }
+
+  /* ── Scrollable Region with Masked Fade ─────────────────────────── */
+  .scroll-fade {
+    mask-image: linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+    -webkit-mask-image: linear-gradient(to bottom, transparent, #000 12px, #000 calc(100% - 12px), transparent);
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
+   Utilities
+   ══════════════════════════════════════════════════════════════════════ */
 @layer utilities {
-  /* Smooth fade-in for page transitions */
+  /* ── Legacy animation hooks (kept for existing components) ─────── */
   .animate-fade-in {
     animation: fadeIn 0.3s ease-in-out;
   }
@@ -105,17 +475,43 @@
     }
   }
 
-  /* Subtle pulse glow for active states */
   .animate-glow {
-    animation: glow 2s ease-in-out infinite alternate;
+    animation: glow 2.4s ease-in-out infinite alternate;
   }
 
   @keyframes glow {
     from {
-      box-shadow: 0 0 5px hsl(var(--primary) / 0.2);
+      box-shadow: 0 0 6px hsl(var(--primary) / 0.25);
     }
     to {
-      box-shadow: 0 0 20px hsl(var(--primary) / 0.4);
+      box-shadow: 0 0 26px hsl(var(--primary) / 0.5);
+    }
+  }
+
+  /* ── Stagger helper: applies incremental entrance delays ───────── */
+  .stagger > * {
+    animation: fade-in-up 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+  .stagger > *:nth-child(1) { animation-delay: 0.02s; }
+  .stagger > *:nth-child(2) { animation-delay: 0.08s; }
+  .stagger > *:nth-child(3) { animation-delay: 0.14s; }
+  .stagger > *:nth-child(4) { animation-delay: 0.2s; }
+  .stagger > *:nth-child(5) { animation-delay: 0.26s; }
+  .stagger > *:nth-child(6) { animation-delay: 0.32s; }
+  .stagger > *:nth-child(7) { animation-delay: 0.38s; }
+  .stagger > *:nth-child(8) { animation-delay: 0.44s; }
+  .stagger > *:nth-child(9) { animation-delay: 0.5s; }
+  .stagger > *:nth-child(10) { animation-delay: 0.56s; }
+
+  /* ── Reduced-motion safety net ──────────────────────────────────── */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
     }
   }
 }
