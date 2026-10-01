@@ -19,21 +19,15 @@ const getAnalyticsSummary = async (req, res, next) => {
 
     const userId = req.user._id;
 
-    // ─────────────────────────────────────────────────────────────────────────
-    // HELPER: fetch-or-cache for a single platform
-    // Returns the snapshot document directly (not wrapped in any extra object).
-    // On success → the fresh or cached snapshot
-    // On live-fetch failure → falls back to the most recent snapshot in the DB
+  
     // ─────────────────────────────────────────────────────────────────────────
     const fetchOrCache = async (platformName, fetchFn) => {
       const { forceRefresh } = req.query;
 
-      // When the client asks for an explicit window, the 24 h snapshot is only
-      // reusable if it was built for that exact same window. Otherwise the charts
-      // would be labelled 7 days while actually showing a 30-day aggregation.
+
       const wantsRange = !!(req.query.startDate || req.query.endDate);
 
-      // 1. Return cached snapshot if it is less than 24 h old and not forcing refresh
+
       if (forceRefresh !== 'true') {
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
         const cacheQuery = {
@@ -44,7 +38,7 @@ const getAnalyticsSummary = async (req, res, next) => {
         };
 
         if (wantsRange) {
-          // Only accept a cached snapshot built for the identical requested window.
+   
           if (req.query.startDate) cacheQuery['rawPlatformData.range.requestedStartDate'] = req.query.startDate;
           if (req.query.endDate) cacheQuery['rawPlatformData.range.requestedEndDate'] = req.query.endDate;
         }

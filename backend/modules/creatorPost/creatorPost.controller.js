@@ -88,14 +88,6 @@ export const getIncomingPosts = async (req, res, next) => {
     next(error);
   }
 };
-
-// Admin: Approve a post (hands it to the cross-posting pipeline)
-//
-// The post has to end up as a dispatched publishing job on the admin's own
-// connected accounts, not just a database row. createAndDispatchJob writes the
-// Automation record and hands it to the BullMQ queue in one step, and deletes
-// the record again if the queue will not take the job — so an approve either
-// produces a job that will actually publish, or leaves nothing behind.
 export const approvePost = async (req, res, next) => {
   try {
     if (req.user.role !== "admin") {
@@ -133,7 +125,7 @@ export const approvePost = async (req, res, next) => {
   }
 };
 
-// Admin: Reject a post with feedback
+
 export const rejectPost = async (req, res, next) => {
   try {
     if (req.user.role !== "admin") {

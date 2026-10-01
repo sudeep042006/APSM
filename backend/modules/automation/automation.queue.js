@@ -1,15 +1,4 @@
-// modules/automation/automation.queue.js
-//
-// One place that owns the "publish-post" queue.
-//
-// Both entry points that create publishing work go through here:
-//   • POST /automation/jobs          — an admin composing a post themselves
-//   • POST /creator-posts/:id/approve — an admin approving a creator submission
-//
-// Previously only the first one enqueued anything. Approving a creator post
-// wrote an Automation row with status PENDING and stopped, so the post sat in
-// the database forever: no queue entry, no worker, no publish. Sharing this
-// module is what makes the two paths behave identically.
+
 
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
@@ -19,9 +8,7 @@ import Automation from './automation.model.js';
 export const QUEUE_NAME = 'CrossPostQueue';
 export const JOB_NAME = 'publish-post';
 
-// The Queue and its Redis connection are created lazily. Creating them at import
-// time meant a missing REDIS_URL surfaced as a crash during module load, which
-// took the whole API down instead of surfacing a clear "queue unavailable".
+
 let queue = null;
 let queueUnavailableReason = null;
 
