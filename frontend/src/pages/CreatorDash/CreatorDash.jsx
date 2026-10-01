@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import api from '@/services/api';
+import { useAuth } from '@/context/AuthContext';
+import { LogOut } from 'lucide-react';
 import { Send, Clock, CheckCircle2, XCircle, Plus, LayoutGrid } from 'lucide-react';
 import { Youtube, Instagram, Linkedin, Facebook } from '@/components/icons/BrandIcons';
 
@@ -25,6 +27,10 @@ const StatusBadge = ({ status }) => {
 };
 
 export default function CreatorDash() {
+  // Creators land here and have no admin sidebar, so the account name and a
+  // sign-out control have to live in this header.
+  const { user, logout } = useAuth();
+
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isDrafting, setIsDrafting] = useState(false);
@@ -96,12 +102,26 @@ export default function CreatorDash() {
             <h1 className="text-3xl font-bold text-white tracking-tight">Creator Studio</h1>
             <p className="text-slate-400 mt-1">Draft posts and submit them to your admin for approval.</p>
           </div>
-          <button 
-            onClick={() => setIsDrafting(!isDrafting)}
-            className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-all shadow-lg shadow-indigo-500/20"
-          >
-            {isDrafting ? 'Cancel Draft' : <><Plus size={18} /> New Draft</>}
-          </button>
+          <div className="flex items-center gap-3">
+            <div className="hidden sm:block text-right">
+              <p className="text-sm font-medium text-white">{user?.name}</p>
+              <p className="text-xs text-slate-400">Creator</p>
+            </div>
+            <button
+              onClick={logout}
+              title="Sign out"
+              aria-label="Sign out"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/60 text-slate-300 transition-colors hover:border-slate-700 hover:text-white"
+            >
+              <LogOut size={17} />
+            </button>
+            <button 
+              onClick={() => setIsDrafting(!isDrafting)}
+              className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-medium transition-all shadow-lg shadow-indigo-500/20"
+            >
+              {isDrafting ? 'Cancel Draft' : <><Plus size={18} /> New Draft</>}
+            </button>
+          </div>
         </div>
 
         {/* Draft Form */}

@@ -11,17 +11,10 @@ export const submitPost = async (req, res, next) => {
         .json({ error: "Only creators can submit posts for review." });
     }
 
-    if (!req.user.adminId) {
-      return res
-        .status(400)
-        .json({ error: "Creator is not assigned to an admin." });
-    }
-
     const { title, body, hashtags, link, mediaUrl, platforms } = req.body;
 
     const newPost = new CreatorPost({
       creatorId: req.user._id,
-      adminId: req.user.adminId, // Ensure it routes to the correct admin
       title,
       body,
       hashtags,
@@ -64,7 +57,7 @@ export const getIncomingPosts = async (req, res, next) => {
         .json({ error: "Only admins can view incoming posts." });
     }
 
-    const posts = await CreatorPost.find({ adminId: req.user._id })
+    const posts = await CreatorPost.find({})
       .populate("creatorId", "name email")
       .sort({ createdAt: -1 });
 
@@ -90,7 +83,6 @@ export const approvePost = async (req, res, next) => {
     const { postId } = req.params;
     const post = await CreatorPost.findOne({
       _id: postId,
-      adminId: req.user._id,
     });
 
     if (!post) {
@@ -101,47 +93,18 @@ export const approvePost = async (req, res, next) => {
       return res.status(400).json({ error: `Post is already ${post.status}.` });
     }
 
-    const result = await createAndDispatchJob({
-      // The job runs on the admin's credentials, which are the accounts the
-      // creator was targeting.
-      userId: req.user._id,
-      content: {
-        caption: post.body,
-        title: post.title,
-        body: post.body,
-        hashtags: post.hashtags,
-        link: post.link,
-      },
-      platforms: post.platforms,
-      mediaUrl: post.mediaUrl || null,
-      source: "creator_request",
-      creatorPostId: post._id,
-    });
-
-    if (!result.ok) {
-      // Nothing was queued, so the submission stays pending and the admin can
-      // retry once the queue is reachable. Reporting a 5xx rather than a
-      // success keeps the UI from claiming it was published.
-      return res.status(502).json({
-        error: result.error,
-        post,
-      });
-    }
 
     post.status = "APPROVED";
     post.approvedBy = req.user._id;
-    post.automationJobId = result.job._id;
+    post.automationJobId = null;
     post.adminFeedback = null;
     await post.save();
 
     res.status(200).json({
       success: true,
-      message: "Post approved and queued for publishing.",
+      message: "Post approved and ready to import to compose.",
       post,
-      automationJob: {
-        id: result.job._id,
-        queueJobId: result.job.jobId || null,
-      },
+
     });
   } catch (error) {
     next(error);
@@ -160,7 +123,6 @@ export const rejectPost = async (req, res, next) => {
 
     const post = await CreatorPost.findOne({
       _id: postId,
-      adminId: req.user._id,
     });
 
     if (!post) {
@@ -180,3 +142,4 @@ export const rejectPost = async (req, res, next) => {
     next(error);
   }
 };
+

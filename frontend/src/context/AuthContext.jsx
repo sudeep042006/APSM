@@ -80,8 +80,12 @@ export function AuthProvider({ children }) {
   };
 
   // ── Action: Register ───────────────────────────────────────────────
-  const register = async (name, email, password) => {
-    const res = await api.post("/auth/register", { name, email, password });
+  // `role` is the account type picked on the signup form ("admin" or
+  // "creator"). It is sent to the server, which validates and stores it — the
+  // client does not decide it, it just relays the choice so the backend stays
+  // the single authority on roles.
+  const register = async (name, email, password, role) => {
+    const res = await api.post("/auth/register", { name, email, password, role });
     const { token, user } = res.data;
 
     localStorage.setItem("incubein_token", token);

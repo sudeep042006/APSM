@@ -67,6 +67,7 @@ import Settings from "@/pages/Settings";
 // ── Layout & Guard Imports ──────────────────────────────────────────
 import DashboardLayout from "@/components/DashboardLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import { ROLES } from "@/lib/roleRouting";
 
 import { useOutletContext } from "react-router-dom";
 
@@ -83,13 +84,25 @@ const router = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
   { path: "/login", element: <AuthPage /> },
   { path: "/signup", element: <AuthPage /> },
-  { path: "/creator-preview", element: <CreatorDash /> },
+  // Creator workspace. It was mounted publicly as /creator-preview, so anyone
+  // could open it; every request it makes is a token-authenticated call anyway.
+  {
+    path: "/creator",
+    element: <ProtectedRoute roles={[ROLES.CREATOR]}><CreatorDash /></ProtectedRoute>,
+  },
+  // The old preview URL now honours the same rule rather than staying open.
+  {
+    path: "/creator-preview",
+    element: <ProtectedRoute roles={[ROLES.CREATOR]}><CreatorDash /></ProtectedRoute>,
+  },
   { path: "/settings", element: <ProtectedRoute><Settings /></ProtectedRoute> },
 
   // ── Dashboard Routes (wrapped in layout shell) ────────────────────
+  // Admin-only: analytics reads the linked-account credentials and the
+  // cros-posting workspace holds the tokens.
   {
     path: "/dashboard",
-    element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
+    element: <ProtectedRoute roles={[ROLES.ADMIN]}><DashboardLayout /></ProtectedRoute>,
     children: [
       { index: true, element: <Navigate to="/dashboard/crosspost" replace /> },
       {

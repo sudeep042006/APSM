@@ -2,9 +2,10 @@
 // Unified authentication screen with toggle between Login and Register
 // modes. Includes social OAuth button placeholders.
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
+import { ROLES, SIGNUP_ROLE_OPTIONS, homeForRole } from "@/lib/roleRouting";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -21,6 +22,8 @@ import {
   Lock,
   Mail,
   User as UserIcon,
+  Crown,
+  PenTool,
 } from "lucide-react";
 import { Youtube, Linkedin, Facebook } from "@/components/icons/BrandIcons";
 import { LogoMark, DashboardPreview } from "@/components/Illustrations";
@@ -59,19 +62,32 @@ export default function AuthPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ name: "", email: "", password: "", role: ROLES.CREATOR });
 
   // ── Sync login/signup mode with path changes ─────────────────────
   useEffect(() => {
     setIsLogin(!isSignupPath(location.pathname));
   }, [location.pathname]);
 
-  // ── Redirect authenticated users away from auth pages ───────────
+  // ── Where to go after authenticating ──────────────────────────────
+  // `?next=` is set by ProtectedRoute when it bounces a signed-out visitor, so
+  // logging in returns them to the page they originally opened. It is ignored
+  // when it points back at /login or /signup to avoid a loop.
+  const nextPath = useMemo(() => {
+    const raw = new URLSearchParams(location.search).get("next");
+    if (!raw || !raw.startsWith("/") || raw.startsWith("//")) return null;
+    if (raw.startsWith("/login") || raw.startsWith("/signup")) return null;
+    return raw;
+  }, [location.search]);
+
+  // ── Redirect authenticated users away from auth pages ─────────────
+  // Previously hardcoded to /dashboard/youtube, which sent every creator to an
+  // analytics page they cannot use.
   useEffect(() => {
     if (user && !authLoading) {
-      navigate("/dashboard/youtube", { replace: true });
+      navigate(nextPath || homeForRole(user.role), { replace: true });
     }
-  }, [user, authLoading, navigate]);
+  }, [user, authLoading, nextPath, navigate]);
 
   // ── Form input handler ────────────────────────────────────────────
   const handleChange = (e) => {
@@ -86,12 +102,14 @@ export default function AuthPage() {
     setError("");
 
     try {
-      if (isLogin) {
-        await login(form.email, form.password);
-      } else {
-        await register(form.name, form.email, form.password);
-      }
-      navigate("/dashboard/youtube");
+      // Both actions return the authenticated user, so the destination comes
+      // from the role the server just stored — never from the form state, which
+      // the client could have tampered with.
+      const res = isLogin
+        ? await login(form.email, form.password)
+        : await register(form.name, form.email, form.password, form.role);
+
+      navigate(nextPath || homeForRole(res?.data?.user?.role), { replace: true });
     } catch (err) {
       setError(err.response?.data?.error || err.response?.data?.message || "Something went wrong.");
     } finally {
@@ -297,6 +315,73 @@ export default function AuthPage() {
               )}
             </div>
 
+            {/* ── Role Selector (Register only) ───────────────────── */}
+            {/* Stated as two explicit cards rather than a <select> so it is
+                obvious that the choice decides which workspace the account
+                lands on. Radio inputs keep it keyboard and screen-reader
+                accessible; the visible card is the label. */}
+            {!isLogin && (
+              <fieldset className="space-y-2.5">
+                <legend className="text-[13px] font-semibold text-foreground">
+                  I am joining as
+                </legend>
+
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {SIGNUP_ROLE_OPTIONS.map((option) => {
+                    const Icon = option.value === ROLES.ADMIN ? Crown : PenTool;
+                    const selected = form.role === option.value;
+
+                    return (
+                      <label
+                        key={option.value}
+                        className={`relative flex cursor-pointer flex-col gap-1.5 rounded-xl border p-3.5 transition-all duration-300 ease-smooth ${
+                          selected
+                            ? "border-primary/60 bg-primary/[0.09] shadow-glow-sm"
+                            : "border-white/[0.07] bg-surface-sunken/80 hover:border-white/[0.14] hover:bg-surface-sunken"
+                        } ${loading ? "pointer-events-none opacity-60" : ""}`}
+                      >
+                        <input
+                          type="radio"
+                          name="role"
+                          value={option.value}
+                          checked={selected}
+                          onChange={handleChange}
+                          className="sr-only"
+                        />
+
+                        <span className="flex items-center gap-2">
+                          <span
+                            className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-colors duration-300 ${
+                              selected
+                                ? "bg-primary/20 text-primary"
+                                : "bg-white/[0.06] text-muted-foreground"
+                            }`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                          </span>
+                          <span className="text-sm font-semibold text-foreground">
+                            {option.label}
+                          </span>
+                          {selected && (
+                            <CheckCircle2 className="ml-auto h-4 w-4 shrink-0 text-primary" />
+                          )}
+                        </span>
+
+                        <span className="text-[11.5px] leading-relaxed text-muted-foreground">
+                          {option.summary}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+
+                <p className="text-[11px] leading-relaxed text-muted-foreground/80">
+                  This decides where you land after signing up. Admins manage the
+                  publishing workspace and creator submissions.
+                </p>
+              </fieldset>
+            )}
+
             {/* ── Submit Button ────────────────────────────────────── */}
             <Button
               type="submit"
@@ -305,7 +390,13 @@ export default function AuthPage() {
               disabled={loading}
               id="auth-submit-btn"
             >
-              {loading ? "Please wait..." : isLogin ? "Sign In" : "Create Account"}
+              {loading
+                ? "Please wait..."
+                : isLogin
+                  ? "Sign In"
+                  : form.role === ROLES.ADMIN
+                    ? "Create Admin Account"
+                    : "Create Creator Account"}
             </Button>
           </form>
 

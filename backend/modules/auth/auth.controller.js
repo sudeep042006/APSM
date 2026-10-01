@@ -53,11 +53,30 @@ function publicUser(user) {
 // AUTH CONTROLLERS
 // ─────────────────────────────────────────────────────────────────────────────
 
+// The two roles the product supports. Mirrors the enum on the User model.
+const SUPPORTED_ROLES = ['admin', 'creator'];
+
+// Which of those a visitor may claim for themselves at signup.
+//
+// Self-service "I am an admin" is a real privilege grant: an admin reads the
+// creator review inbox and holds the OAuth credentials for the linked social
+// accounts. Deployments that hand out admin seats another way (invites, an
+// internal tool) can lock signup down with SELF_SIGNUP_ROLES=creator in .env
+// without touching code. Defaults to both so the signup selector works out of
+// the box.
+const selfSignupRoles = () => {
+  const configured = (process.env.SELF_SIGNUP_ROLES || SUPPORTED_ROLES.join(','))
+    .split(',')
+    .map(r => r.trim().toLowerCase())
+    .filter(r => SUPPORTED_ROLES.includes(r));
+  return configured.length ? configured : ['creator'];
+};
+
 // REGISTER: POST /auth/register
 
 const register = async (req, res, next) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     if (!name || !email || !password) {
       return res.status(400).json({ error: 'name, email, and password are all required.' });
@@ -66,11 +85,27 @@ const register = async (req, res, next) => {
       return res.status(400).json({ error: 'Password must be at least 8 characters.' });
     }
 
+    // The role is chosen on the signup form, so it is required rather than
+    // falling back to the model default — otherwise every account would
+    // silently become an admin.
+    const requestedRole = String(role || '').trim().toLowerCase();
+    if (!requestedRole) {
+      return res.status(400).json({ error: 'Choose whether you are an admin or a creator.' });
+    }
+    if (!SUPPORTED_ROLES.includes(requestedRole)) {
+      return res.status(400).json({ error: `Role must be one of: ${SUPPORTED_ROLES.join(', ')}.` });
+    }
+    if (!selfSignupRoles().includes(requestedRole)) {
+      return res.status(403).json({
+        error: `Self signup as ${requestedRole} is not enabled on this server.`,
+      });
+    }
+
     const exists = await User.findOne({ email });
     if (exists) return res.status(409).json({ error: 'Email already registered.' });
 
     const passwordHash = await bcrypt.hash(password, 12);
-    const user         = await User.create({ name, email, passwordHash });
+    const user         = await User.create({ name, email, passwordHash, role: requestedRole });
 
     res.status(201).json({
       message: 'Account created successfully.',

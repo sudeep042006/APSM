@@ -17,7 +17,7 @@
 
 import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { useForm } from "react-hook-form";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useCrossPost } from "./CrossPostContext";
 import { PLATFORM_BY_ID } from "./crossPostPlatforms";
 import PlatformTargetList from "./PlatformTargetList";
@@ -42,6 +42,8 @@ const MAX_MEDIA_BYTES = 50 * 1024 * 1024;
 
 export default function NewPostPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const importedPost = location.state?.importedPost || null;
   const { toast } = useToast();
   const { connectedPlatforms, isLoadingAuth, refreshHistory } = useCrossPost();
 
@@ -54,12 +56,13 @@ export default function NewPostPage() {
     formState: { errors },
   } = useForm({
     defaultValues: {
-      title: "",
-      body: "",
-      hashtags: "",
-      link: "",
-      platforms: [],
+      title: importedPost?.title || "",
+      body: importedPost?.body || "",
+      hashtags: importedPost?.hashtags || "",
+      link: importedPost?.link || "",
+      platforms: importedPost?.platforms || [],
       mediaFile: null,
+      mediaUrl: importedPost?.mediaUrl || null,
     },
   });
 
@@ -70,7 +73,7 @@ export default function NewPostPage() {
   const selectedPlatforms = watch("platforms", []);
   const mediaFile = watch("mediaFile", null);
 
-  const [mediaPreview, setMediaPreview] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(importedPost?.mediaUrl || null);
   const [mediaError, setMediaError] = useState(null);
   const fileInputRef = useRef(null);
 
@@ -180,13 +183,14 @@ export default function NewPostPage() {
 
   const removeMedia = () => {
     setValue("mediaFile", null, { shouldDirty: true });
+    setValue("mediaUrl", null, { shouldDirty: true });
     setMediaPreview(null);
     setMediaError(null);
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
   const clearForm = () => {
-    reset({ title: "", body: "", hashtags: "", link: "", platforms: [], mediaFile: null });
+    reset({ title: "", body: "", hashtags: "", link: "", platforms: [], mediaFile: null, mediaUrl: null });
     removeMedia();
     setIsScheduling(false);
     setScheduleDate("");
@@ -249,6 +253,7 @@ export default function NewPostPage() {
     if (data.link) formData.append("link", data.link);
     formData.append("platforms", JSON.stringify(selectedPlatforms));
     if (data.mediaFile) formData.append("mediaFile", data.mediaFile);
+    if (data.mediaUrl) formData.append("mediaUrl", data.mediaUrl);
 
     // Only the selected targets that actually have a rewrite are sent.
     const selectedVariants = (aiVariants || []).filter((v) =>

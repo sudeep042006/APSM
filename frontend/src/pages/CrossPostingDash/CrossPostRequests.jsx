@@ -176,7 +176,7 @@ const RejectDialog = ({ request, onClose, onConfirm, isSubmitting }) => {
 };
 
 // ── Detail drawer ────────────────────────────────────────────────────
-const RequestDrawer = ({ request, onClose, onApprove, onReject, busyId }) => {
+const RequestDrawer = ({ request, onClose, onApprove, onReject, onImport, busyId }) => {
   if (!request) return null;
   const meta = requestStatus(request.status);
   const creator = request.creatorId || {};
@@ -278,7 +278,7 @@ const RequestDrawer = ({ request, onClose, onApprove, onReject, busyId }) => {
 
           {request.status === "APPROVED" && (
             <section className="rounded-xl border border-emerald-500/20 bg-emerald-500/5 p-3 text-xs text-emerald-200/90">
-              Approved {absoluteTime(request.updatedAt)}. A publishing job was created on your connected accounts.
+              Approved {absoluteTime(request.updatedAt)}. Ready to be imported and published.
             </section>
           )}
 
@@ -301,7 +301,14 @@ const RequestDrawer = ({ request, onClose, onApprove, onReject, busyId }) => {
             </Button>
             <Button className="flex-1" disabled={isBusy} onClick={() => onApprove(request)}>
               {isBusy ? <Loader2 className="mr-1.5 h-4 w-4 animate-spin" /> : <Check className="mr-1.5 h-4 w-4" />}
-              Approve &amp; publish
+              Approve
+            </Button>
+          </footer>
+        )}
+        {request.status === "APPROVED" && (
+          <footer className="sticky bottom-0 border-t border-white/[0.07] bg-surface/95 p-4 backdrop-blur-xl">
+            <Button className="w-full" onClick={() => onImport(request)}>
+               Import to Compose
             </Button>
           </footer>
         )}
@@ -387,6 +394,10 @@ export default function CrossPostRequests() {
   const handleApprove = async (post) => {
     const ok = await runAction(post, "approve");
     if (ok) setDrawerPost(null);
+  };
+
+  const handleImport = (post) => {
+    navigate("/dashboard/crosspost/new", { state: { importedPost: post } });
   };
 
   const handleRejectConfirm = async (feedback) => {
@@ -619,6 +630,9 @@ export default function CrossPostRequests() {
                           </Button>
                         </>
                       )}
+                      {post.status === "APPROVED" && (
+                        <Button size="sm" className="h-8 text-xs bg-emerald-600 hover:bg-emerald-500 text-white" onClick={() => handleImport(post)}>Import to Compose</Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
@@ -663,3 +677,5 @@ export default function CrossPostRequests() {
     </div>
   );
 }
+
+

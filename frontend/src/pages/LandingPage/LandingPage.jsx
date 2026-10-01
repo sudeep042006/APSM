@@ -5,6 +5,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import { homeForRole } from "@/lib/roleRouting";
 import {
   BarChart3,
   Share2,
@@ -95,8 +96,12 @@ const platforms = [
 export default function LandingPage() {
   const { user } = useAuth();
 
-  const targetPath = user ? "/dashboard/youtube" : "/login";
-  const signupTargetPath = user ? "/dashboard/youtube" : "/signup";
+  // Send each role to its own workspace. Pointing everyone at
+  // /dashboard/youtube made a signed-in creator bounce through the admin
+  // guard before reaching their dashboard.
+  const signedInHome = user ? homeForRole(user.role) : null;
+  const targetPath = signedInHome || "/login";
+  const signupTargetPath = signedInHome || "/signup";
   const btnText = user ? "Dashboard" : "Sign In";
   const ctaText = user ? "Go to Dashboard" : "Get Started Free";
   const bottomCtaText = user ? "Go to Dashboard" : "Start Your Dashboard";

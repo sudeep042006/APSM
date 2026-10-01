@@ -125,7 +125,10 @@ const userSchema = new mongoose.Schema(
       // of this enum also carried a third value that no row in the database
       // used, so it is not supported here.
       enum: ["admin", "creator"],
-      default: "admin",
+      // Least privilege as the fallback: signup always sets the role
+      // explicitly, so this only applies to a user created by some other path,
+      // and an accidental admin is worse than an accidental creator.
+      default: "creator",
     },
     adminId: {
       type: mongoose.Schema.Types.ObjectId,
