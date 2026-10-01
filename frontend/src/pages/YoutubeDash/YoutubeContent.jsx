@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
 import {
   Search,
   Play,
@@ -22,7 +23,14 @@ import {
   ListVideo,
   Megaphone,
   Video,
+  BarChart3,
+  Activity,
+  Gauge,
 } from "lucide-react";
+import ChartCard from "@/components/charts/ChartCard";
+import ChartTooltip from "@/components/charts/ChartTooltip";
+import DonutChart from "@/components/charts/DonutChart";
+import { CHART_COLORS, CURSOR, axisX, axisY, compact } from "@/components/charts/chartTheme";
 import {
   parseRecentVideos,
   formatCompactNumber,
@@ -131,6 +139,60 @@ export default function YoutubeContent({ data, loading }) {
 
     return filtered;
   }, [data, searchQuery, sortBy, sortOrder]);
+
+  // ── Library performance, derived from each video's own statistics ───
+  // The channel reports its most recent uploads, each with its own measured
+  // view / like / comment counts. Every figure below is a ratio or sum of
+  // those measured values. Declared above the early return to respect the
+  // Rules of Hooks.
+  const libraryStats = useMemo(() => {
+    const all = parseRecentVideos(data);
+    const withViews = all.filter((v) => v.viewCount > 0);
+    const totalViews = withViews.reduce((a, v) => a + v.viewCount, 0);
+    const totalLikes = all.reduce((a, v) => a + (v.likeCount || 0), 0);
+    const totalComments = all.reduce((a, v) => a + (v.commentCount || 0), 0);
+    const totalEngagements = totalLikes + totalComments;
+
+    const topByViews = [...withViews]
+      .sort((a, b) => b.viewCount - a.viewCount)
+      .slice(0, 10)
+      .map((v) => ({
+        id: v.id,
+        title: v.title,
+        views: v.viewCount,
+        likes: v.likeCount || 0,
+        comments: v.commentCount || 0,
+        likesPer1k: v.viewCount > 0 ? ((v.likeCount || 0) / v.viewCount) * 1000 : 0,
+      }));
+
+    // A ratio is meaningless on tiny denominators: 1 like on 4 views reads as
+    // 25%. Require a real sample before ranking by rate.
+    const topByRate = [...withViews]
+      .filter((v) => v.viewCount >= 50)
+      .map((v) => ({
+        id: v.id,
+        title: v.title,
+        rate: v.viewCount > 0 ? (((v.likeCount || 0) + (v.commentCount || 0)) / v.viewCount) * 100 : 0,
+      }))
+      .sort((a, b) => b.rate - a.rate)
+      .slice(0, 8);
+
+    const formatSplit = [
+      { name: "Long-form", value: all.filter((v) => !v.isShort).reduce((a, v) => a + v.viewCount, 0) },
+      { name: "Shorts", value: all.filter((v) => v.isShort).reduce((a, v) => a + v.viewCount, 0) },
+    ].filter((f) => f.value > 0);
+
+    return {
+      total: all.length,
+      totalViews,
+      totalEngagements,
+      avgViews: withViews.length > 0 ? Math.round(totalViews / withViews.length) : 0,
+      avgRate: totalViews > 0 ? (totalEngagements / totalViews) * 100 : 0,
+      topByViews,
+      topByRate,
+      formatSplit,
+    };
+  }, [data]);
 
   // ── Loading state (placed AFTER all hooks) ────────────────────────
   if (loading) return <ContentSkeleton />;
@@ -254,6 +316,158 @@ export default function YoutubeContent({ data, loading }) {
 
         {/* ── Videos Tab Content ───────────────────────────────────────── */}
         <TabsContent value="videos" className="mt-4">
+          {/* ── Library performance (measured per video) ──────────────── */}
+          <div className="mb-6 space-y-4">
+            <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+              {[
+                {
+                  title: "Videos Analysed",
+                  value: formatCompactNumber(libraryStats.total),
+                  icon: Video,
+                  hint: "Most recent uploads from the channel",
+                },
+                {
+                  title: "Combined Views",
+                  value: formatCompactNumber(libraryStats.totalViews),
+                  icon: Eye,
+                  hint: "Sum across the listed videos",
+                },
+                {
+                  title: "Avg Views / Video",
+                  value: formatCompactNumber(libraryStats.avgViews),
+                  icon: BarChart3,
+                  hint: "Measured mean, videos with views only",
+                },
+                {
+                  title: "Avg Engagement Rate",
+                  value: `${libraryStats.avgRate.toFixed(2)}%`,
+                  icon: Activity,
+                  hint: "Likes + comments ÷ views",
+                },
+              ].map((kpi) => (
+                <Card key={kpi.title} className="surface-card p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                        {kpi.title}
+                      </p>
+                      <p className="mt-2 text-[26px] font-bold leading-none tracking-tight text-white tabular-nums">
+                        {kpi.value}
+                      </p>
+                      <p className="mt-2 text-[10px] leading-relaxed text-slate-500">{kpi.hint}</p>
+                    </div>
+                    <span className="rounded-lg bg-white/5 p-1.5 ring-1 ring-white/10">
+                      <kpi.icon className="h-3.5 w-3.5 text-slate-300" />
+                    </span>
+                  </div>
+                </Card>
+              ))}
+            </div>
+
+            <div className="grid gap-6 lg:grid-cols-2">
+              <ChartCard
+                title="Top Videos by Views"
+                subtitle="Measured lifetime views for the highest-performing uploads"
+                icon={<Eye className="h-4 w-4 text-blue-400" />}
+                data={libraryStats.topByViews}
+                valueKeys="views"
+                height={Math.max(280, libraryStats.topByViews.length * 30 + 40)}
+                emptyMessages={{
+                  noDataTitle: "No video view data",
+                  noDataDetail: "The channel returned no uploads with a public view count.",
+                }}
+              >
+                {(rows) => (
+                  <ResponsiveContainer width="100%" height={Math.max(280, rows.length * 30 + 40)}>
+                    <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 32, left: 8, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" horizontal={false} />
+                      <XAxis type="number" {...axisX({ tickFormatter: compact, dy: 0 })} />
+                      <YAxis
+                        type="category"
+                        dataKey="title"
+                        {...axisY({
+                          width: 150,
+                          tick: { fill: "#CBD5E1", fontSize: 11 },
+                          dy: 0,
+                          tickFormatter: (v) => (String(v).length > 24 ? `${String(v).slice(0, 24)}…` : v),
+                        })}
+                      />
+                      <Tooltip content={<ChartTooltip />} cursor={CURSOR} labelFormatter={(l) => String(l)} />
+                      <Bar dataKey="views" name="Views" radius={[0, 4, 4, 0]} maxBarSize={22}>
+                        {rows.map((row, i) => (
+                          <Cell key={row.id || i} fill={CHART_COLORS.info} fillOpacity={1 - i * 0.08} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </ChartCard>
+
+              <div className="grid gap-6">
+                <ChartCard
+                  title="Like-to-View Ratio"
+                  subtitle="Likes per 1,000 views, highest first"
+                  icon={<Gauge className="h-4 w-4 text-emerald-400" />}
+                  data={libraryStats.topByRate}
+                  valueKeys="rate"
+                  height={Math.max(240, libraryStats.topByRate.length * 28 + 40)}
+                  emptyMessages={{
+                    noDataTitle: "Not enough signal",
+                    noDataDetail:
+                      "This ratio is only meaningful for videos with at least 50 views, otherwise a single like would read as a 20% rate.",
+                  }}
+                >
+                  {(rows) => (
+                    <ResponsiveContainer width="100%" height={Math.max(240, rows.length * 28 + 40)}>
+                      <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 32, left: 8, bottom: 4 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" horizontal={false} />
+                        <XAxis type="number" {...axisX({ tickFormatter: (v) => `${v.toFixed(0)}`, dy: 0 })} />
+                        <YAxis
+                          type="category"
+                          dataKey="title"
+                          {...axisY({
+                            width: 150,
+                            tick: { fill: "#CBD5E1", fontSize: 11 },
+                            dy: 0,
+                            tickFormatter: (v) => (String(v).length > 24 ? `${String(v).slice(0, 24)}…` : v),
+                          })}
+                        />
+                        <Tooltip content={<ChartTooltip format="number" />} cursor={CURSOR} labelFormatter={(l) => String(l)} />
+                        <Bar dataKey="rate" name="Likes per 1K views" radius={[0, 4, 4, 0]} maxBarSize={18}>
+                          {rows.map((row, i) => (
+                            <Cell key={row.id || i} fill={CHART_COLORS.success} fillOpacity={1 - i * 0.1} />
+                          ))}
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  )}
+                </ChartCard>
+
+                {libraryStats.formatSplit.length > 1 && (
+                  <ChartCard
+                    title="Format Split"
+                    subtitle="Views by long-form vs Shorts"
+                    icon={<Film className="h-4 w-4 text-violet-400" />}
+                    data={libraryStats.formatSplit}
+                    valueKeys="value"
+                    height={200}
+                  >
+                    {(rows) => (
+                      <DonutChart
+                        data={rows}
+                        height={200}
+                        outerRadius={78}
+                        innerRadius={52}
+                        centerLabel="Views"
+                        colors={[CHART_COLORS.primary, CHART_COLORS.pink]}
+                      />
+                    )}
+                  </ChartCard>
+                )}
+              </div>
+            </div>
+          </div>
+
           {/* Search and Sort Controls */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 mb-4">
             {/* Search bar */}

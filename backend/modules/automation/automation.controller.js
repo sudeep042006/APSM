@@ -1,23 +1,7 @@
-import { Queue } from 'bullmq';
-import Redis from 'ioredis';
-import { redisConnectionOptions } from '../../config/redis.js';
 import Automation from './automation.model.js';
 import cloudinary from '../../config/cloudinary.js';
 import streamifier from 'streamifier';
-
-// Use a dedicated connection for the Queue
-const queueConnection = process.env.REDIS_URL 
-    ? new Redis(process.env.REDIS_URL, redisConnectionOptions) 
-    : null;
-
-if (queueConnection) {
-    queueConnection.on('error', (err) => {
-        if (err.message.includes('ECONNRESET') || err.message.includes('ETIMEDOUT')) return;
-        console.error('🔴 Queue Redis error:', err.message);
-    });
-}
-
-const crossPostQueue = new Queue('CrossPostQueue', { connection: queueConnection });
+import { createAndDispatchJob } from './automation.queue.js';
 
 const uploadToCloudinary = (fileBuffer) => {
     return new Promise((resolve, reject) => {
@@ -34,8 +18,8 @@ const uploadToCloudinary = (fileBuffer) => {
 
 export const createAutomationJob = async (req, res) => {
     try {
-        const userId = req.user.id;
-        const { caption, title, body, hashtags, link, platforms, scheduledDate } = req.body;
+        const userId = req.user._id;
+        const { caption, title, body, hashtags, link, platforms } = req.body;
         let { mediaUrl } = req.body; // In case they send a URL directly instead of a file
         let cloudinaryId = null;
 
@@ -46,50 +30,52 @@ export const createAutomationJob = async (req, res) => {
             cloudinaryId = uploadResult.public_id;
         }
 
-        // Calculate delay in milliseconds
-        const scheduleTime = scheduledDate ? new Date(scheduledDate).getTime() : Date.now();
-        const now = Date.now();
-        const delay = Math.max(scheduleTime - now, 0);
+        let platformList;
+        try {
+            platformList = JSON.parse(platforms || '[]');
+        } catch (parseError) {
+            return res.status(400).json({ error: 'platforms must be a JSON array of platform ids.' });
+        }
 
-        // Save pending post to DB
-        const newPost = await Automation.create({
+        // Per-platform AI rewrites. Absent while no provider is connected, and
+        // validated here so a malformed payload is rejected rather than stored.
+        let platformVariants = [];
+        if (req.body.platformVariants) {
+            try {
+                platformVariants = JSON.parse(req.body.platformVariants);
+            } catch (parseError) {
+                return res.status(400).json({ error: 'platformVariants must be a JSON array.' });
+            }
+            if (!Array.isArray(platformVariants)) {
+                return res.status(400).json({ error: 'platformVariants must be a JSON array.' });
+            }
+        }
+
+        // Same path an approved creator submission takes, so a composed post and
+        // an approved one behave identically from here on.
+        const result = await createAndDispatchJob({
             userId,
-            caption,
-            title,
-            body,
-            hashtags,
-            link,
-            platforms: JSON.parse(platforms || '[]'),
-            mediaUrl,
+            content: { caption, title, body, hashtags, link },
+            platforms: platformList,
+            mediaUrl: mediaUrl || null,
             cloudinaryId,
-            scheduledDate: scheduledDate || new Date(),
-            status: 'PENDING' // Job is about to be queued
+            scheduledDate: req.body.scheduledDate || null,
+            source: 'direct',
+            platformVariants,
         });
 
-        // Add to Redis Queue with the delay timer
-        const job = await crossPostQueue.add('publish-post', {
-            postId: newPost._id,
-            userId,
-            caption,
-            title,
-            body,
-            hashtags,
-            link,
-            platforms: JSON.parse(platforms || '[]'),
-            mediaUrl
-        }, {
-            delay: delay
-        });
-
-        // Attach Job ID to DB record
-        newPost.jobId = job.id;
-        await newPost.save();
+        if (!result.ok) {
+            return res.status(502).json({
+                error: result.error,
+            });
+        }
 
         res.status(200).json({
             message: 'Post successfully scheduled in the queue',
-            jobId: job.id,
+            jobId: result.job.jobId || null,
+            postId: result.job._id,
             mediaUrl,
-            willPostInMinutes: Math.round(delay / 60000)
+            willPostInMinutes: Math.max(Math.round((result.job.scheduledDate.getTime() - Date.now()) / 60000), 0)
         });
 
     } catch (error) {
@@ -118,7 +104,11 @@ export const getAutomationJobs = async (req, res) => {
                     post.scheduledDate && post.scheduledDate > new Date() ? 'Scheduled' : 'Processing',
             scheduledFor: post.scheduledDate,
             createdAt: post.createdAt,
-            thumbnail: post.mediaUrl || null
+            thumbnail: post.mediaUrl || null,
+            // Lets the history view say whether a job was composed here or
+            // imported by approving a creator submission.
+            source: post.source || 'direct',
+            creatorPostId: post.creatorPostId || null
         }));
 
         res.status(200).json(history);

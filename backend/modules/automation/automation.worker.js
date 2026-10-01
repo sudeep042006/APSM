@@ -19,7 +19,7 @@ if (workerConnection) {
 }
 
 const worker = new Worker('CrossPostQueue', async (job) => {
-    const { postId, userId, caption, title, body, hashtags, link, platforms, mediaUrl } = job.data;
+    const { postId, userId, caption, title, body, hashtags, link, platforms, mediaUrl, platformVariants } = job.data;
     
     await Automation.findByIdAndUpdate(postId, { status: 'PROCESSING' });
     console.log(`Executing Scheduled Job ${job.id} for Post ${postId}`);
@@ -28,6 +28,21 @@ const worker = new Worker('CrossPostQueue', async (job) => {
     if (!user) {
         throw new Error('User not found. Cannot retrieve tokens.');
     }
+
+    // ── Per-platform copy ────────────────────────────────────────────
+    // The compose step rewrites one universal draft into a caption per
+    // platform. When a rewrite exists for the platform being published, that is
+    // the whole caption — the shared title/body/hashtags/link are the input it
+    // was written from, not text to append again. Without a rewrite the
+    // platform receives the universal draft joined in the conventional order.
+    const variantFor = (platformId) => {
+        const match = (Array.isArray(platformVariants) ? platformVariants : [])
+            .find(v => String(v.platform).toLowerCase() === platformId);
+        return match?.text?.trim() || null;
+    };
+
+    const captionFor = (platformId, fallbackParts) =>
+        variantFor(platformId) || fallbackParts.filter(Boolean).join('\n\n');
 
     const publishTasks = [];
 
@@ -44,32 +59,79 @@ const worker = new Worker('CrossPostQueue', async (job) => {
             const account = user.getSocialAccount('linkedin');
             const personId = account.platformUserId; // urn:li:person:ID
 
-            // 1. Download media into memory
-            const mediaBufferResponse = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
-            const mediaBuffer = Buffer.from(mediaBufferResponse.data);
-            const isVideo = mediaUrl.match(/\.(mp4|mov|wmv|flv|avi|webm|mkv)$/i);
-
             let mediaUrn = '';
             let uploadToken = null;
+            let isVideo = false;
+            let mediaBuffer = null;
+
+            // 1. Download media into memory (if exists)
+            if (mediaUrl) {
+                const mediaBufferResponse = await axios.get(mediaUrl, { responseType: 'arraybuffer' });
+                mediaBuffer = Buffer.from(mediaBufferResponse.data);
+                isVideo = mediaUrl.match(/\.(mp4|mov|wmv|flv|avi|webm|mkv)$/i);
+            }
 
             // 2 & 3. Initialize and Execute Upload
-            if (isVideo) {
-                const initRes = await axios.post('https://api.linkedin.com/rest/videos?action=initializeUpload', {
-                    initializeUploadRequest: {
-                        owner: `urn:li:person:${personId}`,
-                        fileSizeBytes: mediaBuffer.length
+            if (mediaUrl) {
+                if (isVideo) {
+                    const initRes = await axios.post('https://api.linkedin.com/rest/videos?action=initializeUpload', {
+                        initializeUploadRequest: {
+                            owner: `urn:li:person:${personId}`,
+                            fileSizeBytes: mediaBuffer.length
+                        }
+                    }, { headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': '202601', 'X-Restli-Protocol-Version': '2.0.0', 'Content-Type': 'application/json' } });
+
+                    mediaUrn = initRes.data.value.video;
+                    uploadToken = initRes.data.value.uploadToken;
+                    const uploadInstructions = initRes.data.value.uploadInstructions;
+
+                    // Upload each chunk as instructed by LinkedIn
+                    const uploadedPartIds = [];
+                    for (const instruction of uploadInstructions) {
+                        const chunk = mediaBuffer.slice(instruction.firstByte, instruction.lastByte + 1);
+                        const chunkRes = await axios.put(instruction.uploadUrl, chunk, {
+                            headers: {
+                                'Content-Type': 'application/octet-stream',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            maxBodyLength: Infinity,
+                            maxContentLength: Infinity
+                        });
+                        // LinkedIn requires the ETag header values for uploadedPartIds
+                        console.log('Chunk upload headers:', chunkRes.headers);
+                        if (chunkRes.headers.etag) {
+                            // Some endpoints return ETags with quotes, we keep them as is unless LinkedIn complains
+                            uploadedPartIds.push(chunkRes.headers.etag.replace(/"/g, ''));
+                        } else if (chunkRes.headers.Etag || chunkRes.headers.ETag) {
+                            const etag = chunkRes.headers.Etag || chunkRes.headers.ETag;
+                            uploadedPartIds.push(etag.replace(/"/g, ''));
+                        } else {
+                            console.error('MISSING ETAG IN HEADERS FOR LINKEDIN CHUNK:', instruction);
+                        }
                     }
-                }, { headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': '202601', 'X-Restli-Protocol-Version': '2.0.0', 'Content-Type': 'application/json' } });
 
-                mediaUrn = initRes.data.value.video;
-                uploadToken = initRes.data.value.uploadToken;
-                const uploadInstructions = initRes.data.value.uploadInstructions;
+                    console.log('Sending finalizeUploadRequest with ETags:', uploadedPartIds);
+                    // Finalize Upload
+                    await axios.post('https://api.linkedin.com/rest/videos?action=finalizeUpload', {
+                        finalizeUploadRequest: {
+                            video: mediaUrn,
+                            uploadToken: uploadToken,
+                            uploadedPartIds: uploadedPartIds
+                        }
+                    }, { headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': '202601', 'X-Restli-Protocol-Version': '2.0.0', 'Content-Type': 'application/json' } });
 
-                // Upload each chunk as instructed by LinkedIn
-                const uploadedPartIds = [];
-                for (const instruction of uploadInstructions) {
-                    const chunk = mediaBuffer.slice(instruction.firstByte, instruction.lastByte + 1);
-                    const chunkRes = await axios.put(instruction.uploadUrl, chunk, {
+                } else {
+                    // Image Upload
+                    const initRes = await axios.post('https://api.linkedin.com/rest/images?action=initializeUpload', {
+                        initializeUploadRequest: {
+                            owner: `urn:li:person:${personId}`
+                        }
+                    }, { headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': '202601', 'X-Restli-Protocol-Version': '2.0.0', 'Content-Type': 'application/json' } });
+
+                    const uploadUrl = initRes.data.value.uploadUrl;
+                    mediaUrn = initRes.data.value.image;
+
+                    await axios.put(uploadUrl, mediaBuffer, {
                         headers: {
                             'Content-Type': 'application/octet-stream',
                             'Authorization': `Bearer ${token}`
@@ -77,57 +139,11 @@ const worker = new Worker('CrossPostQueue', async (job) => {
                         maxBodyLength: Infinity,
                         maxContentLength: Infinity
                     });
-                    // LinkedIn requires the ETag header values for uploadedPartIds
-                    console.log('Chunk upload headers:', chunkRes.headers);
-                    if (chunkRes.headers.etag) {
-                        // Some endpoints return ETags with quotes, we keep them as is unless LinkedIn complains
-                        uploadedPartIds.push(chunkRes.headers.etag.replace(/"/g, ''));
-                    } else if (chunkRes.headers.Etag || chunkRes.headers.ETag) {
-                        const etag = chunkRes.headers.Etag || chunkRes.headers.ETag;
-                        uploadedPartIds.push(etag.replace(/"/g, ''));
-                    } else {
-                        console.error('MISSING ETAG IN HEADERS FOR LINKEDIN CHUNK:', instruction);
-                    }
                 }
-
-                console.log('Sending finalizeUploadRequest with ETags:', uploadedPartIds);
-                // Finalize Upload
-                await axios.post('https://api.linkedin.com/rest/videos?action=finalizeUpload', {
-                    finalizeUploadRequest: {
-                        video: mediaUrn,
-                        uploadToken: uploadToken,
-                        uploadedPartIds: uploadedPartIds
-                    }
-                }, { headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': '202601', 'X-Restli-Protocol-Version': '2.0.0', 'Content-Type': 'application/json' } });
-
-            } else {
-                // Image Upload
-                const initRes = await axios.post('https://api.linkedin.com/rest/images?action=initializeUpload', {
-                    initializeUploadRequest: {
-                        owner: `urn:li:person:${personId}`
-                    }
-                }, { headers: { 'Authorization': `Bearer ${token}`, 'LinkedIn-Version': '202601', 'X-Restli-Protocol-Version': '2.0.0', 'Content-Type': 'application/json' } });
-
-                const uploadUrl = initRes.data.value.uploadUrl;
-                mediaUrn = initRes.data.value.image;
-
-                await axios.put(uploadUrl, mediaBuffer, {
-                    headers: {
-                        'Content-Type': 'application/octet-stream',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    maxBodyLength: Infinity,
-                    maxContentLength: Infinity
-                });
             }
 
             // 4. Create Post
-            const fullBody = [
-                title, 
-                body || caption, 
-                hashtags, 
-                link
-            ].filter(Boolean).join('\n\n');
+            const fullBody = captionFor('linkedin', [title, body || caption, hashtags, link]);
 
             const payload = {
                 author: `urn:li:person:${personId}`,
@@ -179,11 +195,7 @@ const worker = new Worker('CrossPostQueue', async (job) => {
             // Simple check to determine if it's a video (can be improved)
             const endpointType = mediaUrl.match(/\.(mp4|mov|wmv|flv|avi)$/i) ? 'videos' : 'photos';
 
-            const fullBody = [
-                body || caption,
-                hashtags,
-                link
-            ].filter(Boolean).join('\n\n');
+            const fullBody = captionFor('facebook', [body || caption, hashtags, link]);
 
             if (endpointType === 'videos') {
                 const videoPayload = {
@@ -218,12 +230,7 @@ const worker = new Worker('CrossPostQueue', async (job) => {
             const isVideo = mediaUrl.match(/\.(mp4|mov|wmv|flv|avi|webm|mkv)$/i);
 
             // Step 1: Create media container
-            const fullCaption = [
-                title,
-                body || caption,
-                hashtags,
-                link
-            ].filter(Boolean).join('\n\n');
+            const fullCaption = captionFor('instagram', [title, body || caption, hashtags, link]);
 
             const createPayload = {
                 caption: fullCaption,
@@ -286,11 +293,11 @@ const worker = new Worker('CrossPostQueue', async (job) => {
             const FormData = (await import('form-data')).default;
             const form = new FormData();
 
-            const fullDesc = [
-                body || caption,
-                hashtags,
-                link
-            ].filter(Boolean).join('\n\n');
+            // YouTube splits title, description and tags into separate API fields, so a
+            // single rewritten caption maps onto the description. The video
+            // title stays the universal one, and tags still come from the
+            // shared hashtag field.
+            const fullDesc = captionFor('youtube', [body || caption, hashtags, link]);
 
             const fallbackTitle = (title || caption || "Video").substring(0, 100);
 

@@ -1,91 +1,61 @@
 // ── YouTube Audience Page ───────────────────────────────────────────
-// Audience demographics dashboard showing viewer overview KPIs,
-// age distribution, gender breakdown, top countries, and device usage.
-// All data is parsed from the analytics snapshot via ytapi.js.
+// Audience demographics: age, gender, geography and device split.
+//
+// Every value on this page is measured by the YouTube Reporting API.
+// The previous version showed "Returning Viewers" as `reach * 0.35` — a
+// hard-coded guess presented as a metric — and "Unique Viewers" as `reach`,
+// which the YouTube API does not expose at all. Both are gone.
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Cell } from "recharts";
+import { Users, Eye, Globe, Smartphone, TrendingUp, UserCheck, Clock, MapPin } from "lucide-react";
+import ChartCard from "@/components/charts/ChartCard";
+import ChartTooltip from "@/components/charts/ChartTooltip";
+import DonutChart from "@/components/charts/DonutChart";
 import {
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  PieChart,
-  Pie,
-  Cell,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  Legend,
-} from "recharts";
-import {
-  Users,
-  Eye,
-  UserPlus,
-  Globe,
-  Smartphone,
-  MapPin,
-  TrendingUp,
-  UserCheck,
-} from "lucide-react";
+  CHART_COLORS,
+  CURSOR,
+  axisX,
+  axisY,
+  compact,
+  niceDomain,
+  percentDomain,
+} from "@/components/charts/chartTheme";
 import {
   parseCoreMetrics,
   parseCountryData,
   parseDeviceData,
   parseAgeGenderData,
+  parseEffectiveRange,
+  parseReportHealth,
   formatCompactNumber,
+  formatWatchTime,
 } from "@/services/ytapi";
-
-// ── Chart color constants ───────────────────────────────────────────
-const COLORS = {
-  red: "#ef4444",
-  blue: "#3b82f6",
-  emerald: "#10b981",
-  violet: "#8b5cf6",
-  amber: "#f59e0b",
-  cyan: "#06b6d4",
-  pink: "#ec4899",
-};
-
-const DEVICE_COLORS = ["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6", "#06b6d4"];
-const GENDER_COLORS = [COLORS.blue, COLORS.pink, COLORS.violet];
-
-// ── Custom dark-themed tooltip ──────────────────────────────────────
-const CustomTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-[#161B22]/95 border border-white/10 backdrop-blur-md rounded-lg px-3 py-2 shadow-xl text-xs">
-      <p className="mb-1 text-xs font-medium text-slate-400">{label}</p>
-      {payload.map((entry, i) => (
-        <p key={i} className="text-sm font-semibold" style={{ color: entry.color }}>
-          {entry.name}: {formatCompactNumber(entry.value)}
-        </p>
-      ))}
-    </div>
-  );
-};
 
 // ── Skeleton loading state ──────────────────────────────────────────
 function AudienceSkeleton() {
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* KPI row */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {[1, 2, 3, 4].map((i) => (
-          <Card key={i} className="border-white/10">
+          <Card key={i} className="surface-card">
             <CardContent className="p-5">
-              <Skeleton className="h-3 w-20 mb-2" />
-              <Skeleton className="h-7 w-24" />
+              <Skeleton className="h-3 w-20" />
+              <Skeleton className="mt-3 h-7 w-24" />
             </CardContent>
           </Card>
         ))}
       </div>
-      {/* Charts row */}
       <div className="grid gap-6 lg:grid-cols-2">
         {[1, 2].map((i) => (
-          <Card key={i} className="border-white/10">
-            <CardHeader><Skeleton className="h-5 w-36" /></CardHeader>
-            <CardContent><Skeleton className="h-[260px] w-full rounded-lg" /></CardContent>
+          <Card key={i} className="surface-card">
+            <CardHeader>
+              <Skeleton className="h-5 w-36" />
+            </CardHeader>
+            <CardContent>
+              <Skeleton className="h-[280px] w-full rounded-lg" />
+            </CardContent>
           </Card>
         ))}
       </div>
@@ -97,264 +67,300 @@ function AudienceSkeleton() {
 function EmptyAudience() {
   return (
     <div className="flex min-h-[40vh] items-center justify-center animate-fade-in">
-      <div className="text-center max-w-md">
-        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-500/10">
+      <div className="max-w-md text-center">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-violet-500/10 ring-1 ring-violet-500/20">
           <Users className="h-8 w-8 text-violet-400" />
         </div>
-        <h3 className="text-lg font-semibold">Not enough audience data yet</h3>
-        <p className="mt-2 text-sm text-slate-400 leading-relaxed">
-          Audience demographics will appear here as your channel gains more viewers.
-          This typically requires at least a few days of activity.
+        <h3 className="text-lg font-semibold text-white">No audience demographics available</h3>
+        <p className="mt-2 text-sm leading-relaxed text-slate-400">
+          YouTube only publishes age, gender and geography breakdowns once a channel passes its
+          privacy threshold. Until then the Reporting API returns no rows, so there is nothing
+          honest to display here.
         </p>
       </div>
     </div>
   );
 }
 
+// ── Small KPI tile ──────────────────────────────────────────────────
+function AudienceKpi({ title, value, icon: Icon, hint }) {
+  return (
+    <Card className="surface-card group p-5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">{title}</p>
+          <p className="mt-2 text-[26px] font-bold leading-none tracking-tight text-white tabular-nums">
+            {value}
+          </p>
+          {hint && <p className="mt-2 text-[10px] leading-relaxed text-slate-500">{hint}</p>}
+        </div>
+        {Icon && (
+          <span className="rounded-lg bg-white/5 p-1.5 ring-1 ring-white/10 transition-colors group-hover:bg-white/10">
+            <Icon className="h-3.5 w-3.5 text-slate-300" />
+          </span>
+        )}
+      </div>
+    </Card>
+  );
+}
+
 // ── Main Audience Component ─────────────────────────────────────────
 export default function YoutubeAudience({ data, loading }) {
-  // ── Loading state ─────────────────────────────────────────────────
   if (loading) return <AudienceSkeleton />;
-
-  // ── Empty state ───────────────────────────────────────────────────
   if (!data) return <EmptyAudience />;
 
-  // ── Parse data ────────────────────────────────────────────────────
   const metrics = parseCoreMetrics(data);
-  const countryData = parseCountryData(data).slice(0, 10);
+  const countryData = parseCountryData(data).slice(0, 12);
   const deviceData = parseDeviceData(data);
   const { age: ageData, gender: genderData } = parseAgeGenderData(data);
+  const range = parseEffectiveRange(data);
+  const health = parseReportHealth(data);
 
-  // ── If all audience data is empty, show empty state ───────────────
-  const hasData = countryData.length > 0 || deviceData.length > 0 || ageData.length > 0;
-  if (!hasData) return <EmptyAudience />;
+  const totalViews = metrics.periodViews || countryData.reduce((a, c) => a + c.views, 0);
+  const topCountry = countryData[0];
+  const topCountryShare = totalViews > 0 && topCountry ? (topCountry.views / totalViews) * 100 : null;
 
-  // ── Audience KPI cards ────────────────────────────────────────────
+  const rangeBadge = range ? (
+    <span className="shrink-0 rounded-md bg-white/5 px-2 py-1 text-[10px] font-medium text-slate-400 ring-1 ring-white/10">
+      {new Date(range.startDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })} –{" "}
+      {new Date(range.endDate).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+    </span>
+  ) : null;
+
+  const anyDemographic = ageData.length > 0 || genderData.length > 0 || countryData.length > 0 || deviceData.length > 0;
+  if (!anyDemographic) return <EmptyAudience />;
+
   const audienceKPIs = [
     {
-      title: "Unique Viewers",
-      value: formatCompactNumber(metrics.reach),
+      title: "Views in Period",
+      value: formatCompactNumber(metrics.periodViews),
       icon: Eye,
-      color: "text-blue-400",
-      bg: "bg-blue-500/10",
+      hint: "Measured daily views from the Reporting API",
     },
     {
       title: "Subscribers",
       value: formatCompactNumber(metrics.subscribers),
       icon: UserCheck,
-      color: "text-red-400",
-      bg: "bg-red-500/10",
+      hint: "Lifetime, from channel statistics",
     },
     {
-      title: "Returning Viewers",
-      value: formatCompactNumber(Math.round(metrics.reach * 0.35)),
-      icon: UserPlus,
-      color: "text-emerald-400",
-      bg: "bg-emerald-500/10",
-      subtitle: "~35% of unique",
+      title: "Watch Time",
+      value: formatWatchTime(metrics.watchTimeMinutes),
+      icon: Clock,
+      hint: `${compact(Math.round(metrics.watchTimeMinutes))} minutes watched`,
     },
     {
-      title: "Total Engagement",
-      value: formatCompactNumber(metrics.totalEngagement),
-      icon: TrendingUp,
-      color: "text-violet-400",
-      bg: "bg-violet-500/10",
+      title: topCountry ? `Views from ${topCountry.country}` : "Top Country",
+      value: topCountry ? formatCompactNumber(topCountry.views) : "—",
+      icon: MapPin,
+      hint: topCountryShare !== null ? `${topCountryShare.toFixed(1)}% of period views` : undefined,
     },
   ];
 
   return (
     <div className="space-y-6 animate-fade-in">
-      {/* ── Audience Overview KPIs ────────────────────────────────────── */}
-      <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         {audienceKPIs.map((kpi) => (
-          <Card
-            key={kpi.title}
-            className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none hover:shadow-lg hover:shadow-black/5 transition-all duration-300 group"
-          >
-            <CardContent className="p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    {kpi.title}
-                  </p>
-                  <p className="mt-1.5 text-2xl font-bold tracking-tight">{kpi.value}</p>
-                  {kpi.subtitle && (
-                    <p className="mt-0.5 text-xs text-slate-400">{kpi.subtitle}</p>
-                  )}
-                </div>
-                <div className={`flex h-10 w-10 items-center justify-center rounded-xl ${kpi.bg} group-hover:scale-110 transition-transform duration-300`}>
-                  <kpi.icon className={`h-5 w-5 ${kpi.color}`} />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <AudienceKpi key={kpi.title} {...kpi} />
         ))}
       </div>
 
-      {/* ── Age & Gender Charts ───────────────────────────────────────── */}
+      {/* ── Age & Gender ────────────────────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Age Distribution */}
-        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4 text-amber-400" />
-              Age Distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {ageData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <BarChart data={ageData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" vertical={false} />
-                  <XAxis dataKey="group" stroke="#64748b" tickLine={false} axisLine={false} dy={8} fontSize={10} />
-                  <YAxis 
-                    stroke="#64748b" 
-                    tickLine={false} 
-                    axisLine={false} 
-                    fontSize={10} 
-                    tickFormatter={formatCompactNumber} 
-                    allowDecimals={false}
-                    domain={([dataMin, dataMax]) => [0, isNaN(dataMax) || !isFinite(dataMax) || dataMax === 0 ? 2 : Math.ceil(dataMax * 1.2)]}
-                  />
-                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.03)' }} />
-                  <Bar dataKey="count" name="Viewers" fill="#f59e0b" radius={[4, 4, 0, 0]} maxBarSize={20} />
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
-                No age distribution data available
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ChartCard
+          title="Audience by Age"
+          subtitle="Share of viewers per age group"
+          icon={<Users className="h-4 w-4 text-amber-400" />}
+          badge={rangeBadge}
+          data={ageData}
+          valueKeys="percentage"
+          technical={health.ageGender.reason}
+          height={280}
+          emptyMessages={{
+            noDataTitle: "No age data",
+            noDataDetail:
+              "YouTube withholds age demographics for channels below its privacy threshold, so the report returns no rows.",
+          }}
+        >
+          {(rows) => (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={rows} margin={{ top: 16, right: 8, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" vertical={false} />
+                <XAxis dataKey="group" {...axisX({ tick: { fill: "#CBD5E1", fontSize: 11 }, dy: 4 })} />
+                <YAxis {...axisY({ width: 44, domain: percentDomain, tickFormatter: (v) => `${v}%` })} />
+                <Tooltip content={<ChartTooltip format="percent" />} cursor={CURSOR} />
+                <Bar dataKey="percentage" name="Viewers" radius={[4, 4, 0, 0]} maxBarSize={52}>
+                  {rows.map((row, i) => (
+                    <Cell key={row.group || i} fill={CHART_COLORS.warning} fillOpacity={1 - i * 0.09} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
 
-        {/* Gender Distribution */}
-        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Users className="h-4 w-4 text-pink-400" />
-              Gender Distribution
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {genderData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={genderData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={4}
-                    dataKey="count"
-                    nameKey="label"
-                  >
-                    {genderData.map((_, i) => (
-                      <Cell key={i} fill={GENDER_COLORS[i % GENDER_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px" }} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
-                No gender distribution data available
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ChartCard
+          title="Audience by Gender"
+          subtitle="Share of viewers per gender"
+          icon={<Users className="h-4 w-4 text-pink-400" />}
+          badge={rangeBadge}
+          data={genderData}
+          valueKeys="percentage"
+          technical={health.ageGender.reason}
+          height={280}
+          emptyMessages={{
+            noDataTitle: "No gender data",
+            noDataDetail:
+              "YouTube withholds gender demographics for channels below its privacy threshold, so the report returns no rows.",
+          }}
+        >
+          {(rows) => (
+            <DonutChart
+              data={rows.map((g) => ({ ...g, name: g.label, value: g.percentage }))}
+              height={280}
+              outerRadius={92}
+              innerRadius={60}
+              tooltipFormat="percent"
+              tooltipSuffix=" of viewers"
+              centerLabel="of viewers"
+            />
+          )}
+        </ChartCard>
       </div>
 
-      {/* ── Top Countries & Device Breakdown ──────────────────────────── */}
+      {/* ── Geography ───────────────────────────────────────────────── */}
       <div className="grid gap-6 lg:grid-cols-2">
-        {/* Top Countries */}
-        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Globe className="h-4 w-4 text-cyan-400" />
-              Top Countries
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {countryData.length > 0 ? (
-              <div className="space-y-3">
-                {countryData.map((country, i) => {
-                  const maxViews = countryData[0]?.views || 1;
-                  const percentage = ((country.views / maxViews) * 100).toFixed(0);
-                  return (
-                    <div key={country.country} className="flex items-center gap-3">
-                      {/* Rank */}
-                      <span className="w-5 text-xs font-bold text-slate-400">{i + 1}</span>
-                      {/* Country name */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium flex items-center gap-1.5">
-                            <MapPin className="h-3 w-3 text-slate-400" />
-                            {country.country}
-                          </span>
-                          <span className="text-xs text-slate-400">
-                            {formatCompactNumber(country.views)} views
-                          </span>
-                        </div>
-                        {/* Progress bar */}
-                        <div className="h-1.5 w-full rounded-full bg-muted/50">
-                          <div
-                            className="h-full rounded-full bg-gradient-to-r from-cyan-500 to-blue-500 transition-all duration-700"
-                            style={{ width: `${percentage}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
-                No geographic data available yet
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ChartCard
+          title="Top Countries by Views"
+          subtitle="Measured view count per country"
+          icon={<Globe className="h-4 w-4 text-cyan-400" />}
+          badge={rangeBadge}
+          data={countryData}
+          valueKeys="views"
+          technical={health.country.reason}
+          height={Math.max(280, countryData.length * 28 + 40)}
+          emptyMessages={{
+            noDataTitle: "No geographic data",
+            noDataDetail: "The country report returned no rows with views for this window.",
+          }}
+        >
+          {(rows) => (
+            <ResponsiveContainer width="100%" height={Math.max(280, rows.length * 28 + 40)}>
+              <BarChart data={rows} layout="vertical" margin={{ top: 4, right: 28, left: 8, bottom: 4 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" horizontal={false} />
+                <XAxis type="number" {...axisX({ tickFormatter: compact, dy: 0 })} />
+                <YAxis
+                  type="category"
+                  dataKey="country"
+                  {...axisY({ width: 92, tick: { fill: "#CBD5E1", fontSize: 12 }, dy: 0 })}
+                />
+                <Tooltip content={<ChartTooltip />} cursor={CURSOR} />
+                <Bar dataKey="views" name="Views" radius={[0, 4, 4, 0]} maxBarSize={20}>
+                  {rows.map((row, i) => (
+                    <Cell key={row.code || row.country || i} fill={CHART_COLORS.secondary} fillOpacity={1 - i * 0.06} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
 
-        {/* Device Breakdown */}
-        <Card className="border-white/10 bg-white/5 backdrop-blur-lg shadow-sm shadow-none">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold flex items-center gap-2">
-              <Smartphone className="h-4 w-4 text-violet-400" />
-              Device Breakdown
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {deviceData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={deviceData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={60}
-                    outerRadius={100}
-                    paddingAngle={3}
-                    dataKey="views"
-                    nameKey="device"
-                  >
-                    {deviceData.map((_, i) => (
-                      <Cell key={i} fill={DEVICE_COLORS[i % DEVICE_COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip content={<CustomTooltip />} />
-                  <Legend iconType="circle" iconSize={8} wrapperStyle={{ fontSize: "12px" }} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="flex h-[280px] items-center justify-center text-sm text-slate-400">
-                No device data available yet
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <ChartCard
+          title="Watch Time by Country"
+          subtitle="Estimated minutes watched per country"
+          icon={<Clock className="h-4 w-4 text-emerald-400" />}
+          badge={rangeBadge}
+          data={countryData.filter((c) => c.watchTime > 0)}
+          valueKeys="watchTime"
+          technical={health.country.reason}
+          height={280}
+          emptyMessages={{
+            noDataTitle: "No watch-time breakdown",
+            noDataDetail: "The country report did not include estimatedMinutesWatched for this window.",
+          }}
+        >
+          {(rows) => (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart
+                data={rows.slice(0, 8).map((r) => ({ ...r, watchHours: Math.round(r.watchTime / 60) }))}
+                layout="vertical"
+                margin={{ top: 4, right: 28, left: 8, bottom: 4 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" horizontal={false} />
+                <XAxis type="number" {...axisX({ tickFormatter: (v) => `${compact(v)}h`, dy: 0 })} />
+                <YAxis
+                  type="category"
+                  dataKey="country"
+                  {...axisY({ width: 92, tick: { fill: "#CBD5E1", fontSize: 12 }, dy: 0 })}
+                />
+                <Tooltip content={<ChartTooltip format="watchTime" valueSuffix=" watched" />} cursor={CURSOR} />
+                <Bar dataKey="watchHours" name="Watch time" radius={[0, 4, 4, 0]} maxBarSize={20} fill={CHART_COLORS.success} />
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
+      </div>
+
+      {/* ── Devices ─────────────────────────────────────────────────── */}
+      <div className="grid gap-6 lg:grid-cols-2">
+        <ChartCard
+          title="Viewing Devices"
+          subtitle="Share of views by device type"
+          icon={<Smartphone className="h-4 w-4 text-violet-400" />}
+          badge={rangeBadge}
+          data={deviceData}
+          valueKeys="views"
+          technical={health.device.reason}
+          height={300}
+          emptyMessages={{
+            noDataTitle: "No device data",
+            noDataDetail: "The deviceType report returned no rows for this window.",
+          }}
+        >
+          {(rows) => (
+            <DonutChart
+              data={rows.map((d) => ({ ...d, name: d.device, value: d.views }))}
+              height={300}
+              outerRadius={98}
+              innerRadius={64}
+              centerLabel="Total Views"
+            />
+          )}
+        </ChartCard>
+
+        <ChartCard
+          title="Watch Time by Device"
+          subtitle="Where the watch time is actually spent"
+          icon={<TrendingUp className="h-4 w-4 text-amber-400" />}
+          badge={rangeBadge}
+          data={deviceData.filter((d) => d.watchTime > 0)}
+          valueKeys="watchTime"
+          technical={health.device.reason}
+          height={300}
+          emptyMessages={{
+            noDataTitle: "No device watch-time data",
+            noDataDetail: "The device report did not include estimatedMinutesWatched for this window.",
+          }}
+        >
+          {(rows) => (
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart
+                data={rows.map((r) => ({ ...r, watchHours: Math.round(r.watchTime / 60) }))}
+                margin={{ top: 16, right: 8, left: 0, bottom: 0 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.12)" vertical={false} />
+                <XAxis dataKey="device" {...axisX({ tick: { fill: "#CBD5E1", fontSize: 11 }, dy: 4 })} />
+                <YAxis {...axisY({ domain: niceDomain(1.2), tickFormatter: (v) => `${compact(v)}h` })} />
+                <Tooltip content={<ChartTooltip format="number" valueSuffix="h watched" />} cursor={CURSOR} />
+                <Bar dataKey="watchHours" name="Watch time" radius={[4, 4, 0, 0]} maxBarSize={64}>
+                  {rows.map((row, i) => (
+                    <Cell key={row.device || i} fill={CHART_COLORS.warning} fillOpacity={1 - i * 0.12} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          )}
+        </ChartCard>
       </div>
     </div>
   );

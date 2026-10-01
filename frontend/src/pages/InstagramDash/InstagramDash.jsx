@@ -14,6 +14,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import igapi from '@/services/igapi';
 import DateRangePicker from '@/components/DateRangePicker';
 import InstagramHashtags from './InstagramHashtags';
+import EngagementInsights from '@/components/charts/EngagementInsights';
 import { 
   Users, Eye, Target, Heart, BarChart3, Bookmark,
   RefreshCw, TrendingUp, ArrowUpRight, ArrowDownRight,
@@ -161,6 +162,11 @@ const InstagramDash = () => {
     data?.audience?.topCountries?.length > 0
   );
 
+  // Instagram returns no day-level insight rows for a low-traffic account, so
+  // the insight view is built from the measured per-media likes and comments
+  // that the media endpoint always returns.
+  const mediaItems = data?.contentPerformance ?? [];
+
   return (
     <div className="p-4 md:p-6 space-y-6 w-full max-w-[1400px] mx-auto">
 
@@ -253,6 +259,28 @@ const InstagramDash = () => {
           <KpiCard key={i} {...kpi} showActive={false} isLoading={isLoading} />
         ))}
       </div>
+
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      {/* Engagement Insights — measured per-media, not time-series      */}
+      {/* ═══════════════════════════════════════════════════════════════ */}
+      <EngagementInsights
+        items={mediaItems}
+        platform="instagram"
+        accent="#E1306C"
+        itemNoun="post"
+        hasShares={false}
+        map={(m) => ({
+          id: m.id,
+          label: m.caption || m.title || m.type || 'Post',
+          date: m.date || null,
+          likes: m.likes ?? 0,
+          comments: m.comments ?? 0,
+          // The public media endpoint returns no share, save, reach or view
+          // counts, so they stay null rather than reading as a measured zero.
+          shares: null,
+          views: null,
+        })}
+      />
 
       {/* ═══════════════════════════════════════════════════════════════ */}
       {/* ROW 3 — Main Analytical Visualization Row                     */}

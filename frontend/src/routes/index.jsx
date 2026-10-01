@@ -6,6 +6,7 @@ import { createBrowserRouter, Navigate } from "react-router-dom";
 
 // ── Page Imports ────────────────────────────────────────────────────
 import LandingPage from "@/pages/LandingPage/LandingPage";
+import CreatorDash from "@/pages/CreatorDash/CreatorDash";
 import AuthPage from "@/pages/Auth/AuthPage";
 import YoutubeLayout from "@/pages/YoutubeDash/YoutubeLayout";
 import YoutubeOverview from "@/pages/YoutubeDash/YoutubeOverview";
@@ -59,7 +60,7 @@ import CrossPostingDash from "@/pages/CrossPostingDash/CrossPostingDash";
 import NewPostPage from "@/pages/CrossPostingDash/NewPostPage";
 import CrossPostHistory from "@/pages/CrossPostingDash/CrossPostHistory";
 import CrossPostLayout from "@/pages/CrossPostingDash/CrossPostLayout";
-import CombinedOverview from "@/pages/CombinedOverview/CombinedOverview";
+import CrossPostRequests from "@/pages/CrossPostingDash/CrossPostRequests";
 import NotFound from "@/pages/NotFound/NotFound";
 import Settings from "@/pages/Settings";
 
@@ -82,6 +83,7 @@ const router = createBrowserRouter([
   { path: "/", element: <LandingPage /> },
   { path: "/login", element: <AuthPage /> },
   { path: "/signup", element: <AuthPage /> },
+  { path: "/creator-preview", element: <CreatorDash /> },
   { path: "/settings", element: <ProtectedRoute><Settings /></ProtectedRoute> },
 
   // ── Dashboard Routes (wrapped in layout shell) ────────────────────
@@ -89,8 +91,7 @@ const router = createBrowserRouter([
     path: "/dashboard",
     element: <ProtectedRoute><DashboardLayout /></ProtectedRoute>,
     children: [
-      { index: true, element: <Navigate to="/dashboard/combined" replace /> },
-      { path: "combined", element: <CombinedOverview /> },
+      { index: true, element: <Navigate to="/dashboard/crosspost" replace /> },
       {
         path: "youtube",
         element: <YoutubeLayout />,
@@ -168,6 +169,7 @@ const router = createBrowserRouter([
         element: <CrossPostLayout />,
         children: [
           { index: true, element: <CrossPostingDash /> },
+          { path: "requests", element: <CrossPostRequests /> },
           { path: "new", element: <NewPostPage /> },
           { path: "history", element: <CrossPostHistory /> },
         ]

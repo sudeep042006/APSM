@@ -1,14 +1,17 @@
 // ── Sidebar Component ───────────────────────────────────────────────
-// Global navigation sidebar for the dashboard. Renders platform links,
-// a branding header, and a logout action at the bottom.
+// Global navigation sidebar for the dashboard, split into two groups:
+//
+//   Platforms  — one entry per connected social network
+//   Work Space — the tools that act on those accounts, plus Settings
+//
+// Sign-out lives in Settings rather than here, so this bar only navigates.
 
 import { NavLink } from "react-router-dom";
 import { useAuth } from "@/context/AuthContext";
 import {
-  LogOut,
   Menu,
-  LayoutDashboard,
   Send,
+  Settings,
   ChevronLeft,
 } from "lucide-react";
 import { Youtube, Linkedin, Facebook, Instagram } from "@/components/icons/BrandIcons";
@@ -16,18 +19,21 @@ import { Button } from "@/components/ui/button";
 import ApsmLogo from "@/assets/images/apsm-logo.svg";
 
 // ── Navigation Link Items ───────────────────────────────────────────
-// Defines the left-hand menu navigation links. Unbundled Meta into
-// separate Facebook and Instagram entries.
-const navItems = [
-  { label: "Combined Overview", path: "/dashboard/combined", icon: LayoutDashboard, isNew: true },
+// Grouped rather than one flat list so each entry reads as either a place to
+// look at an account or a tool that works across them.
+const platformItems = [
   { label: "YouTube", path: "/dashboard/youtube", icon: Youtube, tint: "#FF4E45" },
   { label: "LinkedIn", path: "/dashboard/linkedin", icon: Linkedin, tint: "#5C8DFA" },
   { label: "Facebook", path: "/dashboard/facebook", icon: Facebook, tint: "#8F73F2" },
   { label: "Instagram", path: "/dashboard/instagram", icon: Instagram, tint: "#C86DD7" },
-  { label: "Cross-Posting", path: "/dashboard/crosspost", icon: Send, tint: "#22D3EE" },
 ];
 
-// ── Small section label above the platform group ─────────────────────
+const workspaceItems = [
+  { label: "Cross-Posting", path: "/dashboard/crosspost", icon: Send, tint: "#22D3EE" },
+  { label: "Settings", path: "/settings", icon: Settings, tint: "#A78BFA" },
+];
+
+// ── Small section label above a group ───────────────────────────────
 function SectionLabel({ children, collapsed }) {
   if (collapsed) {
     return <div className="mx-auto my-3 h-px w-6 bg-gradient-to-r from-transparent via-white/15 to-transparent" />;
@@ -39,8 +45,60 @@ function SectionLabel({ children, collapsed }) {
   );
 }
 
+// ── One labelled group of links ──────────────────────────────────────
+// Extracted so "Platforms" and "Work Space" render identically and the
+// collapsed state needs handling in exactly one place.
+function NavGroup({ label, items, isCollapsed }) {
+  return (
+    <div className="space-y-1">
+      <SectionLabel collapsed={isCollapsed}>{label}</SectionLabel>
+
+      {items.map((item) => {
+        const Icon = item.icon;
+        return (
+          <NavLink
+            key={item.path}
+            to={item.path}
+            title={isCollapsed ? item.label : undefined}
+            className={({ isActive }) =>
+              `group relative flex items-center rounded-xl py-2.5 text-sm font-semibold tracking-[-0.01em] transition-all duration-300 ease-smooth ${
+                isCollapsed ? "justify-center px-0" : "gap-3 px-3"
+              } ${
+                isActive
+                  ? "border border-primary/25 bg-[linear-gradient(100deg,hsl(var(--brand-violet)/0.20),hsl(var(--brand-blue)/0.08))] text-white shadow-glow-sm"
+                  : "border border-transparent text-muted-foreground hover:translate-x-0.5 hover:bg-white/[0.05] hover:text-white"
+              }`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                {/* Active indicator rail */}
+                {isActive && (
+                  <span className="absolute inset-y-1/2 left-0 h-6 w-[2px] -translate-y-1/2 rounded-r-full bg-[linear-gradient(180deg,hsl(var(--brand-violet)),hsl(var(--brand-blue)))] shadow-[0_0_12px_hsl(var(--primary)/0.9)]" />
+                )}
+
+                <span
+                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-300 ${
+                    isActive
+                      ? "bg-white/[0.08] text-white shadow-inner"
+                      : "text-muted-foreground group-hover:text-white"
+                  }`}
+                >
+                  <Icon className="h-4 w-4" />
+                </span>
+
+                {!isCollapsed && <span className="whitespace-nowrap">{item.label}</span>}
+              </>
+            )}
+          </NavLink>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function Sidebar({ isCollapsed, setIsCollapsed }) {
-  const { logout, user } = useAuth();
+  const { user } = useAuth();
   const initials = user?.name?.charAt(0)?.toUpperCase() || "U";
 
   return (
@@ -104,68 +162,20 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
       </div>
 
       {/* ── Navigation Links ─────────────────────────────────────────── */}
-      <nav className="relative flex-1 space-y-1 overflow-y-auto overflow-x-hidden px-3 py-4">
-        <SectionLabel collapsed={isCollapsed}>Workspace</SectionLabel>
-
-        {navItems.map((item, idx) => {
-          const Icon = item.icon;
-          return (
-            <div key={item.path}>
-              {idx === 1 && <SectionLabel collapsed={isCollapsed}>Platforms</SectionLabel>}
-              <NavLink
-                to={item.path}
-                className={({ isActive }) =>
-                  `group relative flex items-center rounded-xl py-2.5 text-sm font-semibold tracking-[-0.01em] transition-all duration-300 ease-smooth ${
-                    isCollapsed ? "justify-center px-0" : "gap-3 px-3"
-                  } ${
-                    isActive
-                      ? "border border-primary/25 bg-[linear-gradient(100deg,hsl(var(--brand-violet)/0.20),hsl(var(--brand-blue)/0.08))] text-white shadow-glow-sm"
-                      : "border border-transparent text-muted-foreground hover:translate-x-0.5 hover:bg-white/[0.05] hover:text-white"
-                  }`
-                }
-                title={isCollapsed ? item.label : undefined}
-              >
-                {({ isActive }) => (
-                  <>
-                    {/* Active indicator rail */}
-                    {isActive && (
-                      <span className="absolute inset-y-1/2 left-0 h-6 w-[2px] -translate-y-1/2 rounded-r-full bg-[linear-gradient(180deg,hsl(var(--brand-violet)),hsl(var(--brand-blue)))] shadow-[0_0_12px_hsl(var(--primary)/0.9)]" />
-                    )}
-
-                    <span
-                      className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg transition-all duration-300 ${
-                        isActive
-                          ? "bg-white/[0.08] text-white shadow-inner"
-                          : "text-muted-foreground group-hover:text-white"
-                      }`}
-                    >
-                      <Icon className="h-4 w-4" />
-                    </span>
-
-                    {!isCollapsed && (
-                      <>
-                        <span className="whitespace-nowrap">{item.label}</span>
-                        {item.isNew && (
-                          <span className="ml-auto rounded-md bg-[linear-gradient(120deg,hsl(var(--brand-violet)),hsl(var(--brand-blue)))] px-1.5 py-0.5 text-[9px] font-extrabold tracking-[0.12em] text-white shadow-glow-sm">
-                            NEW
-                          </span>
-                        )}
-                      </>
-                    )}
-                  </>
-                )}
-              </NavLink>
-            </div>
-          );
-        })}
+      <nav className="relative flex-1 space-y-4 overflow-y-auto overflow-x-hidden px-3 py-4">
+        {/* Platforms first — they are the accounts. Work Space below holds the
+            tools that act across them. */}
+        <NavGroup label="Platforms" items={platformItems} isCollapsed={isCollapsed} />
+        <NavGroup label="Work Space" items={workspaceItems} isCollapsed={isCollapsed} />
       </nav>
 
-      {/* ── User Info & Logout ────────────────────────────────────────── */}
+      {/* ── Signed-in user ────────────────────────────────────────────── */}
       <div className="relative border-t border-white/[0.07] p-3">
         <div
-          className={`mb-2 flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] p-2 ${
+          className={`flex items-center gap-3 rounded-xl border border-white/[0.06] bg-white/[0.03] p-2 ${
             isCollapsed ? "justify-center" : ""
           }`}
+          title={isCollapsed ? user?.email || "Account" : undefined}
         >
           <div className="relative flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[linear-gradient(135deg,hsl(var(--brand-purple)),hsl(var(--brand-blue)))] text-xs font-bold text-white shadow-glow-sm">
             {initials}
@@ -181,30 +191,6 @@ export default function Sidebar({ isCollapsed, setIsCollapsed }) {
             </div>
           )}
         </div>
-
-        {isCollapsed ? (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={logout}
-            id="sidebar-logout-btn"
-            title="Logout"
-            className="w-full text-muted-foreground hover:bg-destructive/10 hover:text-red-400"
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        ) : (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="w-full justify-start gap-2 text-muted-foreground hover:bg-destructive/10 hover:text-red-400"
-            onClick={logout}
-            id="sidebar-logout-btn"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Log out</span>
-          </Button>
-        )}
       </div>
 
       {/* ── Collapsed-state expander ──────────────────────────────────── */}

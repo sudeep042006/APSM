@@ -1,23 +1,28 @@
-import { Activity, BarChart3, Bookmark, Calendar, ChevronDown, Eye, FileText, Heart, HelpCircle, History, MessageCircle, MoreVertical, Settings, Share2, Target, ThumbsUp, TrendingDown, TrendingUp, Users, Video } from 'lucide-react';
-import {
-  ResponsiveContainer, LineChart, Line, BarChart, Bar, AreaChart, Area,
-  PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-} from "recharts";
+import { Activity, TrendingUp } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import ChartTooltip from "@/components/charts/ChartTooltip";
+import { PLATFORM_ACCENT } from "@/components/charts/platformTheme";
+import { compact, percent } from "@/components/charts/chartTheme";
 
-const FB_BLUE = "#1877F2";
-const PIE_COLORS = ["#1877F2", "#10b981", "#8b5cf6", "#64748b"];
+const FB_BLUE = PLATFORM_ACCENT.facebook;
 
-export function EmptyState({ title, description, icon: Icon, actionLabel }) {
+export function EmptyState({ title, description, icon: Icon, actionLabel, onAction, accent = "blue" }) {
+  const ring = accent === "pink" ? "bg-pink-500/10 text-pink-400" : "bg-blue-500/10 text-blue-400";
+  const btn = accent === "pink" ? "bg-[#E1306C] hover:bg-[#E1306C]/90" : "bg-blue-600 hover:bg-blue-700";
   return (
-    <div className="flex flex-col items-center justify-center py-20 px-4 text-center bg-[#161B22] rounded-xl border border-white/5">
-      <div className="flex h-16 w-16 items-center justify-center rounded-full bg-blue-500/10 mb-6">
-        <Icon className="h-8 w-8 text-blue-500" />
-      </div>
-      <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
-      <p className="text-sm text-slate-400 max-w-md mb-6">{description}</p>
-      {actionLabel && (
-        <button className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors">
+    <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-slate-900/30 px-4 py-16 text-center">
+      {Icon && (
+        <div className={`mb-5 flex h-14 w-14 items-center justify-center rounded-full ${ring}`}>
+          <Icon className="h-7 w-7" />
+        </div>
+      )}
+      <h3 className="mb-2 text-base font-semibold text-white">{title}</h3>
+      {description && <p className="max-w-md text-sm leading-relaxed text-slate-400">{description}</p>}
+      {actionLabel && onAction && (
+        <button
+          onClick={onAction}
+          className={`mt-5 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${btn}`}
+        >
           {actionLabel}
         </button>
       )}
@@ -60,7 +65,7 @@ export function ConnectPrompt({ onConnect, platform, icon: Icon }) {
   
   return (
     <div className="flex min-h-[60vh] items-center justify-center animate-fade-in w-full">
-      <Card className="w-full max-w-md bg-[#161B22]/60 border-white/10 shadow-2xl p-6 text-center backdrop-blur-md">
+      <Card className="surface-card w-full max-w-md p-6 text-center">
         <CardHeader className="flex flex-col items-center gap-2 p-0">
           <div className={`flex h-16 w-16 items-center justify-center rounded-2xl ${bg}`}>
             <Icon className={`h-8 w-8 ${text}`} />
@@ -85,48 +90,53 @@ export function ConnectPrompt({ onConnect, platform, icon: Icon }) {
 
 // ── Scaffolded Facebook Child Components ────────────────────────────────
 
-export function KpiCard({ title, value, showActive, icon: Icon }) {
+/**
+ * KPI tile.
+ *
+ * `hint` replaced the old `showActive` flag. That badge rendered a green
+ * "Active" tick for any metric above zero, which carried no information — it
+ * claimed a trend that was never measured. Now the row under the value either
+ * shows a real period-over-period delta or states that no comparison exists.
+ */
+export function KpiCard({ title, value, hint, hintTone, icon: Icon, unavailable = false }) {
   return (
-    <Card className="bg-[#10141D] border border-white/[0.06] rounded-xl p-5 shadow-none transition-colors hover:bg-white/[0.01]">
-      {/* Card Top Row: Uppercase Title & Slate Icon */}
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-[#8B949E] text-[11px] font-semibold tracking-wider uppercase">
+    <Card className="surface-card p-5">
+      <div className="flex items-start justify-between gap-2">
+        <span className="text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
           {title}
         </span>
-        {Icon && <Icon className="w-4 h-4 text-[#8B949E]" />}
+        {Icon && (
+          <span className="rounded-lg bg-white/5 p-1.5 ring-1 ring-white/10">
+            <Icon className="h-3.5 w-3.5 text-slate-400" />
+          </span>
+        )}
       </div>
 
-      {/* Card Main Value */}
-      <div className="text-3xl font-bold text-white mb-2 tracking-tight">
+      <div
+        className={`mt-2.5 text-[26px] font-bold leading-none tracking-tight tabular-nums ${
+          unavailable ? "text-slate-500" : "text-white"
+        }`}
+      >
         {value}
       </div>
 
-      {/* Card Bottom Row: Optional Active Badge OR Empty Spacer */}
-      {showActive ? (
-        <div className="flex items-center gap-1 text-xs font-medium text-[#10B981]">
-          <TrendingUp className="w-3.5 h-3.5" />
-          <span>Active</span>
-        </div>
-      ) : (
-        <div className="h-4" />
+      {hint && (
+        <p
+          className={`mt-2.5 text-[11px] ${
+            hintTone === "muted" ? "text-slate-500" : "text-slate-400"
+          }`}
+        >
+          {hint}
+        </p>
       )}
     </Card>
   );
 }
 
-export function DarkTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="bg-[#161B22] border border-white/10 rounded-lg p-3 shadow-xl text-xs">
-      <p className="font-semibold text-white mb-1">{label}</p>
-      {payload.map((e, i) => (
-        <p key={i} style={{ color: e.color }}>
-          {e.name}: <span className="font-bold text-white">{e.value}</span>
-        </p>
-      ))}
-    </div>
-  );
-}
+// Re-exported rather than re-implemented: Facebook and Instagram each carried
+// their own tooltip with slightly different markup, which is why hover states
+// looked inconsistent between tabs.
+export const DarkTooltip = ChartTooltip;
 
 export function FacebookDataTable({ data, title, icon: Icon, kpis = [] }) {
   if (!data || data.length === 0) return <EmptyState title={`No ${title} Found`} description={`You haven't published any ${title.toLowerCase()} yet.`} icon={Icon} />;
@@ -139,11 +149,12 @@ export function FacebookDataTable({ data, title, icon: Icon, kpis = [] }) {
       {kpis.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {kpis.map((k, i) => (
-            <KpiCard 
-              key={i} 
-              title={k.label} 
-              value={k.value} 
-              showActive={false} 
+            <KpiCard
+              key={i}
+              title={k.label}
+              value={k.value}
+              hint={k.hint}
+              unavailable={k.value === "—"}
             />
           ))}
         </div>
@@ -246,11 +257,12 @@ export function InstagramDataTable({ data, title, icon: Icon, kpis = [] }) {
       {kpis.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
           {kpis.map((k, i) => (
-            <KpiCard 
-              key={i} 
-              title={k.label} 
-              value={k.value} 
-              showActive={false} 
+            <KpiCard
+              key={i}
+              title={k.label}
+              value={k.value}
+              hint={k.hint}
+              unavailable={k.value === "—"}
             />
           ))}
         </div>
@@ -342,13 +354,16 @@ export function InstagramDataTable({ data, title, icon: Icon, kpis = [] }) {
   );
 }
 
-export function ProgressBar({ label, value, max, color = FB_BLUE }) {
+export function ProgressBar({ label, value, max, color = FB_BLUE, formatValue }) {
+  // Width is derived from `max`; the label reports the raw value rather than
+  // assuming it is a percentage.
   const w = max > 0 ? Math.min(Math.round((value / max) * 100), 100) : 0;
+  const shown = typeof formatValue === "function" ? formatValue(value) : compact(value);
   return (
     <div className="space-y-1">
       <div className="flex justify-between text-xs">
         <span className="text-slate-300">{label}</span>
-        <span className="text-slate-400">{value}%</span>
+        <span className="text-slate-400 tabular-nums">{shown}</span>
       </div>
       <div className="w-full h-1.5 rounded-full bg-white/5 overflow-hidden flex-shrink-0">
         <div className="h-full rounded-full transition-all duration-700" style={{ width: `${w}%`, background: color }} />
@@ -356,3 +371,6 @@ export function ProgressBar({ label, value, max, color = FB_BLUE }) {
     </div>
   );
 }
+
+/** Formats a share only when a real denominator exists. */
+export const shareLabel = (value, total) => (total > 0 ? percent((value / total) * 100) : "—");

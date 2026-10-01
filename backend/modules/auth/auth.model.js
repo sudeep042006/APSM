@@ -1,48 +1,49 @@
 // modules/auth/auth.model.js
 
-import mongoose from 'mongoose';
-import crypto from 'crypto';
+import mongoose from "mongoose";
+import crypto from "crypto";
 
 // ─── Encryption helpers ───────────────────────────────────────────────────────
-const ALGORITHM = 'aes-256-cbc';
+const ALGORITHM = "aes-256-cbc";
 const IV_LENGTH = 16;
 
 function getKey() {
-  if (!process.env.ENCRYPTION_KEY) throw new Error('ENCRYPTION_KEY is not set in .env');
-  return Buffer.from(process.env.ENCRYPTION_KEY, 'hex');
+  if (!process.env.ENCRYPTION_KEY)
+    throw new Error("ENCRYPTION_KEY is not set in .env");
+  return Buffer.from(process.env.ENCRYPTION_KEY, "hex");
 }
 
 function encrypt(text) {
   if (!text) return null;
   const iv = crypto.randomBytes(IV_LENGTH);
   const cipher = crypto.createCipheriv(ALGORITHM, getKey(), iv);
-  const enc = Buffer.concat([cipher.update(text, 'utf8'), cipher.final()]);
-  return `${iv.toString('hex')}:${enc.toString('hex')}`;
+  const enc = Buffer.concat([cipher.update(text, "utf8"), cipher.final()]);
+  return `${iv.toString("hex")}:${enc.toString("hex")}`;
 }
 
 function decrypt(stored) {
   if (!stored) return null;
-  const [ivHex, encHex] = stored.split(':');
+  const [ivHex, encHex] = stored.split(":");
   const decipher = crypto.createDecipheriv(
     ALGORITHM,
     getKey(),
-    Buffer.from(ivHex, 'hex')
+    Buffer.from(ivHex, "hex"),
   );
   const dec = Buffer.concat([
-    decipher.update(Buffer.from(encHex, 'hex')),
+    decipher.update(Buffer.from(encHex, "hex")),
     decipher.final(),
   ]);
-  return dec.toString('utf8');
+  return dec.toString("utf8");
 }
 
 // ─── Refresh log sub-schema ───────────────────────────────────────────────────
 const refreshLogSchema = new mongoose.Schema(
   {
-    status: { type: String, enum: ['success', 'failed'], required: true },
+    status: { type: String, enum: ["success", "failed"], required: true },
     error: { type: String, default: null },
     refreshedAt: { type: Date, default: Date.now },
   },
-  { _id: false }
+  { _id: false },
 );
 
 // ─── Social account sub-schema ────────────────────────────────────────────────
@@ -50,7 +51,7 @@ const socialAccountSchema = new mongoose.Schema(
   {
     platform: {
       type: String,
-      enum: ['youtube', 'facebook', 'instagram', 'linkedin'],
+      enum: ["youtube", "facebook", "instagram", "linkedin"],
       required: true,
     },
     platformUserId: { type: String, required: true },
@@ -66,18 +67,26 @@ const socialAccountSchema = new mongoose.Schema(
 
     refreshLog: { type: [refreshLogSchema], default: [] },
   },
-  { _id: true }
+  { _id: true },
 );
 
 socialAccountSchema
-  .virtual('accessToken')
-  .get(function () { return decrypt(this._accessToken); })
-  .set(function (v) { this._accessToken = encrypt(v); });
+  .virtual("accessToken")
+  .get(function () {
+    return decrypt(this._accessToken);
+  })
+  .set(function (v) {
+    this._accessToken = encrypt(v);
+  });
 
 socialAccountSchema
-  .virtual('refreshToken')
-  .get(function () { return decrypt(this._refreshToken); })
-  .set(function (v) { this._refreshToken = encrypt(v); });
+  .virtual("refreshToken")
+  .get(function () {
+    return decrypt(this._refreshToken);
+  })
+  .set(function (v) {
+    this._refreshToken = encrypt(v);
+  });
 
 socialAccountSchema.methods.isExpired = function () {
   if (!this.expiresAt) return false;
@@ -94,20 +103,34 @@ const userSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Name is required'],
+      required: [true, "Name is required"],
       trim: true,
     },
     email: {
       type: String,
-      required: [true, 'Email is required'],
+      required: [true, "Email is required"],
       unique: true,
       lowercase: true,
       trim: true,
-      match: [/^\S+@\S+\.\S+$/, 'Please enter a valid email'],
+      match: [/^\S+@\S+\.\S+$/, "Please enter a valid email"],
     },
     passwordHash: {
       type: String,
-      required: [true, 'Password is required'],
+      required: [true, "Password is required"],
+    },
+    role: {
+      type: String,
+      // Two roles only: an admin (runs the dashboards and the cross-posting
+      // workspace) and a creator (submits content for review). Earlier revisions
+      // of this enum also carried a third value that no row in the database
+      // used, so it is not supported here.
+      enum: ["admin", "creator"],
+      default: "admin",
+    },
+    adminId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
     },
     socialAccounts: [socialAccountSchema],
   },
@@ -115,18 +138,22 @@ const userSchema = new mongoose.Schema(
     timestamps: true,
     toJSON: { virtuals: false },
     toObject: { virtuals: false }, // ✅ FIXED (was true)
-  }
+  },
 );
 
 userSchema.methods.getSocialAccount = function (platform) {
-  return this.socialAccounts.find(a => a.platform === platform && a.isActive) || null;
+  return (
+    this.socialAccounts.find((a) => a.platform === platform && a.isActive) ||
+    null
+  );
 };
 
 userSchema.methods.upsertSocialAccount = function (platform, data) {
-  const existing = this.socialAccounts.find(a => a.platform === platform);
+  const existing = this.socialAccounts.find((a) => a.platform === platform);
   if (existing) {
     existing.platformUserId = data.platformUserId;
-    existing.platformUsername = data.platformUsername ?? existing.platformUsername;
+    existing.platformUsername =
+      data.platformUsername ?? existing.platformUsername;
     existing.accessToken = data.accessToken;
     if (data.refreshToken) existing.refreshToken = data.refreshToken;
     existing.scopes = data.scopes ?? existing.scopes;
@@ -149,8 +176,8 @@ userSchema.methods.upsertSocialAccount = function (platform, data) {
 
 // Indexes
 // ❌ REMOVED: duplicate email index
-userSchema.index({ 'socialAccounts.platform': 1 });
+userSchema.index({ "socialAccounts.platform": 1 });
 
-const User = mongoose.model('User', userSchema);
+const User = mongoose.model("User", userSchema);
 
 export { User, encrypt, decrypt };

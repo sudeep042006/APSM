@@ -1,48 +1,54 @@
 // server.js — entry point
-import dotenv from 'dotenv';
+import dotenv from "dotenv";
 dotenv.config();
 
 // ES modules
-import express from 'express';
-import cors from 'cors';
-import connectDB from './config/db.js';
-import { authRouter, userRouter } from './modules/auth/auth.routes.js';
-import analyticsRouter from './modules/analytics/analytics.routes.js';
-import automationRouter from './modules/automation/automation.routes.js';
-import mlChatbotRouter from './modules/mlChatbot/mlChatbot.routes.js';
-import reportsRouter from './modules/reports/reports.routes.js';
-import { errorHandler } from './middleware/errorHandler.js';
-import connectRedis from './config/redis.js';
-import './modules/automation/automation.worker.js'; // Start the cross-posting worker
-import { startAnalyticsCron } from './modules/analytics/analytics.cron.js';
+import express from "express";
+import cors from "cors";
+import connectDB from "./config/db.js";
+import { authRouter, userRouter } from "./modules/auth/auth.routes.js";
+import analyticsRouter from "./modules/analytics/analytics.routes.js";
+import automationRouter from "./modules/automation/automation.routes.js";
+import mlChatbotRouter from "./modules/mlChatbot/mlChatbot.routes.js";
+import reportsRouter from "./modules/reports/reports.routes.js";
+import creatorPostRouter from "./modules/creatorPost/creatorPost.routes.js";
+import { errorHandler } from "./middleware/errorHandler.js";
+import connectRedis from "./config/redis.js";
+import "./modules/automation/automation.worker.js"; // Start the cross-posting worker
+import { startAnalyticsCron } from "./modules/analytics/analytics.cron.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
-const frontendOrigin = (process.env.FRONTEND_URL || 'http://localhost:5173').replace(/\/$/, '');
+const frontendOrigin = (
+  process.env.FRONTEND_URL || "http://localhost:5173"
+).replace(/\/$/, "");
 
-app.use(cors({
-  origin: frontendOrigin,
-  credentials: true,
-}));
+app.use(
+  cors({
+    origin: frontendOrigin,
+    credentials: true,
+  }),
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // ─── Routes ───────────────────────────────────────────────────────────────────
-app.use('/auth', authRouter);
-app.use('/user', userRouter);
-app.use('/analytics', analyticsRouter);
-app.use('/automation', automationRouter);
-app.use('/chatbot', mlChatbotRouter);
-app.use('/reports', reportsRouter);
+app.use("/auth", authRouter);
+app.use("/user", userRouter);
+app.use("/analytics", analyticsRouter);
+app.use("/automation", automationRouter);
+app.use("/chatbot", mlChatbotRouter);
+app.use("/reports", reportsRouter);
+app.use("/creator-posts", creatorPostRouter);
 
 // Health check — visit http://localhost:5000/health to confirm server is alive
-app.get('/health', (req, res) => {
+app.get("/health", (req, res) => {
   res.json({
-    status: 'ok',
+    status: "ok",
     timestamp: new Date().toISOString(),
-    env: process.env.NODE_ENV || 'development',
+    env: process.env.NODE_ENV || "development",
   });
 });
 
@@ -62,7 +68,7 @@ startAnalyticsCron(); // Start the analytics 6-hour refresh cron job
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running on http://localhost:${PORT}`);
   console.log(`   Health check: http://localhost:${PORT}/health`);
-  console.log(`   Environment:  ${process.env.NODE_ENV || 'development'}\n`);
+  console.log(`   Environment:  ${process.env.NODE_ENV || "development"}\n`);
 });
 
 export default app;

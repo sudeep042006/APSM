@@ -20,26 +20,53 @@ export const fetchYouTubeStatus = async () => {
 
 let snapshotCache = null;
 let cacheTime = null;
+let cacheKey = null;
 
-const getCachedSnapshot = async (force = false) => {
-  if (!force && snapshotCache && cacheTime && (Date.now() - cacheTime < 5000)) {
+const CACHE_TTL_MS = 5000;
+
+// The range is part of the cache identity: picking a different window on the
+// dashboard must never be served the previous window's snapshot.
+const buildCacheKey = (force, range) =>
+  JSON.stringify({
+    force: !!force,
+    start: range?.startDate ?? null,
+    end: range?.endDate ?? null,
+  });
+
+const getCachedSnapshot = async (force = false, range = null) => {
+  const key = buildCacheKey(force, range);
+
+  if (!force && snapshotCache && cacheKey === key && cacheTime && Date.now() - cacheTime < CACHE_TTL_MS) {
     return snapshotCache;
   }
-  const url = force ? "/analytics/youtube?forceRefresh=true" : "/analytics/youtube";
-  const response = await api.get(url);
+
+  const params = {};
+  if (force) params.forceRefresh = "true";
+  if (range?.startDate) params.startDate = range.startDate;
+  if (range?.endDate) params.endDate = range.endDate;
+
+  const response = await api.get("/analytics/youtube", { params });
+
   snapshotCache = response.data?.data || null;
   cacheTime = Date.now();
+  cacheKey = key;
   return snapshotCache;
+};
+
+export const clearYouTubeAnalyticsCache = () => {
+  snapshotCache = null;
+  cacheTime = null;
+  cacheKey = null;
 };
 
 // ── Fetch Full YouTube Analytics Snapshot ────────────────────────────
 // Calls GET /analytics/youtube which triggers a fresh YouTube API fetch
 // on the backend, or returns the latest cached snapshot.
+// `options` MUST be forwarded: it carries the dashboard's selected date window,
+// which the backend uses to build the YouTube Reporting API query.
 export const fetchYouTubeAnalytics = async (force = false, options = null) => {
   try {
-    const snapshot = await getCachedSnapshot(force);
-    if (!snapshot) return null;
-    return snapshot;
+    return await getCachedSnapshot(force, options);
   } catch (err) {
     console.error("Failed to fetch YouTube analytics:", err);
     throw err;
@@ -66,6 +93,64 @@ export const revokeYouTube = async () => {
 // DATA PARSERS — Transform raw API snapshot into UI-ready structures
 // ─────────────────────────────────────────────────────────────────────
 
+/**
+ * Builds a column-name → index map for a YouTube Reporting API result.
+ * Returns null when the report is missing or malformed, so callers can bail out
+ * instead of indexing with `undefined` (which silently yields all-zero rows
+ * that still satisfy a `length > 0` guard and render as a blank chart).
+ */
+const buildColumnMap = (report) => {
+  if (!report || !Array.isArray(report.rows) || !Array.isArray(report.columnHeaders)) return null;
+  const map = {};
+  report.columnHeaders.forEach((h, i) => {
+    if (h && h.name) map[h.name] = i;
+  });
+  return map;
+};
+
+/**
+ * The backend records why each report failed. Surfacing this lets the UI show
+ * "the API returned no rows for this period" instead of an unexplained blank chart.
+ */
+export const parseReportHealth = (snapshot) => {
+  const raw = snapshot?.rawPlatformData;
+  const reports = raw?.analyticsReports || {};
+  const errors = raw?.reportErrors || null;
+
+  const health = {};
+  for (const key of ["daily", "country", "device", "ageGender"]) {
+    const report = reports[key];
+    const colMap = buildColumnMap(report);
+    health[key] = {
+      ok: !!colMap && report.rows.length > 0,
+      rowCount: Array.isArray(report?.rows) ? report.rows.length : 0,
+      reason: errors?.[key] || null,
+    };
+  }
+  return health;
+};
+
+/**
+ * The window the snapshot was actually built for. YouTube Reporting data lags
+ * ~2 days, so the backend clamps the requested range; the UI must label charts
+ * with the effective window rather than the requested one.
+ */
+export const parseEffectiveRange = (snapshot) => {
+  const range = snapshot?.rawPlatformData?.range;
+  if (!range || !range.startDate || !range.endDate) return null;
+  return {
+    startDate: range.startDate,
+    endDate: range.endDate,
+    requestedStartDate: range.requestedStartDate || null,
+    requestedEndDate: range.requestedEndDate || null,
+    clampedByLagDays: range.clampedByLagDays || 0,
+    days: Math.max(
+      1,
+      Math.round((new Date(range.endDate) - new Date(range.startDate)) / 86_400_000) + 1
+    ),
+  };
+};
+
 // ── Parse Channel Information ───────────────────────────────────────
 // Extracts channel name, thumbnail, and description from rawPlatformData.
 export const parseChannelInfo = (snapshot) => {
@@ -88,83 +173,98 @@ export const parseChannelInfo = (snapshot) => {
 };
 
 // ── Parse Core KPI Metrics ──────────────────────────────────────────
-// Returns the main KPI values: subscribers, views, impressions, engagement.
+// Returns the main KPI values: subscribers, views, watch time, engagement.
 export const parseCoreMetrics = (snapshot) => {
   const metrics = snapshot?.metrics || {};
   const channelStats = snapshot?.rawPlatformData?.channelDetails?.statistics || {};
+  const totals = snapshot?.rawPlatformData?.totals || {};
 
-  // Calculate watch time from daily report if available
-  let totalWatchTimeMinutes = 0;
+  // Prefer the backend's pre-aggregated, period-scoped totals; fall back to
+  // summing the daily report only when a column actually exists.
   const daily = snapshot?.rawPlatformData?.analyticsReports?.daily;
-  if (daily?.rows && Array.isArray(daily.rows) && daily?.columnHeaders) {
-    const watchIdx = daily.columnHeaders.findIndex((h) => h?.name === "estimatedMinutesWatched");
-    if (watchIdx !== -1) {
-      for (const row of daily.rows) {
-        if (Array.isArray(row)) {
-          totalWatchTimeMinutes += parseInt(row[watchIdx]) || 0;
-        }
-      }
+  const colMap = buildColumnMap(daily);
+  let totalWatchTimeMinutes = parseInt(totals.watchTimeMinutes) || 0;
+  let periodViews = parseInt(totals.totalViews30Days) || 0;
+
+  if (colMap && colMap.estimatedMinutesWatched !== undefined && !totalWatchTimeMinutes) {
+    for (const row of daily.rows) {
+      if (Array.isArray(row)) totalWatchTimeMinutes += parseInt(row[colMap.estimatedMinutesWatched]) || 0;
+    }
+  }
+  if (!periodViews && colMap && colMap.views !== undefined) {
+    for (const row of daily.rows) {
+      if (Array.isArray(row)) periodViews += parseInt(row[colMap.views]) || 0;
     }
   }
 
-  // Calculate engagement rate: (totalEngagement / impressions) * 100
-  const impressions = parseFloat(metrics.impressions) || 0;
   const totalEngagement = parseFloat(metrics.totalEngagement) || 0;
-  const engagementRate =
-    impressions > 0
-      ? ((totalEngagement / impressions) * 100).toFixed(2)
-      : "0.00";
+
+  // Engagement rate is measured against VIEWS for the period. The previous code
+  // divided by `metrics.impressions`, which YouTube does not expose — it stored
+  // the view count there, so the rate was always 0 whenever the report failed.
+  const engagementRate = periodViews > 0 ? (totalEngagement / periodViews) * 100 : 0;
+
+  // `impressions` / `reach` are not part of the YouTube Reporting API. They are
+  // reported as null (not 0) so the UI can hide those cards rather than showing
+  // a duplicated view count under a misleading label.
+  const impressions = parseInt(metrics.impressions) || 0;
+  const reach = parseInt(metrics.reach) || 0;
 
   return {
     subscribers: parseInt(channelStats.subscriberCount) || parseInt(metrics.followers) || 0,
-    totalViews: parseInt(channelStats.viewCount) || 0,
-    impressions,
-    reach: metrics.reach || 0,
+    lifetimeViews: parseInt(channelStats.viewCount) || 0,
+    periodViews,
+    impressions: impressions > 0 ? impressions : null,
+    reach: reach > 0 ? reach : null,
     totalEngagement,
-    watchTimeHours: Math.round(totalWatchTimeMinutes / 60),
+    watchTimeHours: totalWatchTimeMinutes / 60,
     watchTimeMinutes: totalWatchTimeMinutes,
-    engagementRate: parseFloat(engagementRate) || 0,
-    videoCount: parseInt(channelStats.videoCount) || 0,
+    engagementRate,
+    videoCount: parseInt(channelStats.videoCount) || parseInt(metrics.videoCount) || 0,
+    likes: parseInt(totals.totalLikes) || 0,
+    comments: parseInt(totals.totalComments) || 0,
+    shares: parseInt(totals.totalShares) || 0,
   };
 };
 
 // ── Parse Daily Analytics (for line/area charts) ────────────────────
 // Converts the daily analytics report rows into chart-friendly objects.
 export const parseDailyAnalytics = (snapshot) => {
-  const daily = snapshot?.rawPlatformData?.analyticsReports?.daily;
-  if (!daily?.rows || !Array.isArray(daily.rows) || !daily?.columnHeaders || !Array.isArray(daily.columnHeaders)) return [];
+  const colMap = buildColumnMap(snapshot?.rawPlatformData?.analyticsReports?.daily);
+  // `day` and `views` are the minimum needed for a time series. If YouTube
+  // omitted them the rows are meaningless, so return [] and let the UI explain.
+  if (!colMap || colMap.day === undefined || colMap.views === undefined) return [];
 
-  // Build column index map for fast lookup
-  const colMap = {};
-  daily.columnHeaders.forEach((h, i) => {
-    if (h && h.name) {
-      colMap[h.name] = i;
-    }
-  });
+  const at = (row, name) => (colMap[name] === undefined ? 0 : parseFloat(row[colMap[name]]) || 0);
 
-  return daily.rows
+  return snapshot.rawPlatformData.analyticsReports.daily.rows
     .map((row) => {
       if (!Array.isArray(row)) return null;
-      const dateStr = row[colMap["day"]] || "";
-      // Format date for display: "Jun 15"
-      const date = dateStr ? new Date(dateStr) : new Date();
-      const label = dateStr ? date.toLocaleDateString("en-US", { month: "short", day: "numeric" }) : "";
+      const dateStr = row[colMap.day];
+      if (!dateStr) return null;
+      // Parse as a local date: `new Date("2024-06-15")` is UTC midnight, which
+      // renders as the previous day for anyone west of Greenwich.
+      const [y, m, d] = String(dateStr).split("-").map(Number);
+      const date = new Date(y, (m || 1) - 1, d || 1);
+      if (Number.isNaN(date.getTime())) return null;
 
       return {
-        date: label,
-        rawDate: dateStr,
-        views: parseInt(row[colMap["views"]]) || 0,
-        likes: parseInt(row[colMap["likes"]]) || 0,
-        comments: parseInt(row[colMap["comments"]]) || 0,
-        shares: parseInt(row[colMap["shares"]]) || 0,
-        watchTime: parseInt(row[colMap["estimatedMinutesWatched"]]) || 0,
-        avgViewDuration: parseInt(row[colMap["averageViewDuration"]]) || 0,
-        avgViewPercentage: parseFloat(row[colMap["averageViewPercentage"]]) || 0,
-        subscribersGained: parseInt(row[colMap["subscribersGained"]]) || 0,
-        subscribersLost: parseInt(row[colMap["subscribersLost"]]) || 0,
+        date: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }),
+        rawDate: String(dateStr),
+        timestamp: date.getTime(),
+        views: at(row, "views"),
+        likes: at(row, "likes"),
+        comments: at(row, "comments"),
+        shares: at(row, "shares"),
+        watchTime: at(row, "estimatedMinutesWatched"),
+        avgViewDuration: at(row, "averageViewDuration"),
+        avgViewPercentage: at(row, "averageViewPercentage"),
+        subscribersGained: at(row, "subscribersGained"),
+        subscribersLost: at(row, "subscribersLost"),
       };
     })
-    .filter(Boolean);
+    .filter(Boolean)
+    .sort((a, b) => a.timestamp - b.timestamp);
 };
 
 // Helper: parse ISO 8601 duration to seconds (e.g. PT1M15S)
@@ -241,65 +341,63 @@ export const parsePlaylists = (snapshot) => {
 };
 
 // ── Parse Country Data (for geographic charts) ──────────────────────
-// Extracts top countries with view counts from demographics or reports.
+// Extracts top countries with view counts from the raw country report.
 export const parseCountryData = (snapshot) => {
-  const regionNames = new Intl.DisplayNames(['en'], { type: 'region' });
+  const regionNames = new Intl.DisplayNames(["en"], { type: "region" });
   const formatCountryName = (code) => {
     try {
       if (code && code.length === 2) return regionNames.of(code) || code;
-    } catch (e) {}
+    } catch {
+      /* invalid region code — fall through */
+    }
     return code || "Unknown";
   };
 
-  // Try demographics first (pre-processed by backend)
+  // The raw report is the source of truth: it is measured by YouTube and always
+  // carries a `views` column. The demographics mirror is only a fallback.
+  const colMap = buildColumnMap(snapshot?.rawPlatformData?.analyticsReports?.country);
+  if (colMap && colMap.country !== undefined && colMap.views !== undefined) {
+    return snapshot.rawPlatformData.analyticsReports.country.rows
+      .map((row) => {
+        if (!Array.isArray(row)) return null;
+        return {
+          code: row[colMap.country] || "",
+          country: formatCountryName(row[colMap.country]),
+          views: parseInt(row[colMap.views]) || 0,
+          likes: colMap.likes !== undefined ? parseInt(row[colMap.likes]) || 0 : 0,
+          comments: colMap.comments !== undefined ? parseInt(row[colMap.comments]) || 0 : 0,
+          shares: colMap.shares !== undefined ? parseInt(row[colMap.shares]) || 0 : 0,
+          watchTime:
+            colMap.estimatedMinutesWatched !== undefined
+              ? parseInt(row[colMap.estimatedMinutesWatched]) || 0
+              : 0,
+        };
+      })
+      .filter((r) => r && r.views > 0)
+      .sort((a, b) => b.views - a.views);
+  }
+
+  // Fallback: demographics mirror written by the backend
   const topCountries = snapshot?.demographics?.topCountries;
-  if (topCountries && Array.isArray(topCountries) && topCountries.length > 0) {
+  if (Array.isArray(topCountries) && topCountries.length > 0) {
     return topCountries
       .map((c) => {
         if (!c) return null;
-        return {
-          country: formatCountryName(c.name),
-          views: parseInt(c.count) || 0,
-        };
+        return { code: c.name, country: formatCountryName(c.name), views: parseInt(c.count) || 0 };
       })
-      .filter(Boolean);
+      .filter((r) => r && r.views > 0)
+      .sort((a, b) => b.views - a.views);
   }
 
-  // Fallback: parse from raw country report
-  const countryReport = snapshot?.rawPlatformData?.analyticsReports?.country;
-  if (!countryReport?.rows || !Array.isArray(countryReport.rows) || !countryReport?.columnHeaders || !Array.isArray(countryReport.columnHeaders)) return [];
-
-  const colMap = {};
-  countryReport.columnHeaders.forEach((h, i) => {
-    if (h && h.name) {
-      colMap[h.name] = i;
-    }
-  });
-
-  return countryReport.rows
-    .map((row) => {
-      if (!Array.isArray(row)) return null;
-      return {
-        country: formatCountryName(row[colMap["country"]]),
-        views: parseInt(row[colMap["views"]]) || 0,
-      };
-    })
-    .filter(Boolean)
-    .sort((a, b) => b.views - a.views);
+  return [];
 };
 
 // ── Parse Device Data (for donut/pie charts) ────────────────────────
 // Extracts device type breakdown from the device analytics report.
 export const parseDeviceData = (snapshot) => {
-  const deviceReport = snapshot?.rawPlatformData?.analyticsReports?.device;
-  if (!deviceReport?.rows || !Array.isArray(deviceReport.rows) || !deviceReport?.columnHeaders || !Array.isArray(deviceReport.columnHeaders)) return [];
-
-  const colMap = {};
-  deviceReport.columnHeaders.forEach((h, i) => {
-    if (h && h.name) {
-      colMap[h.name] = i;
-    }
-  });
+  const report = snapshot?.rawPlatformData?.analyticsReports?.device;
+  const colMap = buildColumnMap(report);
+  if (!colMap || colMap.deviceType === undefined || colMap.views === undefined) return [];
 
   // Device type label mapping for cleaner UI
   const deviceLabels = {
@@ -311,73 +409,73 @@ export const parseDeviceData = (snapshot) => {
     UNKNOWN: "Other",
   };
 
-  return deviceReport.rows
+  return report.rows
     .map((row) => {
       if (!Array.isArray(row)) return null;
-      const raw = row[colMap["deviceType"]] || "UNKNOWN";
+      const raw = row[colMap.deviceType] || "UNKNOWN";
       return {
         device: deviceLabels[raw] || raw,
-        views: parseInt(row[colMap["views"]]) || 0,
-        watchTime: parseInt(row[colMap["estimatedMinutesWatched"]]) || 0,
+        views: parseInt(row[colMap.views]) || 0,
+        watchTime:
+          colMap.estimatedMinutesWatched !== undefined
+            ? parseInt(row[colMap.estimatedMinutesWatched]) || 0
+            : 0,
       };
     })
-    .filter(Boolean)
+    .filter((r) => r && r.views > 0)
     .sort((a, b) => b.views - a.views);
 };
 
 // ── Parse Age & Gender Data (for demographics charts) ───────────────
-// Splits the combined ageGroup_gender data into separate age and gender datasets.
+// Uses the REAL `viewerPercentage` measured by the YouTube Reporting API.
+// The previous implementation summed a view-weighted ESTIMATE
+// (`percentage x totalViews`), which collapsed to 0 whenever the daily report
+// failed — producing a non-empty array of zeros that rendered as a blank chart.
 export const parseAgeGenderData = (snapshot) => {
   const ageAndGender = snapshot?.demographics?.ageAndGender;
-  if (!ageAndGender || !Array.isArray(ageAndGender) || ageAndGender.length === 0) return { age: [], gender: [] };
+  if (!Array.isArray(ageAndGender) || ageAndGender.length === 0) return { age: [], gender: [] };
 
-  // Aggregate by age group
-  const ageMap = {};
-  // Aggregate by gender
-  const genderMap = {};
+  const formatAgeGroup = (raw) => {
+    // YouTube returns 'age13-17', 'age18-24', 'age25-34', ... 'age65+'
+    const value = String(raw || "").replace(/^age/, "");
+    if (!value) return "Unknown";
+    if (value.includes("-") || value.includes("+")) return value;
+    if (value.length === 4) return `${value.slice(0, 2)}-${value.slice(2)}`;
+    if (value.length === 2) return `${value}-${value}`;
+    return value;
+  };
+
+  const ageMap = new Map();
+  const genderMap = new Map();
 
   for (const item of ageAndGender) {
     if (!item) continue;
-    const parts = (item.group || "").split("_");
-    
-    // Format age group from 'age1824' to '18-24' or 'age65_' to '65+'
-    let ageGroup = parts[0] || "Unknown";
-    if (ageGroup.startsWith('age')) {
-      const match = ageGroup.replace('age', '');
-      if (match.endsWith('plus') || match.endsWith('_')) {
-        ageGroup = match.replace('plus', '+').replace('_', '+');
-      } else if (match.length === 4) {
-        ageGroup = `${match.slice(0, 2)}-${match.slice(2)}`;
-      }
-    }
 
-    const gender = parts[1] || "unknown";
-    const count = parseInt(item.count) || 0;
+    // `percentage` is measured; `count` is the derived estimate. Prefer measured.
+    const hasMeasured = item.percentage !== undefined && item.percentage !== null;
+    const value = hasMeasured ? parseFloat(item.percentage) || 0 : parseInt(item.count) || 0;
+    if (value <= 0) continue;
 
-    // Age aggregation
-    if (!ageMap[ageGroup]) ageMap[ageGroup] = 0;
-    ageMap[ageGroup] += count;
+    const parts = String(item.group || "").split("_");
+    const ageGroup = formatAgeGroup(item.ageGroup || parts[0]);
+    const genderKey = String(item.gender || parts[1] || "unknown").toLowerCase();
+    const genderLabel =
+      genderKey === "male" ? "Male" : genderKey === "female" ? "Female" : "Other";
 
-    // Gender aggregation
-    const genderLabel = gender.toLowerCase() === "male" ? "Male" : gender.toLowerCase() === "female" ? "Female" : "Other";
-    if (!genderMap[genderLabel]) genderMap[genderLabel] = 0;
-    genderMap[genderLabel] += count;
+    ageMap.set(ageGroup, (ageMap.get(ageGroup) || 0) + value);
+    genderMap.set(genderLabel, (genderMap.get(genderLabel) || 0) + value);
   }
 
-  // Convert to sorted arrays
-  const age = Object.entries(ageMap)
-    .map(([group, count]) => ({ group, count }))
-    .sort((a, b) => {
-      // Sort age groups naturally: 13-17, 18-24, 25-34, etc.
-      const numA = parseInt(a.group) || 0;
-      const numB = parseInt(b.group) || 0;
-      return numA - numB;
-    });
+  if (ageMap.size === 0 && genderMap.size === 0) return { age: [], gender: [] };
 
-  const gender = Object.entries(genderMap).map(([label, count]) => ({
-    label,
-    count,
-  }));
+  // Natural age ordering: numeric sort on the leading digits.
+  const age = [...ageMap.entries()]
+    .map(([group, percentage]) => ({ group, percentage: Math.round(percentage * 100) / 100 }))
+    .sort((a, b) => (parseInt(a.group) || 0) - (parseInt(b.group) || 0));
+
+  const gender = [...genderMap.entries()]
+    .map(([label, percentage]) => ({ label, percentage: Math.round(percentage * 100) / 100 }))
+    .sort((a, b) => b.percentage - a.percentage);
 
   return { age, gender };
 };
@@ -390,13 +488,18 @@ export const parseSubscriberGrowth = (snapshot) => {
 
   let cumulative = 0;
   return dailyData.map((day) => {
-    if (!day) return { date: "", gained: 0, lost: 0, net: 0, cumulative };
-    const net = (day.subscribersGained || 0) - (day.subscribersLost || 0);
+    if (!day) return { date: "", gained: 0, lost: 0, lostNeg: 0, net: 0, cumulative };
+    const gained = day.subscribersGained || 0;
+    const lost = day.subscribersLost || 0;
+    const net = gained - lost;
     cumulative += net;
     return {
       date: day.date || "",
-      gained: day.subscribersGained || 0,
-      lost: day.subscribersLost || 0,
+      gained,
+      lost,
+      // Plotted as a negative bar so gains and losses diverge around a zero line
+      // instead of two positive series being visually compared.
+      lostNeg: -lost,
       net,
       cumulative,
     };

@@ -1,6 +1,21 @@
 // ── Facebook Audience Page ────────────────────────────────────────────────────
-// Fetches data independently via fbapi.getAudienceMetrics() on mount.
-// Deep-dive demographic data: age/gender grouped bar, location donut + progress bars, interests.
+// Reads fbapi.getAudienceMetrics(), which returns the demographic counts Meta
+// actually stored:
+//
+//   { totalGrowth, ageAndGender: [{ group, female, male }],
+//     topLocations: [{ location, value, share }], topInterests }
+//
+// Fabrication removed in this file:
+//   • the top-locations donut, legend and "Distribution" bars printed
+//     `loc.value}%` and sized each bar with `width: ${loc.value}%`. `value` is
+//     a raw fan count from Meta, not a percentage — so every country bar
+//     rendered "1240%" and overflowed its track. Shares now come from the
+//     `share` the API computes from the returned counts, and the widths come
+//     from the real values.
+//   • the age/gender bar chart labelled its Y axis "%" while plotting raw
+//     counts, and fell back to a hand-written `[{ group: '', female: 0, male: 0 }]`
+//     row whenever the API returned nothing
+//   • interests rendered `${interest.value}%` with no unit from the API
 
 import { useState, useEffect } from "react";
 import { useOutletContext } from "react-router-dom";
@@ -9,34 +24,20 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import fbapi from "@/services/fbapi";
 import { Users, TrendingDown } from "lucide-react";
-import {
-  ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-} from "recharts";
+import CategoryBars from "@/components/charts/CategoryBars";
+import DonutChart from "@/components/charts/DonutChart";
+import { PLATFORM_ACCENT, seriesColors } from "@/components/charts/platformTheme";
+import { compact } from "@/components/charts/chartTheme";
 
-const FB_BLUE    = "#1877F2";
-const PIE_COLORS = ["#1877F2", "#10b981", "#8b5cf6", "#f59e0b", "#ef4444"];
-
-// ── Glassmorphism tooltip ─────────────────────────────────────────────────────
-const GlassTooltip = ({ active, payload, label }) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div style={{ backgroundColor: "rgba(22,27,34,0.85)", backdropFilter: "blur(12px)", border: "1px solid rgba(255,255,255,0.1)", borderRadius: 8 }} className="px-3 py-2.5 text-xs">
-      <p className="font-semibold text-white mb-1">{label}</p>
-      {payload.map((e, i) => (
-        <p key={i} className="text-gray-300">{e.name}: <span className="font-bold text-white">{e.value}</span></p>
-      ))}
-    </div>
-  );
-};
+const FB = PLATFORM_ACCENT.facebook;
+const FB_SERIES = seriesColors("facebook", 3);
 
 const FacebookAudience = () => {
   const { isConnected } = useOutletContext();
-  const [data, setData]         = useState(null);
+  const [data, setData] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError]       = useState(null);
+  const [error, setError] = useState(null);
 
-  // ── Fetch audience metrics independently on mount ─────────────────────────
   useEffect(() => {
     let mounted = true;
     const fetch = async () => {
@@ -50,26 +51,72 @@ const FacebookAudience = () => {
       }
     };
     fetch();
-    return () => { mounted = false; };
+    return () => {
+      mounted = false;
+    };
   }, []);
 
-  if (error) return (
-    <div className="p-6 flex items-center justify-center min-h-[50vh]">
-      <div className="text-center space-y-3">
-        <TrendingDown className="h-10 w-10 text-red-400 mx-auto" />
-        <p className="text-sm text-gray-400">{error}</p>
-        <Button onClick={() => window.location.reload()} className="bg-[#1877F2] hover:bg-[#1877F2]/90 text-white text-xs">Retry</Button>
+  if (error)
+    return (
+      <div className="p-6 flex items-center justify-center min-h-[50vh]">
+        <div className="text-center space-y-3">
+          <TrendingDown className="h-10 w-10 text-red-400 mx-auto" />
+          <p className="text-sm text-gray-400">{error}</p>
+          <Button
+            onClick={() => window.location.reload()}
+            className="bg-[#1877F2] hover:bg-[#1877F2]/90 text-white text-xs"
+          >
+            Retry
+          </Button>
+        </div>
       </div>
-    </div>
-  );
+    );
 
-  if (!isLoading && (!data || (!data.ageAndGender?.length && !data.topLocations?.length))) {
+  const ageGender = data?.ageAndGender || [];
+  const locations = data?.topLocations || [];
+  const interests = Array.isArray(data?.topInterests) ? data.topInterests : [];
+  const hasDemographics = ageGender.length > 0 || locations.length > 0;
+
+  // Age bands, ranked by the combined measured fan count.
+  const ageRows = ageGender
+    .map((a) => ({
+      name: a.group,
+      value: (Number(a.female) || 0) + (Number(a.male) || 0),
+      female: Number(a.female) || 0,
+      male: Number(a.male) || 0,
+    }))
+    .filter((r) => r.value > 0);
+
+  // One measured total per gender across every age band.
+  const genderTotals = ageGender.reduce(
+    (acc, a) => ({
+      female: acc.female + (Number(a.female) || 0),
+      male: acc.male + (Number(a.male) || 0),
+    }),
+    { female: 0, male: 0 }
+  );
+  const genderRows = [
+    { name: "Women", value: genderTotals.female },
+    { name: "Men", value: genderTotals.male },
+  ].filter((g) => g.value > 0);
+
+  const locationRows = locations
+    .map((l) => ({ name: l.location, value: Number(l.value) || 0, share: Number(l.share) || 0 }))
+    .filter((l) => l.value > 0);
+
+  if (!isLoading && !hasDemographics) {
     return (
       <div className="p-6 flex items-center justify-center min-h-[50vh]">
         <div className="text-center space-y-4">
-          <div className="h-16 w-16 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto"><Users className="h-8 w-8 text-blue-400" /></div>
+          <div className="h-16 w-16 rounded-full bg-blue-500/10 flex items-center justify-center mx-auto">
+            <Users className="h-8 w-8 text-blue-400" />
+          </div>
           <h3 className="text-lg font-semibold text-white">Audience Insights Unavailable</h3>
-          <p className="text-sm text-gray-400 max-w-sm">We need more page activity to generate detailed audience demographics. Keep growing your page!</p>
+          <p className="text-sm text-gray-400 max-w-sm">
+            Meta returns age, gender and country demographics only for pages with enough fans to
+            publish demographics. This page has no stored demographic rows yet — nothing is
+            estimated or shown as zero.
+          </p>
         </div>
       </div>
     );
@@ -77,123 +124,134 @@ const FacebookAudience = () => {
 
   return (
     <div className="p-4 md:p-6 space-y-6">
-
-      {/* ── Growth Banner ─────────────────────────────────────────────────── */}
-      {!isLoading && data?.totalGrowth && (
-        <div className="bg-[#1877F2]/10 border border-[#1877F2]/20 rounded-xl px-5 py-3 flex items-center gap-3">
-          <Users className="h-5 w-5 text-[#1877F2] flex-shrink-0" />
-          <p className="text-sm text-blue-300 font-medium">{data.totalGrowth}</p>
-        </div>
-      )}
-
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* ── Age & Gender Grouped Bar Chart ─────────────────────────────── */}
-        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold text-white">Age & Gender Distribution</CardTitle>
+        {/* ── Age bands ───────────────────────────────────────────────── */}
+        <Card className="surface-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-white">Age Distribution</CardTitle>
+            <p className="mt-1 text-xs text-slate-400">
+              Fans per age band, summed from the counts Meta returned for each gender
+            </p>
           </CardHeader>
-          <CardContent className="h-[300px]">
+          <CardContent>
             {isLoading ? (
-              <Skeleton className="w-full h-full bg-gray-700/30 rounded-xl" />
+              <div className="space-y-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-4 w-full bg-gray-700/30" />
+                ))}
+              </div>
             ) : (
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart 
-                  data={(data?.ageAndGender?.length > 0) ? data.ageAndGender : [{ group: '', female: 0, male: 0 }]} 
-                  margin={{ top: 20, right: 20, left: -20, bottom: 5 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
-                  <XAxis dataKey="group" stroke="#6b7280" fontSize={10} tickLine={false} axisLine={false} />
-                  <YAxis 
-                    stroke="#6b7280" 
-                    fontSize={10} 
-                    tickLine={false} 
-                    axisLine={false} 
-                    tickFormatter={(v) => `${v}%`} 
-                    allowDecimals={false}
-                    domain={([dataMin, dataMax]) => [0, isNaN(dataMax) || !isFinite(dataMax) || dataMax === 0 ? 2 : Math.ceil(dataMax * 1.2)]}
-                  />
-                  <Tooltip content={<GlassTooltip />} cursor={{ fill: "rgba(255,255,255,0.03)" }} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: 11, color: "#9ca3af" }} />
-                  <Bar dataKey="female" name="Women" fill={FB_BLUE}   radius={[3, 3, 0, 0]} maxBarSize={16} />
-                  <Bar dataKey="male"   name="Men"   fill="#64748b"   radius={[3, 3, 0, 0]} maxBarSize={16} />
-                </BarChart>
-              </ResponsiveContainer>
+              <CategoryBars
+                data={ageRows.map((r) => ({ name: r.name, value: r.value }))}
+                color={FB}
+                valueLabel="Fans"
+                emptyTitle="No age data returned"
+                emptyDetail="Meta returned no age-band rows for this page. Age and gender breakdowns require page-level demographic access."
+              />
             )}
           </CardContent>
         </Card>
 
-        {/* ── Top Locations Donut + Progress ────────────────────────────── */}
-        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold text-white">Top Locations</CardTitle>
+        {/* ── Gender split ────────────────────────────────────────────── */}
+        <Card className="surface-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-white">Gender Split</CardTitle>
+            <p className="mt-1 text-xs text-slate-400">Totals across every age band Meta reported</p>
           </CardHeader>
-          <CardContent className="space-y-5">
+          <CardContent>
             {isLoading ? (
-              <div className="space-y-3">
-                {[1,2,3,4,5].map(i => <Skeleton key={i} className="h-4 w-full bg-gray-700/30" />)}
-              </div>
+              <Skeleton className="h-[220px] w-full bg-gray-700/30 rounded-xl" />
             ) : (
-              <>
-                {/* Donut + legend row */}
-                <div className="flex items-center gap-5">
-                  <div className="h-[130px] w-[130px] flex-shrink-0">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie data={data?.topLocations} cx="50%" cy="50%" innerRadius={38} outerRadius={58} paddingAngle={3} dataKey="value" stroke="none">
-                          {(data?.topLocations || []).map((_, i) => <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />)}
-                        </Pie>
-                        <Tooltip content={<GlassTooltip />} />
-                      </PieChart>
-                    </ResponsiveContainer>
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    {(data?.topLocations || []).map((loc, i) => (
-                      <div key={i} className="flex items-center justify-between text-xs">
-                        <div className="flex items-center gap-2">
-                          <span className="h-2 w-2 rounded-full" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                          <span className="text-gray-300 truncate max-w-[110px]">{loc.location}</span>
-                        </div>
-                        <span className="text-gray-200 font-medium">{loc.value}%</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                {/* Progress bar distribution */}
-                <div className="border-t border-white/5 pt-4 space-y-2.5">
-                  <p className="text-[10px] text-gray-500 uppercase tracking-wider font-semibold">Distribution</p>
-                  {(data?.topLocations || []).map((loc, i) => (
-                    <div key={i} className="flex items-center gap-2">
-                      <span className="text-[11px] text-gray-300 w-28 truncate">{loc.location}</span>
-                      <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                        <div className="h-full rounded-full transition-all duration-700" style={{ width: `${loc.value}%`, background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                      </div>
-                      <span className="text-[11px] text-gray-400 w-8 text-right">{loc.value}%</span>
-                    </div>
-                  ))}
-                </div>
-              </>
+              <DonutChart
+                data={genderRows}
+                dataKey="value"
+                nameKey="name"
+                colors={FB_SERIES.slice(0, 2)}
+                height={220}
+                outerRadius={86}
+                innerRadius={58}
+                centerLabel="Fans by gender"
+                centerValue={compact(genderTotals.female + genderTotals.male)}
+              />
             )}
           </CardContent>
         </Card>
       </div>
 
-      {/* ── Top Interests ─────────────────────────────────────────────────── */}
-      {!isLoading && data?.topInterests?.length > 0 && (
-        <Card className="bg-[#161B22]/90 backdrop-blur-md rounded-xl border border-white/5">
-          <CardHeader>
-            <CardTitle className="text-sm font-semibold text-white">Top Audience Interests</CardTitle>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* ── Top locations ───────────────────────────────────────────── */}
+        <Card className="surface-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-white">Top Locations</CardTitle>
+            <p className="mt-1 text-xs text-slate-400">
+              Fans by country, with share computed from the returned counts
+            </p>
           </CardHeader>
-          <CardContent className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {data.topInterests.map((interest, i) => (
-              <div key={i} className="bg-white/[0.03] border border-white/5 rounded-xl p-4 text-center hover:border-[#1877F2]/30 transition-colors">
-                <p className="text-sm font-semibold text-white">{interest.value}%</p>
-                <p className="text-xs text-gray-400 mt-1 truncate">{interest.name}</p>
+          <CardContent>
+            {isLoading ? (
+              <div className="space-y-3">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-4 w-full bg-gray-700/30" />
+                ))}
               </div>
-            ))}
+            ) : (
+              <CategoryBars
+                data={locationRows.map((l) => ({ name: l.name, value: l.value, share: l.share }))}
+                color={FB_SERIES[1]}
+                valueLabel="Fans"
+                emptyTitle="No location data returned"
+                emptyDetail="Meta returned no country-level fan counts for this page."
+              />
+            )}
           </CardContent>
         </Card>
-      )}
+
+        {/* ── Top interests ───────────────────────────────────────────── */}
+        <Card className="surface-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold text-white">Top Audience Interests</CardTitle>
+            <p className="mt-1 text-xs text-slate-400">Exactly the interest labels Meta returned</p>
+          </CardHeader>
+          <CardContent>
+            {isLoading ? (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-16 w-full bg-gray-700/30 rounded-xl" />
+                ))}
+              </div>
+            ) : interests.length === 0 ? (
+              <div className="flex flex-col items-center justify-center rounded-xl border border-dashed border-white/10 bg-slate-900/30 px-6 py-10 text-center">
+                <p className="text-sm font-semibold text-slate-200">No interest data returned</p>
+                <p className="mt-1 max-w-xs text-xs text-slate-400">
+                  Meta did not return an interest breakdown for this page. Interest affinities are
+                  only published for pages above Meta's demographic threshold.
+                </p>
+              </div>
+            ) : (
+              <ul className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                {interests.map((interest, i) => {
+                  // Values pass through untouched — the API decides the unit.
+                  const shown =
+                    typeof interest?.value === "number"
+                      ? Number.isInteger(interest.value)
+                        ? interest.value.toLocaleString()
+                        : Number(interest.value).toFixed(2)
+                      : interest?.value ?? "—";
+                  return (
+                    <li
+                      key={`${interest?.name}-${i}`}
+                      className="rounded-xl border border-white/5 bg-white/[0.03] p-3 text-center transition-colors hover:border-[#1877F2]/30"
+                    >
+                      <p className="text-sm font-semibold text-white tabular-nums">{shown}</p>
+                      <p className="mt-1 truncate text-[11px] text-gray-400">{interest?.name}</p>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

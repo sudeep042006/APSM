@@ -34,6 +34,11 @@ function publicUser(user) {
     id:    user._id,
     name:  user.name,
     email: user.email,
+    // The role is what decides which dashboards a user can open (an admin
+    // approves incoming creator posts, a creator only sees their own). It was
+    // missing here, so the client had no way to know who it was rendering for
+    // and had to either guess or let every user hit the admin endpoints.
+    role:  user.role,
     connectedPlatforms: (user.socialAccounts || [])
       .filter(a => a.isActive)
       .map(a => ({

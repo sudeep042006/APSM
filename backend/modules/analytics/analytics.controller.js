@@ -28,15 +28,28 @@ const getAnalyticsSummary = async (req, res, next) => {
     const fetchOrCache = async (platformName, fetchFn) => {
       const { forceRefresh } = req.query;
 
+      // When the client asks for an explicit window, the 24 h snapshot is only
+      // reusable if it was built for that exact same window. Otherwise the charts
+      // would be labelled 7 days while actually showing a 30-day aggregation.
+      const wantsRange = !!(req.query.startDate || req.query.endDate);
+
       // 1. Return cached snapshot if it is less than 24 h old and not forcing refresh
       if (forceRefresh !== 'true') {
         const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
-        const cached = await AnalyticsSnapshot.findOne({
+        const cacheQuery = {
           incubationCenterId: userId,
           platform: platformName,
           snapshotDate: { $gte: oneDayAgo },
           'rawPlatformData.mock': { $ne: true }
-        }).sort({ snapshotDate: -1 });
+        };
+
+        if (wantsRange) {
+          // Only accept a cached snapshot built for the identical requested window.
+          if (req.query.startDate) cacheQuery['rawPlatformData.range.requestedStartDate'] = req.query.startDate;
+          if (req.query.endDate) cacheQuery['rawPlatformData.range.requestedEndDate'] = req.query.endDate;
+        }
+
+        const cached = await AnalyticsSnapshot.findOne(cacheQuery).sort({ snapshotDate: -1 });
 
         if (cached) {
           console.log(`[analytics.controller] Returning cached ${platformName} snapshot for user ${userId}`);
@@ -47,7 +60,10 @@ const getAnalyticsSummary = async (req, res, next) => {
       // 2. Fetch fresh data from the platform API
       console.log(`[analytics.controller] Fetching fresh ${platformName} data for user ${userId}...`);
       try {
-        const snapshot = await fetchFn(userId);
+        const snapshot = await fetchFn(userId, {
+          startDate: req.query.startDate || undefined,
+          endDate: req.query.endDate || undefined
+        });
 
         // DB hygiene: keep only the 30 most recent snapshots per user/platform
         const toDelete = await AnalyticsSnapshot.find({ incubationCenterId: userId, platform: platformName })

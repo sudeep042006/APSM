@@ -1,87 +1,141 @@
-import React from 'react';
-import { Card } from "@/components/ui/card";
-import {
-  Users,
-  Eye,
-  Heart,
-  ThumbsUp,
-  Globe,
-  FileText,
-  Activity,
-  Clock,
-  TrendingUp,
-} from "lucide-react";
+// ── Facebook Overview (legacy component) ──────────────────────────────────────
+// Not wired into the router — `/dashboard/facebook` renders FacebookDash.jsx,
+// which is the migrated overview page. Kept as an export because other code
+// imports it by name, but its data handling is now honest.
+//
+// Fabrication removed in this file:
+//   • "SUBSCRIBERS" fell back to the literal "2"
+//   • "TOTAL VIEWS" and "REACH" fell back to the literal "0"
+//   • "WATCH TIME" was the hard-coded string "1m" — a Facebook Page has no
+//     watch-time metric at all
+//   • "ENGAGEMENT RATE" fell back to `56.52%`
+//   • "VIDEOS" fell back to "4" and "TOTAL ENGAGEMENT" to "5"
+//   • the local MetricCard carried a green "Active" tick for any value above
+//     zero, and all four primary tiles passed `showActive` unconditionally
+//
+// Every tile now renders a dash with an explicit reason when the API has no
+// figure, using the shared KpiCard.
 
-// ── Reusable Minimal KPI Card (Matches YouTube Layout Exactly) ──────────
-function MetricCard({ title, value, icon: Icon, showActive = false }) {
-  return (
-    <Card className="bg-[#10141D] border border-white/[0.06] rounded-xl p-5 shadow-none transition-colors hover:bg-white/[0.01]">
-      <div className="flex justify-between items-center mb-2">
-        <span className="text-[#8B949E] text-[11px] font-semibold tracking-wider uppercase">
-          {title}
-        </span>
-        {Icon && <Icon className="w-4 h-4 text-[#8B949E]" />}
-      </div>
+import React from "react";
+import fbapi from "@/services/fbapi";
+import { KpiCard } from "./MetaSharedComponents";
+import { Users, Eye, Heart, ThumbsUp, Globe, FileText, Activity } from "lucide-react";
 
-      <div className="text-3xl font-bold text-white mb-2 tracking-tight">
-        {value}
-      </div>
+const formatNumber = (value) =>
+  value === null || value === undefined
+    ? "—"
+    : new Intl.NumberFormat("en-US", {
+        notation: "compact",
+        compactDisplay: "short",
+        maximumFractionDigits: 1,
+      }).format(Number(value));
 
-      {showActive ? (
-        <div className="flex items-center gap-1 text-xs font-medium text-[#10B981]">
-          <TrendingUp className="w-3.5 h-3.5" />
-          <span>Active</span>
-        </div>
-      ) : (
-        <div className="h-4" />
-      )}
-    </Card>
-  );
-}
-
+/**
+ * @param {object} props
+ * @param {object} [props.data]  a getOverviewMetrics() result, if the caller
+ *   already has one. When omitted the component fetches it itself.
+ */
 export function FacebookOverview({ data }) {
-  const d = data || {};
+  const [fetched, setFetched] = React.useState(data || null);
 
-  // Extract values cleanly
+  React.useEffect(() => {
+    if (data) {
+      setFetched(data);
+      return;
+    }
+    let mounted = true;
+    fbapi
+      .getOverviewMetrics()
+      .then((result) => {
+        if (mounted) setFetched(result);
+      })
+      .catch(() => {
+        if (mounted) setFetched(null);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [data]);
+
+  const kpis = fetched?.kpis || {};
+  const charts = fetched?.charts || {};
+  const hasSeries = charts.hasInsightSeries === true;
+  const rate = charts.engagementRate?.rate;
+
   const primaryKpis = [
-    { title: "SUBSCRIBERS", value: d?.kpis?.followers ?? d?.kpis?.[0]?.value ?? "2", icon: Users },
-    { title: "TOTAL VIEWS", value: d?.kpis?.reach ?? d?.kpis?.[1]?.value ?? "0", icon: Eye },
-    { title: "WATCH TIME", value: "1m", icon: Clock },
-    { title: "ENGAGEMENT RATE", value: `${d?.kpis?.engagementRate ?? "56.52"}%`, icon: Activity },
+    {
+      title: "Page Likes",
+      value: formatNumber(kpis.pageLikes?.value),
+      icon: Users,
+      hint: "Fan count from Meta",
+      unavailable: kpis.pageLikes?.value === null || kpis.pageLikes?.value === undefined,
+    },
+    {
+      title: "Total Reach",
+      value: formatNumber(kpis.postReach?.value),
+      icon: Eye,
+      hint: hasSeries ? "Unique accounts reached" : "No insight rows stored",
+      unavailable: !hasSeries,
+    },
+    {
+      title: "Interactions",
+      value: formatNumber(kpis.postEngagements?.value),
+      icon: Heart,
+      hint: hasSeries ? "page_post_engagements" : "No insight rows stored",
+      unavailable: !hasSeries,
+    },
+    {
+      title: "Engagement Rate",
+      // Facebook Pages have no watch-time metric; that tile is gone entirely.
+      value: rate ?? "—",
+      icon: Activity,
+      hint: hasSeries ? "Interactions ÷ impressions" : "No insight rows stored",
+      unavailable: !hasSeries || !rate,
+    },
   ];
 
   const secondaryKpis = [
-    { title: "IMPRESSIONS", value: d?.kpis?.impressions ?? "0", icon: Eye },
-    { title: "REACH", value: d?.kpis?.reach ?? "0", icon: Globe },
-    { title: "VIDEOS", value: d?.kpis?.posts ?? "4", icon: FileText },
-    { title: "TOTAL ENGAGEMENT", value: d?.kpis?.engagements ?? "5", icon: ThumbsUp },
+    {
+      title: "Impressions",
+      value: formatNumber(kpis.impressions?.value),
+      icon: Eye,
+      hint: hasSeries ? "Times content was displayed" : "No insight rows stored",
+      unavailable: !hasSeries,
+    },
+    {
+      title: "Reach",
+      value: formatNumber(kpis.postReach?.value),
+      icon: Globe,
+      hint: hasSeries ? "Unique accounts reached" : "No insight rows stored",
+      unavailable: !hasSeries,
+    },
+    {
+      title: "Posts",
+      value: String(fetched?.tables?.topPosts?.length ?? "—"),
+      icon: FileText,
+      hint: "Published in range",
+      unavailable: !fetched?.tables?.topPosts?.length,
+    },
+    {
+      title: "Total Engagement",
+      value: formatNumber(kpis.postEngagements?.value),
+      icon: ThumbsUp,
+      hint: hasSeries ? "page_post_engagements" : "No insight rows stored",
+      unavailable: !hasSeries,
+    },
   ];
 
   return (
     <div className="space-y-4 animate-fade-in">
-      {/* ── Top Row (4 Cards) ────────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {primaryKpis.map((kpi) => (
-          <MetricCard
-            key={kpi.title}
-            title={kpi.title}
-            value={kpi.value}
-            icon={kpi.icon}
-            showActive={true}
-          />
+          <KpiCard key={kpi.title} {...kpi} />
         ))}
       </div>
 
-      {/* ── Bottom Row (4 Cards) ─────────────────────────────────── */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {secondaryKpis.map((kpi) => (
-          <MetricCard
-            key={kpi.title}
-            title={kpi.title}
-            value={kpi.value}
-            icon={kpi.icon}
-            showActive={false}
-          />
+          <KpiCard key={kpi.title} {...kpi} />
         ))}
       </div>
     </div>

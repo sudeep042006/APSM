@@ -1,38 +1,87 @@
 // ── Cross-Post Context Provider ─────────────────────────────────────
-// Provides shared state for the cross-posting module:
-//   - postHistory: Array of successfully submitted posts (persists across
-//     navigation between the Hub and Create views).
-//   - addToHistory: Function to append a new entry after a successful POST.
+// Shared state for the cross-posting module, loaded once here so the sidebar,
+// overview, requests inbox and history pages never disagree with each other:
 //
-// This context wraps the /dashboard/crosspost/* routes via CrossPostLayout.
+//   connections : which social accounts this user has linked
+//   history     : publishing jobs for this user (GET /automation/jobs)
+//   requests    : creator submissions awaiting this admin's review
+//                (GET /creator-posts/incoming, admin only)
+//
+// Requests are refetched rather than patched locally after approve/reject.
+// The server is the only thing that knows whether a job was actually created,
+// so trusting the returned document avoids the UI claiming success for a
+// request the backend rejected (for example "Post is already APPROVED").
 
 import { createContext, useContext, useState, useCallback, useEffect } from "react";
 import crosspostApi from "@/services/crosspostApi";
+import { useAuth } from "@/context/AuthContext";
 import { toast } from "@/hooks/use-toast";
 
 // ── Context Definition ──────────────────────────────────────────────
 const CrossPostContext = createContext(null);
 
-// ── Provider Component ──────────────────────────────────────────────
-export function CrossPostProvider({ children }) {
-  // ── Persistent post history state ─────────────────────────────────
-  // Survives navigation between /crosspost and /crosspost/new because
-  // the provider wraps both routes in the layout component.
-  const [postHistory, setPostHistory] = useState([]);
-  
-  // ── Auth / Connection State ───────────────────────────────────────
-  const [connectedPlatforms, setConnectedPlatforms] = useState([]);
-  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+const FORBIDDEN = 403;
 
-  // ── Fetch Connected Platforms once on mount ───────────────────────
+export function CrossPostProvider({ children }) {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "admin";
+
+  const [postHistory, setPostHistory] = useState([]);
+  const [connectedPlatforms, setConnectedPlatforms] = useState([]);
+
+  const [requests, setRequests] = useState([]);
+  const [requestsError, setRequestsError] = useState(null); // "forbidden" | "network" | null
+
+  const [isLoadingAuth, setIsLoadingAuth] = useState(true);
+  const [isLoadingRequests, setIsLoadingRequests] = useState(true);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
+
+  const refreshHistory = useCallback(async () => {
+    setIsLoadingHistory(true);
+    try {
+      const history = await crosspostApi.getHistory();
+      setPostHistory(Array.isArray(history) ? history : []);
+    } catch (err) {
+      console.error("Failed to fetch post history", err);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, []);
+
+  const refreshRequests = useCallback(async () => {
+    // A non-admin cannot read this endpoint at all, so the request is skipped
+    // rather than sent-and-rejected. The page still renders the "admins only"
+    // explanation from `requestsError === "forbidden"`.
+    if (!isAdmin) {
+      setRequests([]);
+      setRequestsError("forbidden");
+      setIsLoadingRequests(false);
+      return;
+    }
+
+    setIsLoadingRequests(true);
+    try {
+      const posts = await crosspostApi.getIncomingRequests();
+      setRequests(Array.isArray(posts) ? posts : []);
+      setRequestsError(null);
+    } catch (err) {
+      console.error("Failed to fetch incoming requests", err);
+      setRequestsError(err.response?.status === FORBIDDEN ? "forbidden" : "network");
+    } finally {
+      setIsLoadingRequests(false);
+    }
+  }, [isAdmin]);
+
+  // ── Load on mount ──────────────────────────────────────────────────
   useEffect(() => {
     let mounted = true;
+
     const fetchAuth = async () => {
       try {
         const statusArray = await crosspostApi.getConnectionStatus();
-        const connectedIds = statusArray
-          .filter(s => s.connected === true)
-          .map(s => String(s.platform).toLowerCase());
+        const connectedIds = (Array.isArray(statusArray) ? statusArray : [])
+          .filter((s) => s.connected === true)
+          .map((s) => String(s.platform).toLowerCase());
 
         if (mounted) setConnectedPlatforms(connectedIds);
       } catch (err) {
@@ -40,37 +89,65 @@ export function CrossPostProvider({ children }) {
         toast({
           title: "Error",
           description: "Failed to load connected platforms",
-          variant: "destructive"
+          variant: "destructive",
         });
       }
 
-      try {
-        const history = await crosspostApi.getHistory();
-        if (mounted) setPostHistory(history);
-      } catch (err) {
-        console.error("Failed to fetch post history", err);
-      } finally {
-        if (mounted) setIsLoadingAuth(false);
-      }
+      if (mounted) setIsLoadingAuth(false);
     };
+
     fetchAuth();
     return () => { mounted = false; };
   }, []);
 
-  // ── Append a new post to history ──────────────────────────────────
-  const addToHistory = useCallback((entry) => {
-    setPostHistory((prev) => [
-      {
-        id: crypto.randomUUID(),
-        createdAt: new Date().toISOString(),
-        ...entry,
-      },
-      ...prev, // newest first
-    ]);
+  useEffect(() => { refreshHistory(); }, [refreshHistory]);
+  useEffect(() => { refreshRequests(); }, [refreshRequests]);
+
+  // ── Approve / Reject ───────────────────────────────────────────────
+  // Approving creates an Automation job on the admin's own accounts and
+  // enqueues it, so the history has to be re-read here. Without this the post
+  // appeared as "Approved" in the inbox while the pipeline it just joined stayed
+  // invisible until a manual reload.
+  const approveRequest = useCallback(
+    async (postId) => {
+      const updated = await crosspostApi.approveRequest(postId);
+      // Replace in place so card order and every derived count stay consistent.
+      setRequests((prev) => prev.map((p) => (p._id === postId ? { ...p, ...updated } : p)));
+      await refreshHistory();
+      return updated;
+    },
+    [refreshHistory]
+  );
+
+  const rejectRequest = useCallback(async (postId, feedback) => {
+    const updated = await crosspostApi.rejectRequest(postId, feedback);
+    setRequests((prev) => prev.map((p) => (p._id === postId ? { ...p, ...updated } : p)));
+    return updated;
   }, []);
 
+  const pendingCount = requests.filter((p) => p.status === "PENDING").length;
+
   return (
-    <CrossPostContext.Provider value={{ postHistory, addToHistory, connectedPlatforms, isLoadingAuth }}>
+    <CrossPostContext.Provider
+      value={{
+        // connections
+        connectedPlatforms,
+        isLoadingAuth,
+        // publishing history
+        postHistory,
+        isLoadingHistory,
+        refreshHistory,
+        // creator submissions
+        requests,
+        pendingCount,
+        isLoadingRequests,
+        requestsError,
+        isAdmin,
+        refreshRequests,
+        approveRequest,
+        rejectRequest,
+      }}
+    >
       {children}
     </CrossPostContext.Provider>
   );
