@@ -9,7 +9,8 @@
 // universal draft unchanged.
 
 import { CROSS_POST_PLATFORMS } from "./crossPostPlatforms";
-import { Check, Eye, Loader2, Sparkles } from "lucide-react";
+import { Check, Eye, Loader2, Sparkles, Settings } from "lucide-react";
+import { Link } from "react-router-dom";
 
 /**
  * @param {object} props
@@ -51,6 +52,9 @@ export default function PlatformTargetList({
         <p className="mt-1 text-[11px] text-muted-foreground">
           Connect an account before composing. Targets appear here once a platform is linked.
         </p>
+        <Link to="/dashboard/crosspost" className="mt-3 inline-flex items-center justify-center rounded-lg bg-indigo-500/10 px-3 py-1.5 text-[11px] font-medium text-indigo-400 hover:bg-indigo-500/20 transition-colors">
+          Manage Accounts
+        </Link>
       </div>
     );
   }
@@ -59,7 +63,12 @@ export default function PlatformTargetList({
     <div className="surface-card overflow-hidden">
       <div className="flex items-center justify-between gap-3 border-b border-white/[0.06] px-4 py-3">
         <div>
-          <p className="text-xs font-medium text-slate-300">Targets</p>
+          <div className="flex items-center gap-2">
+            <p className="text-xs font-medium text-slate-300">Targets</p>
+            <Link to="/dashboard/crosspost" className="flex items-center gap-1 text-[10px] font-medium text-indigo-400 hover:text-indigo-300">
+              <Settings className="w-3 h-3" /> Manage Accounts
+            </Link>
+          </div>
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             Review what each platform receives, then select the ones to post.
           </p>
@@ -151,3 +160,4 @@ export default function PlatformTargetList({
     </div>
   );
 }
+

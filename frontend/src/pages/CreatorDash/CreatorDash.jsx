@@ -37,6 +37,9 @@ export default function CreatorDash() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Form State
+  const [mediaFile, setMediaFile] = useState(null);
+  const [mediaPreview, setMediaPreview] = useState(null);
+
   const [formData, setFormData] = useState({
     title: '',
     body: '',
@@ -80,8 +83,19 @@ export default function CreatorDash() {
     
     setIsSubmitting(true);
     try {
-      await api.post('/creator-posts/submit', formData);
-      setFormData({ title: '', body: '', hashtags: '', platforms: [] });
+      const payload = new FormData();
+      if (formData.title) payload.append("title", formData.title);
+      payload.append("body", formData.body);
+      if (formData.hashtags) payload.append("hashtags", formData.hashtags);
+      payload.append("platforms", JSON.stringify(formData.platforms));
+      if (mediaFile) payload.append("mediaFile", mediaFile);
+
+      await api.post("/creator-posts/submit", payload, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      setFormData({ title: "", body: "", hashtags: "", platforms: [] });
+      setMediaFile(null);
+      setMediaPreview(null);
       setIsDrafting(false);
       fetchPosts();
     } catch (error) {
@@ -165,6 +179,38 @@ export default function CreatorDash() {
               </div>
 
               <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Media (Optional)</label>
+                <input
+                  type="file"
+                  accept="image/*,video/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                      setMediaFile(file);
+                      setMediaPreview(URL.createObjectURL(file));
+                    }
+                  }}
+                  className="block w-full text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-indigo-500/10 file:text-indigo-400 hover:file:bg-indigo-500/20 transition-colors"
+                />
+                {mediaPreview && (
+                  <div className="mt-3 relative inline-block">
+                    {mediaFile?.type.startsWith("video/") ? (
+                      <video src={mediaPreview} className="h-32 rounded-lg border border-slate-700" controls />
+                    ) : (
+                      <img src={mediaPreview} alt="Preview" className="h-32 rounded-lg border border-slate-700 object-cover" />
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => { setMediaFile(null); setMediaPreview(null); }}
+                      className="absolute -top-2 -right-2 bg-slate-800 text-slate-300 rounded-full p-1 hover:bg-slate-700 hover:text-white border border-slate-700"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div>
                 <label className="block text-sm font-medium text-slate-300 mb-2">Body <span className="text-rose-400">*</span></label>
                 <textarea
                   required
@@ -239,6 +285,15 @@ export default function CreatorDash() {
                   {post.hashtags && (
                     <p className="text-indigo-400 text-xs font-medium mb-4">{post.hashtags}</p>
                   )}
+                  {post.mediaUrl && (
+                    <div className="mb-4">
+                      {post.mediaUrl.match(/\.(mp4|mov|wmv|flv|avi|webm|mkv)$/i) ? (
+                        <video src={post.mediaUrl} className="h-40 rounded-lg border border-slate-800" controls />
+                      ) : (
+                        <img src={post.mediaUrl} alt="Attachment" className="h-40 rounded-lg border border-slate-800 object-cover" />
+                      )}
+                    </div>
+                  )}
 
                   {post.status === 'REJECTED' && post.adminFeedback && (
                     <div className="mt-4 p-3 bg-rose-500/10 border border-rose-500/20 rounded-lg">
@@ -260,4 +315,6 @@ export default function CreatorDash() {
     </div>
   );
 }
+
+
 

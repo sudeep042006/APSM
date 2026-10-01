@@ -369,7 +369,11 @@ const worker = new Worker(
               createPayload.video_url = mediaUrl;
               createPayload.media_type = "REELS";
             } else {
-              createPayload.image_url = mediaUrl;
+              let igMediaUrl = mediaUrl;
+              if (igMediaUrl && igMediaUrl.includes('res.cloudinary.com')) {
+                igMediaUrl = igMediaUrl.replace('/upload/', '/upload/c_pad,ar_1:1,b_black/');
+              }
+              createPayload.image_url = igMediaUrl;
             }
 
             const createContainerResponse = await axios.post(
@@ -566,3 +570,6 @@ worker.on("error", (err) => {
 });
 
 export default worker;
+
+
+

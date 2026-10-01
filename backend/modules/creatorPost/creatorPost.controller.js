@@ -1,6 +1,18 @@
 import { CreatorPost } from "./creatorPost.model.js";
 import { createAndDispatchJob } from "../automation/automation.queue.js";
-import { User } from "../auth/auth.model.js";
+import { User } from '../auth/auth.model.js';
+import { v2 as cloudinary } from 'cloudinary';
+import streamifier from 'streamifier';
+
+const uploadToCloudinary = (fileBuffer) => {
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream({ resource_type: 'auto' }, (error, result) => {
+      if (error) return reject(error);
+      resolve(result);
+    });
+    streamifier.createReadStream(fileBuffer).pipe(stream);
+  });
+};
 
 // Creator: Submit a new post for review
 export const submitPost = async (req, res, next) => {
@@ -11,7 +23,17 @@ export const submitPost = async (req, res, next) => {
         .json({ error: "Only creators can submit posts for review." });
     }
 
-    const { title, body, hashtags, link, mediaUrl, platforms } = req.body;
+    let { title, body, hashtags, link, mediaUrl, platforms } = req.body;
+    
+    // Parse platforms if they come in as JSON string (FormData)
+    if (typeof platforms === "string") {
+      try { platforms = JSON.parse(platforms); } catch (e) {}
+    }
+
+    if (req.file) {
+      const uploadResult = await uploadToCloudinary(req.file.buffer);
+      mediaUrl = uploadResult.secure_url;
+    }
 
     const newPost = new CreatorPost({
       creatorId: req.user._id,
@@ -142,4 +164,5 @@ export const rejectPost = async (req, res, next) => {
     next(error);
   }
 };
+
 

@@ -78,6 +78,21 @@ export default function NewPostPage() {
   const fileInputRef = useRef(null);
 
   const [isScheduling, setIsScheduling] = useState(false);
+  const [hasSyncedImport, setHasSyncedImport] = useState(false);
+
+  useEffect(() => {
+    if (!isLoadingAuth && !hasSyncedImport) {
+      // Once auth loads, ensure our form only contains connected platforms
+      // We read directly from getValues() to avoid stale state or infinite loops with watch()
+      const currentSelected = selectedPlatforms; // from watch at the top
+      const validPlatforms = currentSelected.filter(p => connectedPlatforms.includes(p));
+      
+      if (validPlatforms.length !== currentSelected.length) {
+        setValue("platforms", validPlatforms);
+      }
+      setHasSyncedImport(true);
+    }
+  }, [isLoadingAuth, connectedPlatforms, hasSyncedImport, selectedPlatforms, setValue]);
   const [scheduleDate, setScheduleDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -128,6 +143,16 @@ export default function NewPostPage() {
   // ── Enhance with AI ──────────────────────────────────────────────
   // Rewrites the universal draft once, into a caption per selected platform.
   const handleEnhance = async () => {
+    const unconnected = selectedPlatforms.filter((p) => !connectedPlatforms.includes(p));
+    if (unconnected.length > 0) {
+      toast({
+        title: "Platform not connected",
+        description: `You must connect your ${unconnected.join(", ")} account(s) before posting, or uncheck them.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (selectedPlatforms.length === 0) {
       toast({
         title: "Select a target first",
@@ -208,6 +233,16 @@ export default function NewPostPage() {
       toast({
         title: "Nothing to publish",
         description: "Add a title or a body before posting.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const unconnected = selectedPlatforms.filter((p) => !connectedPlatforms.includes(p));
+    if (unconnected.length > 0) {
+      toast({
+        title: "Platform not connected",
+        description: `You must connect your ${unconnected.join(", ")} account(s) before posting, or uncheck them.`,
         variant: "destructive",
       });
       return;
@@ -598,3 +633,6 @@ export default function NewPostPage() {
     </div>
   );
 }
+
+
+
