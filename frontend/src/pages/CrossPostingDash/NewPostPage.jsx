@@ -101,6 +101,18 @@ export default function NewPostPage() {
   const [aiVariants, setAiVariants] = useState(null);
   const [reviewPlatformId, setReviewPlatformId] = useState(null);
 
+  const handleSaveVariant = (platformId, newText) => {
+    setAiVariants((prev) => {
+      const arr = prev || [];
+      const existing = arr.find((v) => v.platform === platformId);
+      if (existing) {
+        return arr.map((v) => (v.platform === platformId ? { ...v, text: newText } : v));
+      } else {
+        return [...arr, { platform: platformId, text: newText }];
+      }
+    });
+  };
+
   const draft = { title: titleVal, body: bodyVal, hashtags: hashtagsVal, link: linkVal };
 
   const reviewPlatform = reviewPlatformId ? PLATFORM_BY_ID[reviewPlatformId] : null;
@@ -628,11 +640,13 @@ export default function NewPostPage() {
         draft={draft}
         isSelected={reviewPlatform ? selectedPlatforms.includes(reviewPlatform.id) : false}
         onToggleSelect={() => reviewPlatform && togglePlatform(reviewPlatform.id)}
+        onSaveVariant={(newText) => handleSaveVariant(reviewPlatform.id, newText)}
         onClose={() => setReviewPlatformId(null)}
       />
     </div>
   );
 }
+
 
 
 

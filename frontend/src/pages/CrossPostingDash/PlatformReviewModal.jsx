@@ -18,9 +18,12 @@ export default function PlatformReviewModal({
   open,
   isSelected,
   onToggleSelect,
+  onSaveVariant,
   onClose,
 }) {
   const [copied, setCopied] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editText, setEditText] = useState("");
 
   const guidance = platform ? PLATFORM_GUIDANCE[platform.id] : null;
   const text = variant?.text || "";
@@ -41,6 +44,8 @@ export default function PlatformReviewModal({
 
   useEffect(() => {
     setCopied(false);
+    setIsEditing(false);
+    setEditText(variant?.text || "");
   }, [platform?.id, variant?.text]);
 
   if (!open || !platform) return null;
@@ -122,6 +127,29 @@ export default function PlatformReviewModal({
               <p className="whitespace-pre-wrap break-words rounded-xl border border-white/[0.07] bg-surface-sunken px-4 py-3 text-xs leading-relaxed text-slate-200">
                 {text}
               </p>
+              {isEditing ? (
+                <div className="space-y-2">
+                  <textarea
+                    value={editText}
+                    onChange={(e) => setEditText(e.target.value)}
+                    className="w-full whitespace-pre-wrap break-words rounded-xl border border-white/[0.2] bg-transparent px-4 py-3 text-xs leading-relaxed text-slate-200 focus:outline-none focus:border-indigo-500"
+                    rows={8}
+                  />
+                  <div className="flex justify-end gap-2">
+                    <Button size="sm" variant="ghost" onClick={() => setIsEditing(false)}>Cancel</Button>
+                    <Button size="sm" onClick={() => { onSaveVariant(editText); setIsEditing(false); }}>Save Changes</Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="group relative">
+                  <p className="whitespace-pre-wrap break-words rounded-xl border border-white/[0.07] bg-surface-sunken px-4 py-3 text-xs leading-relaxed text-slate-200">
+                    {text}
+                  </p>
+                  <Button size="sm" variant="secondary" className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity" onClick={() => setIsEditing(true)}>
+                    Edit
+                  </Button>
+                </div>
+              )}
               <p className="text-[11px] tabular-nums text-muted-foreground">
                 {text.length} characters
               </p>

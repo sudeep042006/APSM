@@ -14,7 +14,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
-import { AlertTriangle, Loader, LogOut, Settings as SettingsIcon, User } from "lucide-react";
+import { AlertTriangle, Loader, LogOut, Settings as SettingsIcon, User, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const FALLBACK_RETURN_PATH = "/dashboard/crosspost";
 
@@ -75,6 +76,17 @@ const Settings = () => {
           <p className="mt-1 text-xs text-muted-foreground">
             Your account and session.
           </p>
+          <div className="mt-6">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => navigate(user?.role === 'creator' ? '/creator' : '/dashboard')}
+              className="h-8 text-xs text-muted-foreground hover:text-white"
+            >
+              <ArrowLeft className="mr-1.5 h-3.5 w-3.5" />
+              Back to Dashboard
+            </Button>
+          </div>
         </header>
 
         {/* Account */}

@@ -1,7 +1,7 @@
 // modules/automation/automation.routes.js
 
 import express from 'express';
-import { createAutomationJob, getAutomationJobs } from './automation.controller.js';
+import { createAutomationJob, getAutomationJobs, enhancePost } from './automation.controller.js';
 import { requireAuth } from '../../middleware/auth.js';
 import multer from 'multer';
 
@@ -16,4 +16,8 @@ router.post('/jobs', requireAuth, upload.single('mediaFile'), createAutomationJo
 // Fetch automation history
 router.get('/jobs', requireAuth, getAutomationJobs);
 
+// Enhance post content using AI
+router.post('/enhance', requireAuth, enhancePost);
+
 export default router;
+

@@ -1,3 +1,4 @@
+import api from './api';
 // ── AI Enhancement (service seam) ─────────────────────────────────────
 // "Enhance with AI" rewrites one draft into a version tailored to each selected
 // platform — different length, tone and hashtag conventions per network.
@@ -50,7 +51,7 @@ export const PLATFORM_GUIDANCE = {
  * Whether a provider is configured. Kept as a function so a provider can be
  * attached at runtime (env var, feature flag) without touching the UI.
  */
-export const isEnhancementAvailable = () => false;
+export const isEnhancementAvailable = () => true;
 
 /** Validation performed before anything is sent to a provider. */
 export const validateEnhancementRequest = ({ platforms, text }) => {
@@ -79,8 +80,24 @@ export const universalCaption = ({ title, body, hashtags, link }) =>
  * real model. Until then it throws, which `enhanceForPlatforms` converts into
  * an explicit `connected: false` result.
  */
-async function requestEnhancement() {
-  throw new Error("No AI provider is configured for cross-post enhancement.");
+
+
+async function requestEnhancement({ title, body, hashtags, platforms }) {
+  const response = await api.post("/automation/enhance", {
+    title,
+    body,
+    hashtags,
+    platforms,
+  });
+
+  const data = response.data;
+  
+  // The backend returns { facebook: "...", linkedin: "..." }
+  // We need to map it to [{ platform: "facebook", text: "..." }]
+  return Object.entries(data).map(([platform, text]) => ({
+    platform,
+    text,
+  }));
 }
 
 /**
@@ -135,3 +152,4 @@ export const enhanceForPlatforms = async ({ title, body, hashtags, link, platfor
 };
 
 export default enhanceForPlatforms;
+
